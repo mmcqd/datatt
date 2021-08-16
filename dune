@@ -1,0 +1,10 @@
+(executable
+  (name repl)
+  (libraries core)
+  (preprocess (pps ppx_deriving.std ppx_jane)))
+  
+(ocamllex 
+  (modules lexer))
+
+(menhir 
+  (modules parser))
