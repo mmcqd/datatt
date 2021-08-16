@@ -26,7 +26,6 @@ and clos = {name : string ; tm : Syntax.t ; env : env}
 
 and clos3 = {names : string * string * string ; tm : Syntax.t ; env : env }
 
-
 and arm_clos = {names : [`Rec of string * string | `Arg of string] list ; arm : Syntax.t ; env : env}
 
 and env = t String.Map.t

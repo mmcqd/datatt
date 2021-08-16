@@ -43,17 +43,30 @@ let rec pp_term (e : t) : string =
     | Ap (e1,(Ap _ as e2)) -> sprintf "%s (%s)" (pp_term e1) (pp_term e2)
     | Ap (e1,e2) -> sprintf "%s %s" (pp_term e1) (pp_atomic e2)
     | Intro {name ; args} -> sprintf "%s %s" name (pp_args args)
-    | Elim _ -> "elim"
+    | Elim {mot = _ ; arms ; scrut} ->
+      sprintf "elim %s with %s" (pp_term scrut) (pp_arms arms)
     | Id (a,x,y) -> sprintf "Id %s %s %s" (pp_atomic a) (pp_atomic x) (pp_atomic y)
-    | J {mot = (x,y,z,mot) ; body = (a,case) ; scrut} -> 
-      sprintf "match %s at %s %s %s ⇒ %s with refl %s ⇒ %s" (pp_term scrut) x y z (pp_term mot) a (pp_term case)
+    | J {mot = _; body = (a,case) ; scrut} -> 
+      sprintf "match %s with refl %s ⇒ %s" (pp_term scrut) a (pp_term case)
     | _ -> pp_atomic e 
-
 
 and pp_args = function
   | [] -> ""
   | [x] -> pp_atomic x
   | x::xs -> pp_atomic x ^ " " ^ pp_args xs  
+
+and pp_arms = function
+  | [] -> ""
+  | arm::arms -> sprintf "%s\n%s" (pp_arm arm) (pp_arms arms)
+
+and pp_arm (con,(args,arm)) =
+  sprintf "| %s %s=> %s" con (pp_arm_args args) (pp_term arm)
+
+and pp_arm_args = function
+  | [] -> " "
+  | `Arg x::args -> sprintf "%s %s" x (pp_arm_args args)
+  | `Rec (x,r)::args -> sprintf "(%s / %s) %s" x r (pp_arm_args args)
+
 
 and pp_atomic (e : t) : string =
   match e with

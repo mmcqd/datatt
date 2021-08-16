@@ -20,6 +20,7 @@ type t =
   | Lam of string list * t
   | Spine of t * t spine
   | Elim of {mot : t bnd option ; scrut : t ; arms : ([`Rec of string * string | `Arg of string] list * t) bnd list}
+  | ElimFun of ([`Rec of string * string | `Arg of string] list * t) bnd list
   | Id of t * t * t
   | Refl
   | J of {mot : (string * string * string * t) option ; scrut : t ; body : string * t}

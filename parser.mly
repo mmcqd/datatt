@@ -92,9 +92,9 @@ let term :=
   | Id; t = atomic; e1 = atomic; e2 = atomic; <Concrete_syntax.Id>
   
 
-  | Elim; scrut = term; With;
+  | Elim; With;
     arms = list(arm);
-    { Concrete_syntax.Elim {mot = None ; scrut ; arms}}
+    { Concrete_syntax.ElimFun arms}
   
   | Elim; scrut = term; At; x = bound_name; Thick_arrow; mot = term; With;
     arms = list(arm);

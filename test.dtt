@@ -11,12 +11,12 @@ def trans (A : Type) (x y z : A) (p : Id A x y) (q : Id A y z) : Id A x z =
 data Unit =
   | <>
 
-def Unit-Ind (P : Unit -> Type) (p : P <>) (x : Unit) : P x =
-  elim x at x => P x with
+def Unit-Ind (P : Unit -> Type) (p : P <>) : (x : Unit) -> P x =
+  elim with
     | <> => p
 
-def Unit-Eta (x : Unit) : Id Unit x <> = 
-  elim x at x => Id Unit x <> with
+def Unit-Eta : (x : Unit) -> Id Unit x <> = 
+  elim with
     | <> => refl
 
 data Nat =
@@ -26,36 +26,52 @@ data Nat =
 def one : Nat = suc zero
 def two : Nat = suc (suc zero)
 
-def Nat-Ind (P : Nat -> Type) (z : P zero) (s : (m : Nat) -> P m -> P (suc m)) (n : Nat) : P n =
-  elim n at x => P x with
+def Nat-Ind (P : Nat -> Type) (z : P zero) (s : (m : Nat) -> P m -> P (suc m)) : (n : Nat) -> P n =
+  elim with
     | zero => z
     | suc (n' / ih) => s n' ih
 
-def + (n m : Nat) : Nat =
-  elim n at _ => Nat with
-    | zero => m
-    | suc (_ / ih) => suc ih
+def + : Nat -> Nat -> Nat =
+  elim with
+    | zero => fn m => m
+    | suc (_ / ih) => fn m => suc (ih m)
 
-def +-zero (n : Nat) : Id Nat (+ n zero) n =
-  elim n at n => Id Nat (+ n zero) n with
+def +-assoc : (n m p : Nat) -> Id Nat (+ (+ n m) p) (+ n (+ m p)) =
+  elim with
+    | zero => fn _ _ => refl
+    | suc (n' / ih) => fn m p =>
+      match ih m p at x y _ => Id Nat (suc x) (suc y) with
+        | refl z => refl
+
+def +-zero : (n : Nat) -> Id Nat n (+ n zero) =
+  elim with
     | zero => refl
     | suc (n' / ih) => 
       match ih at x y _ => Id Nat (suc x) (suc y) with
         | refl x => refl
 
+def +-suc : (n m : Nat) -> Id Nat (suc (+ n m)) (+ n (suc m)) =
+  elim with
+    | zero => fn _ => refl
+    | suc (n' / ih) => fn m =>
+      match ih m at x y _ => Id Nat (suc x) (suc y) with
+        | refl x => refl
+
+
 data List =
   | nil
   | cons (x : Nat) (xs : List)
 
-def List-Ind (P : List -> Type) (n : P nil) (c : (n : Nat) (xs : List) -> P xs -> P (cons n xs)) (xs : List) : P xs =
-  elim xs at x => P x with
+def List-Ind (P : List -> Type) (n : P nil) (c : (n : Nat) (xs : List) -> P xs -> P (cons n xs)) : (xs : List) -> P xs =
+  elim with
     | nil => n
     | cons x (xs / ih) => c x xs ih
 
-def ++ (xs ys : List) : List =
-  elim xs at _ => List with
-    | nil => ys
-    | cons x (_ / ih) => cons x ih
+def ++ : List -> List -> List =
+  elim with
+    | nil => fn ys => ys
+    | cons x (_ / ih) => fn ys => cons x (ih ys)
+
 
 def xs : List = cons zero (cons one nil)
 

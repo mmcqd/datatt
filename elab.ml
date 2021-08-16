@@ -46,6 +46,15 @@ let rec check (ctx : Ctx.t) (cs : CSyn.t) (tp : Dom.t) : Syn.t =
     | Refl, Id (a,x,y) ->
       let x' = Nbe.equate (Ctx.to_names ctx) x y a in
       Refl x'
+    | ElimFun arms, Pi (Data desc,clos) ->
+      if not (List.equal String.equal (List.map ~f:fst desc.cons) (List.map ~f:fst arms)) then error "Elim arms don't match constructors" else
+      let x = clos.name in
+      Lam (x,Elim { mot = (x,clos.tm)
+            ; scrut = Var x
+            ; arms = List.map2_exn arms desc.cons ~f:(fun (con,(args,arm)) (_,dtele) -> 
+              let dom_args,ctx = collect_elim_args clos args dtele desc ctx in
+                 (con,(args,check ctx arm (Nbe.do_clos {clos with env = Ctx.to_env ctx} (Intro {name = con ; args = dom_args})))))
+            })
     | _ ->
       let used = Ctx.to_names ctx in
       let tp',s = synth ctx cs in
