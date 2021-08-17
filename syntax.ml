@@ -15,6 +15,7 @@ type t =
   | Id of t * t * t
   | Refl of t
   | J of {mot : string * string * string * t ; scrut : t ; body : string * t}
+  [@@deriving show]
 
 let rec_map (f : t -> t) = function
   | Var x -> Var x
@@ -57,7 +58,7 @@ and pp_args = function
 
 and pp_arms = function
   | [] -> ""
-  | arm::arms -> sprintf "%s\n%s" (pp_arm arm) (pp_arms arms)
+  | arm::arms -> sprintf "%s %s" (pp_arm arm) (pp_arms arms)
 
 and pp_arm (con,(args,arm)) =
   sprintf "| %s %s=> %s" con (pp_arm_args args) (pp_term arm)

@@ -13,7 +13,7 @@ let r = ref 0
 let fresh () = r := !r + 1 ; "@"^Int.to_string !r 
 
 let rec check (ctx : Ctx.t) (cs : CSyn.t) (tp : Dom.t) : Syn.t =
-  (* printf "CHECK %s\n" (CSyn.show cs); *)
+  (* printf "CHECK %s AT %s\n" (CSyn.show cs) (Syn.show @@ Nbe.read_back (Ctx.to_names ctx) tp (U Omega)); *)
   match cs,tp with
     | Hole,tp -> raise (Hole {goal = Syn.show (Nbe.read_back (Ctx.to_names ctx) tp (U Omega)) ; ctx = Ctx.to_string ctx})
     | U i,U j when Level.(<) i j -> U i
@@ -42,7 +42,9 @@ let rec check (ctx : Ctx.t) (cs : CSyn.t) (tp : Dom.t) : Syn.t =
     | Id (a,x,y), U i ->
       let a = check ctx a (U i) in
       let a' = Nbe.eval (Ctx.to_env ctx) a in
-      Id (a,check ctx x a', check ctx y a')
+      let x' = check ctx x a' in
+      let y' = check ctx y a' in
+      Id (a,x',y')
     | Refl, Id (a,x,y) ->
       let x' = Nbe.equate (Ctx.to_names ctx) x y a in
       Refl x'
@@ -149,7 +151,7 @@ and collect_elim_args mot args dtele desc ctx =
 
 
 let rec elab_data ctx dname cons : Dom.desc =
-  {name = dname ; env = Ctx.to_env ctx ; cons = List.map ~f:(fun (con,args) -> con,elab_con ctx dname args) cons }
+  {name = dname ; env = Ctx.to_env ctx ; cons = List.map ~f:(fun (con,args) -> con,elab_con (Ctx.add ctx ~var:dname ~tp:(U (Const 0))) dname args) cons }
 
 and resolve_spec ctx dname = function
   | CSyn.Var x when String.equal x dname -> Dom.Rec
@@ -159,4 +161,7 @@ and elab_con ctx dname args =
   match args with
     | [] -> Dom.Nil
     | [(_,arg)] -> One (resolve_spec ctx dname arg)
-    | (x,arg)::args -> Cons ((x,resolve_spec ctx dname arg),elab_con (Ctx.add_syn ctx ~var:x ~tp:(check ctx arg (U Omega))) dname args)
+    | (x,arg)::args -> 
+      let arg = resolve_spec ctx dname arg in
+      let tp = match arg with Tp tp -> tp | Rec -> Var dname in
+      Cons ((x,arg),elab_con (Ctx.add_syn ctx ~var:x ~tp) dname args)

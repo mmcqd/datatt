@@ -1,7 +1,7 @@
 type 'a spine =
   | Nil
   | Snoc of 'a spine * 'a
-  [@@deriving show]
+  [@@deriving show { with_path = false }]
 
 let rec spine_to_list_ acc = function
   | Nil -> acc
@@ -25,7 +25,7 @@ type t =
   | Refl
   | J of {mot : (string * string * string * t) option ; scrut : t ; body : string * t}
   | Ascribe of {tm : t ; tp : t}
-  [@@deriving show]
+  [@@deriving show { with_path = false }]
 
 type cmd =
   | Eval of t
