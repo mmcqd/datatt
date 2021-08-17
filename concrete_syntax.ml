@@ -19,6 +19,10 @@ type t =
   | Pi of t bnd list * t
   | Lam of string list * t
   | Spine of t * t spine
+  | Sg of t bnd list * t
+  | Tuple of t list
+  | Fst of t
+  | Snd of t
   | Elim of {mot : t bnd option ; scrut : t ; arms : ([`Rec of string * string | `Arg of string] list * t) bnd list}
   | ElimFun of ([`Rec of string * string | `Arg of string] list * t) bnd list
   | Id of t * t * t

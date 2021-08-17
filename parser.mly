@@ -17,6 +17,7 @@ let func_syntax (args,t,e) =
 %token Question_mark
 %token L_paren R_paren
 %token Lambda Thick_arrow Arrow
+%token Comma DotOne DotTwo Star
 %token Type Caret
 %token Colon
 %token Underbar
@@ -71,7 +72,9 @@ let atomic :=
   | paren(term)
   | Question_mark; { Concrete_syntax.Hole }
   | x = Ident; { Concrete_syntax.Var x }
-  | L_paren; tm = term; Colon; tp = term; R_paren; { Concrete_syntax.Ascribe {tp ; tm} }
+  | ~ = paren(separated_list(Comma,term)); <Concrete_syntax.Tuple>
+  | ~ = atomic; DotOne; <Concrete_syntax.Fst>
+  | ~ = atomic; DotTwo; <Concrete_syntax.Snd>
   | Type; Caret; i = Dec_const; { Concrete_syntax.U (Const i) }
   | Type; { Concrete_syntax.U (Const 0) }
   | Refl; { Concrete_syntax.Refl }
@@ -89,6 +92,8 @@ let term :=
   | Lambda; xs = nonempty_list(bound_name); Thick_arrow; e = term; <Concrete_syntax.Lam>
   | args = nonempty_list(paren(annot_args)); Arrow; e = term; { Concrete_syntax.Pi (args_to_tele args,e) }
   | t1 = term; Arrow; t2 = term; { Concrete_syntax.Pi ([("_",t1)],t2) }
+  | args = nonempty_list(paren(annot_args)); Star; e = term; { Concrete_syntax.Sg (args_to_tele args,e) }
+  | t1 = term; Star; t2 = term; { Concrete_syntax.Sg ([("_",t1)],t2) }
   | Id; t = atomic; e1 = atomic; e2 = atomic; <Concrete_syntax.Id>
   
 

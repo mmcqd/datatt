@@ -99,7 +99,7 @@ def + : Nat -> Nat -> Nat =
     | zero => fn m => m
     | suc (_ / ih) => fn m => suc (ih m)
 
-def * : Nat -> Nat -> Nat =
+def mult : Nat -> Nat -> Nat =
   elim with
     | zero => fn _ => zero
     | suc (n / ih) => fn m => + m (ih m)
@@ -126,6 +126,10 @@ def +-suc : (n m : Nat) -> Id Nat (suc (+ n m)) (+ n (suc m)) =
         | refl x => refl
 
 
+data Maybe =
+  | none
+  | some (x : Nat)
+
 data List =
   | nil
   | cons (x : Nat) (xs : List)
@@ -140,8 +144,15 @@ def ++ : List -> List -> List =
     | nil => fn ys => ys
     | cons x (_ / ih) => fn ys => cons x (ih ys)
 
+def hd : List -> Maybe =
+  elim with
+    | nil => none
+    | cons x xs => some x
 
-def xs : List = cons zero (cons one nil)
+def tl : List -> List =
+  elim with
+    | nil => nil
+    | cons x xs => xs
 
 data Exp =
   | num (n : Nat)
@@ -152,7 +163,7 @@ def eval : Exp -> Nat =
   elim with
     | num n => n
     | add (_ / ih1) (_ / ih2) => + ih1 ih2
-    | mul (_ / ih1) (_ / ih2) => * ih1 ih2
+    | mul (_ / ih1) (_ / ih2) => mult ih1 ih2
 
 def e : Exp = mul (add (num one) (num one)) (num two)
 
@@ -165,3 +176,8 @@ def tree-rev : Tree -> Tree =
     | empty => empty
     | node (l / ihl) x (r / ihr) => node ihr x ihl
 
+def Iso (A B : Type) : Type^1 =
+  (f : A -> B) *
+  (g : B -> A) *
+  ((x : A) -> Id A x (g (f x))) *
+  ((y : B) -> Id B y (f (g y)))

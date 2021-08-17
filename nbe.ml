@@ -17,6 +17,10 @@ let rec eval (env : Dom.env) (s : Syn.t) : Dom.t =
     | Pi ((x,d),r) -> Pi (eval env d,{name = x ; tm = r ; env})
     | Lam (x,s) -> Lam {name = x ; tm = s ; env}
     | Ap (f,s) -> do_ap (eval env f) (eval env s)
+    | Sg ((x,f),s) -> Sg (eval env f,{name = x ; tm = s ; env})
+    | Pair (a,b) -> Pair (eval env a, eval env b)
+    | Fst p -> do_fst (eval env p)
+    | Snd p -> do_snd (eval env p)
     | Data d -> String.Map.find_exn env d
     | Intro {name ; args} -> Intro {name ; args = List.map ~f:(eval env) args}
     | Elim {mot = (x,m) ; arms ; scrut} -> do_elim Dom.{name = x ; tm = m ; env} arms (eval env scrut) env
@@ -37,6 +41,18 @@ and do_ap (f : Dom.t) (arg : Dom.t) : Dom.t =
     | Neutral {tp = Pi (d,clos) ; ne} ->
       Neutral {tp = do_clos clos arg ; ne = Ap (ne,{tm = arg ; tp = d})}
     | _ -> failwith "do_ap"
+
+and do_fst (p : Dom.t) : Dom.t =
+  match p with
+    | Pair (f,_) -> f
+    | Neutral {tp = Sg (a,_) ; ne} -> Neutral {tp = a ; ne = Fst ne}
+    | _ -> failwith "do_fst"
+
+and do_snd (p : Dom.t) : Dom.t =
+  match p with
+    | Pair (_,s) -> s
+    | Neutral {tp = Sg (_,clos) ; ne} -> Neutral {tp = do_clos clos (do_fst p) ; ne = Snd ne}
+    | _ -> failwith "do_snd"
 
 and do_elim mot arms scrut env_s =
   match scrut with
@@ -101,6 +117,13 @@ let rec equate (used : String.Set.t) (e1 : Dom.t) (e2 : Dom.t) (tp : Dom.t) : Sy
       let d = equate used d2 d1 (U i) in
       let x,used = fresh used clos1.name in
       Pi ((x,d),equate used (do_clos clos1 (var x d1)) (do_clos clos2 (var x d2)) (U i))
+    | Sg (d1,clos1), Sg (d2,clos2), U i ->
+      let d = equate used d2 d1 (U i) in
+      let x,used = fresh used clos1.name in
+      Sg ((x,d),equate used (do_clos clos1 (var x d1)) (do_clos clos2 (var x d2)) (U i))
+    | p1,p2, Sg (f,clos) ->
+      let fst_p1 = do_fst p1 in
+      Pair (equate used fst_p1 (do_fst p2) f, equate used (do_snd p1) (do_snd p2) (do_clos clos fst_p1)) 
     | Data d1, Data d2, U _ ->
       if String.equal d1.name d2.name then Data d1.name else error (sprintf "%s != %s" d1.name d2.name)
     | Intro i1, Intro i2, Data d ->
@@ -112,7 +135,7 @@ let rec equate (used : String.Set.t) (e1 : Dom.t) (e2 : Dom.t) (tp : Dom.t) : Sy
     | Refl x1, Refl x2, Id (a,_,_) ->
       Refl (equate used x1 x2 a)
     | Neutral n1,Neutral n2,_ -> equate_ne used n1.ne n2.ne
-    | _ -> error (sprintf "equate - Inputs not convertible - %s != %s" (Dom.show_hd (Dom.hd e1)) (Dom.show_hd (Dom.hd e2)) )
+    | _ -> error (sprintf "equate - Inputs not convertible - %s != %s" (Dom.show e1) (Dom.show e2))
 
 and equate_intro_args used args1 args2 dtele desc =
   match args1,args2,dtele with
@@ -127,6 +150,8 @@ and equate_ne used ne1 ne2 =
   match ne1,ne2 with
     | Var x,Var y -> if String.equal x y then Var x else error (sprintf "%s != %s" x y)
     | Ap (f1,nf1),Ap (f2,nf2) -> Ap (equate_ne used f1 f2,equate used nf1.tm nf2.tm nf1.tp)
+    | Fst ne1, Fst ne2 -> Fst (equate_ne used ne1 ne2)
+    | Snd ne1, Snd ne2 -> Snd (equate_ne used ne1 ne2)
     | Elim e1,Elim e2 ->
       let x,used = fresh used e1.mot.name in
       Elim { mot = (x,equate used (do_clos e1.mot (var x (Data e1.desc))) (do_clos e2.mot (var x (Data e2.desc))) (U Omega))

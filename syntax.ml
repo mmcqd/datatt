@@ -9,6 +9,10 @@ type t =
   | Pi of t bnd * t
   | Lam of string * t
   | Ap of t * t
+  | Sg of t bnd * t
+  | Pair of t * t
+  | Fst of t
+  | Snd of t
   | Data of string
   | Intro of {name : string ; args : t list}
   | Elim of {mot : t bnd ; arms : ([`Rec of string * string | `Arg of string] list * t) bnd list ; scrut : t}
@@ -16,7 +20,7 @@ type t =
   | Refl of t
   | J of {mot : string * string * string * t ; scrut : t ; body : string * t}
   [@@deriving show]
-
+(* 
 let rec_map (f : t -> t) = function
   | Var x -> Var x
   | Pi ((x,d),r) -> Pi ((x,f d), f r)
@@ -32,7 +36,7 @@ let rec_map (f : t -> t) = function
 
 let rec bottom_up f x = x |> rec_map (bottom_up f) |> f
 
-let lift i = bottom_up (function U (Const j) -> U (Const (j + i)) | x -> x)
+let lift i = bottom_up (function U (Const j) -> U (Const (j + i)) | x -> x) *)
 
 let rec pp_term (e : t) : string =
   match e with
@@ -40,6 +44,8 @@ let rec pp_term (e : t) : string =
     | Pi (("_",(Pi _ as d)),r) -> sprintf "(%s) → %s" (pp_term d) (pp_term r)
     | Pi (("_",d),r) -> sprintf "%s → %s" (pp_term d) (pp_term r)
     | Pi ((x,d),r) -> sprintf "(%s : %s) → %s" x (pp_term d) (pp_term r)
+    | Sg (("_",t),e) -> sprintf "%s × %s" (pp_atomic t) (pp_atomic e)
+    | Sg ((x,t),e) -> sprintf "(%s : %s) × %s" x (pp_term t) (pp_atomic e)
     | Ap ((Lam _ | J _ | Elim _) as e1,e2) -> sprintf "(%s) %s" (pp_term e1) (pp_term e2)
     | Ap (e1,(Ap _ as e2)) -> sprintf "%s (%s)" (pp_term e1) (pp_term e2)
     | Ap (e1,e2) -> sprintf "%s %s" (pp_term e1) (pp_atomic e2)
@@ -75,6 +81,9 @@ and pp_atomic (e : t) : string =
     | U Omega -> "Type^ω"
     | U (Const 0) -> "Type"
     | U (Const i) -> sprintf "Type^%i" i
+    | Pair (e1,e2) -> sprintf "(%s,%s)" (pp_term e1) (pp_term e2)
+    | Fst e -> sprintf "%s.1" (pp_atomic e)
+    | Snd e -> sprintf "%s.2" (pp_atomic e)
     | Data name -> name
     | Intro {name ; args = []} -> name
     | Refl x -> sprintf "refl %s" (pp_atomic x)

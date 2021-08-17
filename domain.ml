@@ -16,6 +16,8 @@ type t =
   | U of Level.t
   | Lam of clos
   | Pi of t * clos
+  | Sg of t * clos
+  | Pair of t * t
   | Data of desc
   | Intro of {name : string ; args : t list}
   | Id of t * t * t
@@ -26,6 +28,8 @@ type t =
 and ne =
   | Var of string
   | Ap of ne * nf
+  | Fst of ne
+  | Snd of ne
   | Elim of {mot : clos ; arms : arm_clos bnd list ; scrut : ne ; desc : desc}
   | J of {mot : clos3 ; body : clos ; scrut : ne ; tp : t}
   [@@deriving show {with_path = false}]
@@ -56,25 +60,3 @@ and dtele =
 and desc = {name : string ; cons : dtele bnd list ; env : env}
 
 [@@@ocaml.warning "+30"]
-
-type hd =
-  [ `U
-  | `Lam
-  | `Pi
-  | `Data
-  | `Intro
-  | `Id
-  | `Refl
-  | `Neutral
-  ]
-  [@@deriving show]
-
-let hd = function
-  | U _ -> `U
-  | Lam _ -> `Lam
-  | Pi _ -> `Pi
-  | Data _ -> `Data
-  | Intro _ -> `Intro
-  | Id _ -> `Id
-  | Refl _ -> `Refl
-  | Neutral _ -> `Neutral

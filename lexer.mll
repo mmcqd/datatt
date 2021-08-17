@@ -15,6 +15,10 @@ rule initial = parse
   | '\n' { Lexing.new_line lexbuf; initial lexbuf }
   | '(' { L_paren }
   | ')' { R_paren }
+  | ',' { Comma }
+  | ".1" { DotOne }
+  | ".2" { DotTwo }
+  | '*' | "×" { Star }
   | "fn" | "λ" { Lambda }
   | "->" | "→" { Arrow }
   | "=>" { Thick_arrow }

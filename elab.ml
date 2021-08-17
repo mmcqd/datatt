@@ -23,9 +23,18 @@ let rec check (ctx : Ctx.t) (cs : CSyn.t) (tp : Dom.t) : Syn.t =
       let d = check ctx d (U i) in
       let pi = check (Ctx.add_syn ctx ~var:x ~tp:d) (Pi (tele,r)) (U i) in
       Pi ((x,d),pi)
+    | Sg ([],r), U i -> check ctx r (U i)
+    | Sg ((x,d)::tele,r), U i ->
+      let d = check ctx d (U i) in
+      let sg = check (Ctx.add_syn ctx ~var:x ~tp:d) (Sg (tele,r)) (U i) in
+      Sg ((x,d),sg)
     | Lam ([],e),tp -> check ctx e tp
     | Lam (x::xs,e),Pi (d,clos) -> 
       Lam (x,check (Ctx.add ctx ~var:x ~tp:d) (Lam (xs,e)) (Nbe.do_clos clos (Nbe.var x d)))
+    | Tuple [x],tp -> check ctx x tp
+    | Tuple (x::xs),Sg (f,clos) -> 
+      let x' = check ctx x f in
+      Pair (x',check ctx (Tuple xs) (Nbe.do_clos clos (Nbe.eval (Ctx.to_env ctx) x')))
     | Var d,U _ when (match Ctx.find_data ctx d with Some _ -> true | _ -> false) -> Data d
     | Var con,Data desc when (match Ctx.find_tp ctx con with Some _ -> false | _ -> true) ->
       begin
@@ -93,6 +102,18 @@ and synth (ctx : Ctx.t) (cs : CSyn.t) : Dom.t * Syn.t =
     | Ascribe {tm ; tp} ->
       let tp = Nbe.eval (Ctx.to_env ctx) (check ctx tp (U Omega)) in
       tp, check ctx tm tp
+    | Fst p ->
+      begin
+      match synth ctx p with
+        | Sg (f,_),p -> f,Fst p
+        | _,p -> error (sprintf "%s is not a pair, it cannot be projected from" (Syn.show p))
+      end
+    | Snd p ->
+      begin
+      match synth ctx p with
+        | Sg (_,clos),p -> Nbe.do_clos clos (Nbe.do_fst (Nbe.eval (Ctx.to_env ctx) p)),Snd p
+        | _,p -> error (sprintf "%s is not a pair, it cannot be projected from" (Syn.show p))
+      end
     | Elim {mot = Some (x,mot) ; scrut ; arms} ->
       begin
       match synth ctx scrut with
