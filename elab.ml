@@ -17,6 +17,7 @@ let rec check (ctx : Ctx.t) (cs : CSyn.t) (tp : Dom.t) : Syn.t =
   (* printf "CHECK %s AT %s\n" (CSyn.show cs) (Syn.show @@ Nbe.read_back (Ctx.to_names ctx) tp (U Omega)); *)
   match Mark.data cs,tp with
     | Hole,tp -> raise (Hole {goal = Syn.show (Nbe.read_back (Ctx.to_names ctx) tp (U Omega)) ; ctx = Ctx.to_string ctx ; pos = Mark.show cs})
+    | U Omega,U Omega -> U Omega (* VERY SUS but technically ok because user can't create terms of type U Omega *)
     | U i,U j when Level.(<) i j -> U i
     | U i, U j -> error (sprintf "%s - %s too large to be contained in %s" (Mark.show cs) (Syn.show (U i)) (Syn.show (U j)))
     | Pi ([],r), U i -> check ctx r (U i)
@@ -81,6 +82,8 @@ let rec check (ctx : Ctx.t) (cs : CSyn.t) (tp : Dom.t) : Syn.t =
           let tp_syn = Nbe.read_back used tp (U Omega) in
           let x = fresh () in
           let mot_body = Syn.subst (Var x) scrut tp_syn in
+          let ctx' = ctx |> Ctx.add ~var:x ~tp:(Data desc) in
+          (try const () @@ check ctx' (Syn.to_concrete mot_body) (U Omega) with TypeError s -> error (sprintf "%s - In guessed motive: %s" (Mark.show cs) s));
           let mot_clos = Dom.{name = x ; tm = mot_body ; env = Ctx.to_env ctx} in
           Elim { mot = (x,mot_body) 
                ; scrut 
@@ -104,6 +107,8 @@ let rec check (ctx : Ctx.t) (cs : CSyn.t) (tp : Dom.t) : Syn.t =
                         |> Syn.subst (Var y) (Syn.subst (Var x) e1' e2')
                         |> Syn.subst (Var p) scrut in
           (* print_endline (sprintf "GUSSED MOT: %s" (Syn.show mot_body)); *)
+          let ctx' = ctx |> Ctx.add ~var:x ~tp:a |> Ctx.add ~var:y ~tp:a |> Ctx.add ~var:p ~tp:(Id (a,Nbe.var x a,Nbe.var y a)) in
+          (try const () @@ check ctx' (Syn.to_concrete mot_body) (U Omega) with TypeError s -> error (sprintf "%s - In guessed motive: %s" (Mark.show cs) s));
           let body_tp = Nbe.do_clos3 Dom.{names = (x,y,p) ; tm = mot_body ; env = Ctx.to_env ctx} (Nbe.var z a) (Nbe.var z a) (Refl (Nbe.var z a)) in
           let body = (z,check(Ctx.add ctx ~var:z ~tp:a) e body_tp ) in
           J {mot = (x,y,p,mot_body) ; body ; scrut}

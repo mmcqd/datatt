@@ -158,9 +158,28 @@ let equal (e1 : t) (e2 : t) : bool =
   in 
   go 0 String.Map.empty e1 String.Map.empty e2
 
-
-
 (* This is definitely wrong because it can cause variable capture *)
 let subst (subst : t) (fr : t) : t -> t =
   top_down (fun x -> if equal fr x then subst else x)
 
+
+let rec to_concrete (e : t) : Concrete_syntax.t = Mark.naked @@ to_concrete_ e
+
+and to_concrete_ (e : t) : Concrete_syntax.t_ = let open Concrete_syntax in
+  match e with
+    | Var x -> Var x
+    | Lift {name ; lvl} -> Lift {name ; lvl}
+    | U i -> U i
+    | Pi ((x,d),r) -> Pi ([(x,to_concrete d)],to_concrete r)
+    | Lam (x,e) -> Lam ([x],to_concrete e)
+    | Ap (f,e) -> Spine (to_concrete f,Snoc (Nil,to_concrete e))
+    | Sg ((x,d),r) -> Sg ([(x,to_concrete d)],to_concrete r)
+    | Pair (x,y) -> Tuple [to_concrete x;to_concrete y]
+    | Fst p -> Fst (to_concrete p)
+    | Snd p -> Snd (to_concrete p)
+    | Data d -> Var d
+    | Intro {name ; args} -> Spine (to_concrete (Var name),args |> List.map ~f:to_concrete |> list_to_spine)
+    | Elim {mot = (x,m) ; scrut ; arms} -> Elim {mot = Some (x,to_concrete m) ; scrut = to_concrete scrut ; arms = List.map ~f:(fun (con,(vs,arm)) -> (con,(vs,to_concrete arm))) arms}
+    | Id (a,m,n) -> Id (to_concrete a,to_concrete m,to_concrete n)
+    | Refl _ -> Refl
+    | J {mot = (x,y,p,m) ; body = (z,e) ; scrut} -> J {mot = Some (x,y,p,to_concrete m) ; body = (z,to_concrete e) ; scrut = to_concrete scrut} 

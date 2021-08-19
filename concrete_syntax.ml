@@ -9,6 +9,12 @@ let rec spine_to_list_ acc = function
 
 let spine_to_list s = spine_to_list_ [] s
 
+let rec list_to_spine_ acc = function
+  | [] -> acc
+  | x::xs -> list_to_spine_ (Snoc (acc,x)) xs
+
+let list_to_spine xs = list_to_spine_ Nil xs
+
 type 'a bnd = (string * 'a)
   [@@deriving show]
 
