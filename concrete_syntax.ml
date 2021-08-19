@@ -10,9 +10,8 @@ let rec spine_to_list_ acc = function
 let spine_to_list s = spine_to_list_ [] s
 
 type 'a bnd = (string * 'a)
-  [@@deriving show]
 
-type t =
+type t_ =
   | Hole
   | Var of string
   | U of Level.t
@@ -29,7 +28,8 @@ type t =
   | Refl
   | J of {mot : (string * string * string * t) option ; scrut : t ; body : string * t}
   | Ascribe of {tm : t ; tp : t}
-  [@@deriving show { with_path = false }]
+
+and t = t_ Mark.t
 
 type cmd =
   | Eval of t

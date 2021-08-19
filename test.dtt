@@ -179,7 +179,7 @@ def Iso (A B : Type) : Type^1 =
   ((x : A) -> Id A x (g (f x))) *
   ((y : B) -> Id B y (f (g y)))
 
-def PType : Type^1 = (A : Type) * A
+def PType : Type = (A : Type) * A
 
 def PUnit : PType = (Unit,<>)
 def PNat : PType = (Nat,zero)
@@ -205,3 +205,16 @@ def Contr-Unit : Contr Unit = (<>,Unit-Eta)
 def Prop-Unit : Prop Unit = elim with 
   | <> => elim with <> => refl
 
+{-
+def Set-Unit : Set Unit = elim with
+  | <> => elim with <> => ?
+-}
+
+def Prop-Void : Prop Void = elim with
+
+def Set-Void : Set Void = elim with
+
+def pair-ext (A B : Type) (x y : A * B) (p : Id A x.1 y.1) (q : Id B x.2 y.2) : Id (A * B) x y =
+  match p at a b _ => Id (A * B) (a,x.2) (b,y.2) with
+    | refl z => match q at a b _ => Id (A * B) (z,a) (z,b) with
+      | refl _ => refl
