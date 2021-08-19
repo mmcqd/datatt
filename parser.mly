@@ -77,6 +77,7 @@ let atomic :=
   | paren(term)
   | Question_mark; { Concrete_syntax.Hole }
   | x = Ident; { Concrete_syntax.Var x }
+  | name = Ident; Caret; lvl = Dec_const; { Concrete_syntax.Lift {name ; lvl} }
   | ~ = paren(separated_list(Comma,m(term))); <Concrete_syntax.Tuple>
   | ~ = m(atomic); DotOne; <Concrete_syntax.Fst>
   | ~ = m(atomic); DotTwo; <Concrete_syntax.Snd>

@@ -179,7 +179,7 @@ def Iso (A B : Type) : Type^1 =
   ((x : A) -> Id A x (g (f x))) *
   ((y : B) -> Id B y (f (g y)))
 
-def PType : Type = (A : Type) * A
+def PType : Type^1 = (A : Type) * A
 
 def PUnit : PType = (Unit,<>)
 def PNat : PType = (Nat,zero)

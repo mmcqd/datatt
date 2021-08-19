@@ -14,6 +14,7 @@ type 'a bnd = (string * 'a)
 type t_ =
   | Hole
   | Var of string
+  | Lift of {name : string ; lvl : int}
   | U of Level.t
   | Pi of t bnd list * t
   | Lam of string list * t

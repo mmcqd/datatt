@@ -14,6 +14,7 @@ let rec eval (env : Dom.env) (s : Syn.t) : Dom.t =
   (* printf "EVAL %s\n" (Syn.show s); *)
   match s with
     | Var x -> String.Map.find_exn env x
+    | Lift {name ; lvl} -> Dom.lift lvl (String.Map.find_exn env name)
     | U i -> U i
     | Pi ((x,d),r) -> Pi (eval env d,{name = x ; tm = r ; env})
     | Lam (x,s) -> Lam {name = x ; tm = s ; env}

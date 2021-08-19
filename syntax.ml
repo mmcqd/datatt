@@ -5,6 +5,7 @@ type 'a bnd = string * 'a
 
 type t =
   | Var of string
+  | Lift of {name : string ; lvl : int}
   | U of Level.t
   | Pi of t bnd * t
   | Lam of string * t
@@ -20,9 +21,10 @@ type t =
   | Refl of t
   | J of {mot : string * string * string * t ; scrut : t ; body : string * t}
   [@@deriving show]
-(* 
+
 let rec_map (f : t -> t) = function
   | Var x -> Var x
+  | Lift x -> Lift x
   | Pi ((x,d),r) -> Pi ((x,f d), f r)
   | Lam (x,e) -> Lam (x,f e)
   | Ap (g,e) -> Ap (f g, f e)
@@ -33,10 +35,14 @@ let rec_map (f : t -> t) = function
   | Id (a,x,y) -> Id (f a, f x, f y)
   | Refl x -> Refl (f x)
   | J {mot = (x,y,p,m) ; body = (z,e) ; scrut} -> J {mot = (x,y,p,f m) ; body = (z,f e) ; scrut = f scrut}
+  | Sg ((x,d),r) -> Sg ((x,f d),f r)
+  | Pair (x,y) -> Pair (f x, f y)
+  | Fst p -> Fst (f p)
+  | Snd p -> Snd (f p)
 
 let rec bottom_up f x = x |> rec_map (bottom_up f) |> f
 
-let lift i = bottom_up (function U (Const j) -> U (Const (j + i)) | x -> x) *)
+let lift i = bottom_up (function U (Const j) -> U (Const (j + i)) | x -> x)
 
 let rec pp_term (e : t) : string =
   match e with

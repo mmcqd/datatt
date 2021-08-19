@@ -60,3 +60,34 @@ and 'a tele =
 and desc = {name : string ; cons : spec tele bnd list ; env : env}
 
 [@@@ocaml.warning "+30"]
+
+let rec lift i = function
+  | Lam clos -> Lam (lift_clos i clos)
+  | Pi (d,clos) -> Pi (lift i d, lift_clos i clos)
+  | Sg (d,clos) -> Sg (lift i d, lift_clos i clos)
+  | Pair (x,y) -> Pair (lift i x,lift i y)
+  | U Omega -> U Omega
+  | U (Const j) -> U (Const (j + i))
+  | Id (a,x,y) -> Id (lift i a,lift i x, lift i y)
+  | Refl x -> Refl (lift i x)
+  | Data d -> Data d (* this might be wrong lol *)
+  | Intro {name ; args} -> Intro {name ; args = List.map ~f:(lift i) args}
+  | Neutral {tp ; ne} -> Neutral {tp = lift i tp ; ne = lift_ne i ne}
+
+and lift_clos i clos =
+  {clos with tm = Syntax.lift i clos.tm}
+
+and lift_clos3 i (clos : clos3) =
+  {clos with tm = Syntax.lift i clos.tm}
+
+and lift_arm_clos i clos =
+  {clos with arm = Syntax.lift i clos.arm}
+
+
+and lift_ne i = function
+  | Var x -> Var x
+  | Ap (ne, {tp ; tm}) -> Ap (lift_ne i ne, {tp = lift i tp; tm = lift i tm})
+  | J {mot ; body ; scrut ; tp} -> J {mot = lift_clos3 i mot ; body = lift_clos i body ; scrut = lift_ne i scrut ; tp = lift i tp}
+  | Elim {mot ; arms ; scrut ; desc } -> Elim { mot = lift_clos i mot ; arms = List.map ~f:(fun (con,clos) -> (con,lift_arm_clos i clos)) arms ; scrut = lift_ne i scrut ; desc}
+  | Fst p -> Fst (lift_ne i p)
+  | Snd p -> Snd (lift_ne i p)

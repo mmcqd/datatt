@@ -101,6 +101,12 @@ and synth (ctx : Ctx.t) (cs : CSyn.t) : Dom.t * Syn.t =
         | None -> error (sprintf "%s - Unbound var `%s`" (Mark.show cs) x)
         | Some tp -> tp, Var x
       end
+    | Lift {name ; lvl} ->
+      begin
+      match Ctx.find_def_tp ctx name with
+        | None -> error (sprintf "%s - Cannot lift non-toplevel definition `%s`" (Mark.show cs) name)
+        | Some tp -> Dom.lift lvl tp, Lift {name ; lvl}
+      end
     | Spine (e,Nil) -> synth ctx e
     | Spine (e,Snoc (spine,arg)) ->
       begin
