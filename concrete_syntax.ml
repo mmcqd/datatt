@@ -10,6 +10,7 @@ let rec spine_to_list_ acc = function
 let spine_to_list s = spine_to_list_ [] s
 
 type 'a bnd = (string * 'a)
+  [@@deriving show]
 
 type t_ =
   | Hole
@@ -29,8 +30,11 @@ type t_ =
   | Refl
   | J of {mot : (string * string * string * t) option ; scrut : t ; body : string * t}
   | Ascribe of {tm : t ; tp : t}
+  [@@deriving show]
 
 and t = t_ Mark.t
+
+let show (cs,_) = show_t_ cs
 
 type cmd =
   | Eval of t

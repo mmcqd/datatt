@@ -72,6 +72,44 @@ let rec check (ctx : Ctx.t) (cs : CSyn.t) (tp : Dom.t) : Syn.t =
               let dom_args,ctx = collect_elim_args (Mark.show cs) clos args dtele desc ctx in
                  (con,(args,check ctx arm (Nbe.do_clos clos (Intro {name = con ; args = dom_args})))))
             })
+    | Elim {mot = None ; scrut ; arms}, tp ->
+      begin
+      match synth ctx scrut with
+        | Data desc,scrut ->
+          if not (List.equal String.equal (List.map ~f:fst desc.cons) (List.map ~f:fst arms)) then error (sprintf "%s - Elim arms don't match constructors" (Mark.show cs)) else
+          let used = Ctx.to_names ctx in
+          let tp_syn = Nbe.read_back used tp (U Omega) in
+          let x = fresh () in
+          let mot_body = Syn.subst (Var x) scrut tp_syn in
+          let mot_clos = Dom.{name = x ; tm = mot_body ; env = Ctx.to_env ctx} in
+          Elim { mot = (x,mot_body) 
+               ; scrut 
+               ; arms = List.map2_exn arms desc.cons ~f:(fun (con,(args,arm)) (_,dtele) -> 
+                 let dom_args,ctx = collect_elim_args (Mark.show cs) mot_clos args dtele desc ctx in
+                 (con,(args,check ctx arm (Nbe.do_clos {name = x ; tm = mot_body ; env = Ctx.to_env ctx} (Intro {name = con ; args = dom_args})))))}
+        | _,scrut' -> error (sprintf "%s - %s is not a datatype, it cannot be eliminated" (Mark.show scrut) (Syn.show scrut'))
+      end
+    | J {mot = None ; body = (z,e) ; scrut}, tp ->
+      begin
+      match synth ctx scrut with
+        | Id (a,e1,e2),scrut ->
+          let used = Ctx.to_names ctx in
+          let tp_syn = Nbe.read_back used tp (U Omega) in
+          let p,y,x = fresh (), fresh (), fresh () in
+          let e1',e2' = Nbe.read_back used e1 a,Nbe.read_back used e2 a in
+          (* mot_body needs to be typechecked in case we guessed a type-incorrect motive... *)
+          let mot_body = tp_syn 
+                        |> Syn.subst (Var x) e1'
+                        (* e2' might contain e1', so we have to perform the same substitution inside of e2'. This seems sus *)
+                        |> Syn.subst (Var y) (Syn.subst (Var x) e1' e2')
+                        |> Syn.subst (Var p) scrut in
+          (* print_endline (sprintf "GUSSED MOT: %s" (Syn.show mot_body)); *)
+          let body_tp = Nbe.do_clos3 Dom.{names = (x,y,p) ; tm = mot_body ; env = Ctx.to_env ctx} (Nbe.var z a) (Nbe.var z a) (Refl (Nbe.var z a)) in
+          let body = (z,check(Ctx.add ctx ~var:z ~tp:a) e body_tp ) in
+          J {mot = (x,y,p,mot_body) ; body ; scrut}
+
+        | _,scrut -> error (sprintf "%s - %s is not an equality proof, it cannot be matched on" (Mark.show cs) (Syn.show scrut))
+      end 
     | _ -> mode_switch ctx cs tp
 
 and check_intro_args ctx args dtele desc =
@@ -145,7 +183,7 @@ and synth (ctx : Ctx.t) (cs : CSyn.t) : Dom.t * Syn.t =
                ; arms = List.map2_exn arms desc.cons ~f:(fun (con,(args,arm)) (_,dtele) -> 
                  let dom_args,ctx = collect_elim_args (Mark.show cs) mot_clos args dtele desc ctx in
                  (con,(args,check ctx arm (Nbe.do_clos {name = x ; tm = mot_body ; env = Ctx.to_env ctx} (Intro {name = con ; args = dom_args})))))}
-        | _,scrut -> error (sprintf "%s is not a datatype, it cannot be eliminated" (Syn.show scrut))
+        | _,scrut' -> error (sprintf "%s - %s is not a datatype, it cannot be eliminated" (Mark.show scrut) (Syn.show scrut'))
       end
     | J {mot = Some (x,y,p,m) ; body = (z,e) ; scrut} ->
       begin
@@ -156,7 +194,7 @@ and synth (ctx : Ctx.t) (cs : CSyn.t) : Dom.t * Syn.t =
           let body_tp = Nbe.do_clos3 Dom.{names = (x,y,p) ; tm = mot_body ; env} (Nbe.var z a) (Nbe.var z a) (Refl (Nbe.var z a)) in
           let body = (z,check (Ctx.add ctx ~var:z ~tp:a) e body_tp) in
           Nbe.do_clos3 Dom.{names = (x,y,p) ; tm = mot_body ; env} e1 e2 (Nbe.eval env scrut), J {mot = (x,y,p,mot_body) ; body ; scrut}
-        | _,scrut -> error (sprintf "%s - %s is not an equality proof, it cannot be matched on" (Mark.show cs) (Syn.show scrut))
+        | _,scrut' -> error (sprintf "%s - %s is not a datatype, it cannot be eliminated" (Mark.show scrut) (Syn.show scrut'))
       end   
     | _ -> error (sprintf "%s - Failed to synth/elaborate" (Mark.show cs))
 

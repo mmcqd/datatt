@@ -1,7 +1,7 @@
 def id (A : Type) (x : A) : A = x
 
 def sym (A : Type) (x y : A) (p : Id A x y) : Id A y x =
-  match p at x y _ => Id A y x with
+  match p with
     | refl _ => refl
 
 def trans (A : Type) (x y z : A) (p : Id A x y) (q : Id A y z) : Id A x z =
@@ -9,11 +9,11 @@ def trans (A : Type) (x y z : A) (p : Id A x y) (q : Id A y z) : Id A x z =
      | refl _ => λ eq => eq) q
 
 def subst (A : Type) (x y : A) (p : Id A x y) (P : A -> Type) : P x -> P y =
-  match p at x y _ => P x -> P y with
+  match p with
     | refl _ => fn z => z
 
 def coe (A B : Type) (p : Id Type A B) : A -> B =
-  match p at A B _ => A -> B with
+  match p with
     | refl _ => λ x => x
 
 data Void = |
@@ -21,7 +21,7 @@ data Void = |
 def Void-Ind (P : Void -> Type) : (x : Void) -> P x =
   elim with
 
-def not (A : Type) : Type = A -> Void
+def Not (A : Type) : Type = A -> Void
 
 data Unit =
   | <>
@@ -83,32 +83,32 @@ def pred : Nat -> Nat = elim with
   | zero => zero
   | suc n => n
 
-def + : Nat -> Nat -> Nat = elim with
-  | zero => fn m => m
-  | suc (_ / ih) => fn m => suc (ih m)
+def + (n m : Nat) : Nat = elim n with
+  | zero => m
+  | suc (_ / ih) => suc ih
+
+def mult (n m : Nat) : Nat = elim n with
+  | zero => zero
+  | suc (_ / ih) => + m ih
 
 
-def mult : Nat -> Nat -> Nat = elim with
-  | zero => fn _ => zero
-  | suc (n / ih) => fn m => + m (ih m)
-
-def +-assoc : (n m p : Nat) -> Id Nat (+ (+ n m) p) (+ n (+ m p)) = elim with
-  | zero => fn _ _ => refl
-  | suc (n / ih) => fn m p =>
-    match ih m p at x y _ => Id Nat (suc x) (suc y) with
-      | refl z => refl
+def +-assoc (n m p : Nat) : Id Nat (+ (+ n m) p) (+ n (+ m p)) = elim n with
+  | zero => refl
+  | suc (n / ih) => 
+    match ih with
+      | refl _ => refl
 
 def +-zero : (n : Nat) -> Id Nat n (+ n zero) = elim with
   | zero => refl
-  | suc (n' / ih) => 
-    match ih at x y _ => Id Nat (suc x) (suc y) with
-      | refl x => refl
+  | suc (n / ih) =>
+    match ih with
+      | refl z => refl
 
-def +-suc : (n m : Nat) -> Id Nat (suc (+ n m)) (+ n (suc m)) = elim with
-  | zero => fn _ => refl
-  | suc (n' / ih) => fn m =>
-    match ih m at x y _ => Id Nat (suc x) (suc y) with
-      | refl x => refl
+def +-suc (n m : Nat) : Id Nat (suc (+ n m)) (+ n (suc m)) = elim n with
+  | zero => refl
+  | suc (n' / ih) => 
+    match ih with
+      | refl z => refl
 
 def leq : Nat -> Nat -> Type = elim with
   | zero => fn _ => Unit
@@ -141,9 +141,9 @@ def List-Ind (P : List -> Type) (n : P nil) (c : (n : Nat) (xs : List) -> P xs -
   | nil => n
   | cons x (xs / ih) => c x xs ih
 
-def ++ : List -> List -> List = elim with
-  | nil => fn ys => ys
-  | cons x (_ / ih) => fn ys => cons x (ih ys)
+def ++ (xs ys : List) : List = elim xs with
+  | nil => ys
+  | cons x (_ / ih) => cons x ih
 
 def hd : List -> Maybe = elim with
   | nil => none
@@ -191,7 +191,7 @@ def LoopN (P : PType) : Nat -> PType = elim with
   | zero => P
   | suc (_ / ih) => Loop ih
 
-def PType-not-Void (P : PType) (p : Id Type P.1 Void) : Void =
+def PType-not-Void (P : PType) : Not^1 (Id Type P.1 Void) = fn p =>
   coe P.1 Void p P.2
 
 def Contr (A : Type) : Type = (x : A) * (y : A) -> Id A x y
@@ -205,16 +205,12 @@ def Contr-Unit : Contr Unit = (<>,Unit-Eta)
 def Prop-Unit : Prop Unit = elim with 
   | <> => elim with <> => refl
 
-{-
-def Set-Unit : Set Unit = elim with
-  | <> => elim with <> => ?
--}
 
 def Prop-Void : Prop Void = elim with
 
 def Set-Void : Set Void = elim with
 
 def pair-ext (A B : Type) (x y : A * B) (p : Id A x.1 y.1) (q : Id B x.2 y.2) : Id (A * B) x y =
-  match p at a b _ => Id (A * B) (a,x.2) (b,y.2) with
-    | refl z => match q at a b _ => Id (A * B) (z,a) (z,b) with
-      | refl _ => refl
+  match p with
+    | refl w => match q with
+      | refl h => refl

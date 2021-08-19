@@ -111,6 +111,10 @@ let term :=
     option(Bar); arms = separated_list(Bar,arm);
     { Concrete_syntax.Elim {mot = Some (x,mot) ; scrut ; arms}}
 
+  | Elim; scrut = m(term); With;
+    option(Bar); arms = separated_list(Bar,arm);
+    { Concrete_syntax.Elim {mot = None ; scrut ; arms}}
+
   | Match; scrut = m(term); With;
     option(Bar); Refl; a = bound_name; Thick_arrow; case = m(term);
     { Concrete_syntax.J {mot = None ; body = (a,case) ; scrut } }

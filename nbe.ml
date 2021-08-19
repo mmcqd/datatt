@@ -109,7 +109,7 @@ let resolve_arg_tp desc = function
 
 
 let rec equate (used : String.Set.t) (e1 : Dom.t) (e2 : Dom.t) (tp : Dom.t) : Syn.t =
-  (* printf "-----\nEQUATING\n%s\nWITH\n%s\n-----\n" (Dom.show e1) (Dom.show e2); *)
+  (* printf "-----\nEQUATING\n%s\nWITH\n%s\nAT\n%s\n-----\n" (Dom.show e1) (Dom.show e2) (Dom.show tp); *)
   match e1,e2,tp with
     | U i, U j, U _ -> if Level.(<=) i j then U i else error (sprintf "Level Error: %s !<= %s" (Level.show i) (Level.show j))
     | f1,f2, Pi (d,clos) -> 
@@ -137,7 +137,7 @@ let rec equate (used : String.Set.t) (e1 : Dom.t) (e2 : Dom.t) (tp : Dom.t) : Sy
     | Refl x1, Refl x2, Id (a,_,_) ->
       Refl (equate used x1 x2 a)
     | Neutral n1,Neutral n2,_ -> equate_ne used n1.ne n2.ne
-    | _ -> error (sprintf "equate - Inputs not convertible - %s != %s" (Dom.show e1) (Dom.show e2))
+    | _ -> error (sprintf "equate - Inputs not convertible - %s != %s at %s" (Dom.show e1) (Dom.show e2) (Dom.show tp))
 
 and equate_intro_args used args1 args2 dtele desc =
   match args1,args2,dtele with
@@ -206,5 +206,7 @@ and read_back used e tp = equate used e e tp
 
 and convertible used e1 e2 tp = (fun _ -> ()) (equate used e1 e2 tp)
 
-
+let equal used e1 e2 tp = 
+  try convertible used e1 e2 tp; true with
+    | _ -> false
 

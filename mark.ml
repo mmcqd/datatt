@@ -4,13 +4,15 @@ type src_loc =
   { line : int
   ; col : int
   }
-[@@deriving compare]
+[@@deriving show]
 
 
 type src_span =
   { start_loc : src_loc
   ; end_loc : src_loc
   }
+[@@deriving show]
+
 
 let of_position (pos : Lexing.position) : src_loc =
   Lexing.{ line = pos.pos_lnum; col = pos.pos_cnum - pos.pos_bol + 1 (* 1-indexed *) }
@@ -24,6 +26,7 @@ let of_positions (pos_start : Lexing.position) (pos_end : Lexing.position) =
 
 
 type 'a t = 'a * src_span option
+  [@@deriving show]
 
 let mark (data : 'a) (span : src_span) : 'a t = data, Some span
 let data : 'a t -> 'a = fst

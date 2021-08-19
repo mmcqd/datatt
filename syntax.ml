@@ -22,6 +22,11 @@ type t =
   | J of {mot : string * string * string * t ; scrut : t ; body : string * t}
   [@@deriving show]
 
+let rec flatten_arm_args = function
+  | [] -> []
+  | `Arg x::args -> x::flatten_arm_args args
+  | `Rec (x,r)::args -> x::r::flatten_arm_args args
+
 let rec_map (f : t -> t) = function
   | Var x -> Var x
   | Lift x -> Lift x
@@ -40,7 +45,10 @@ let rec_map (f : t -> t) = function
   | Fst p -> Fst (f p)
   | Snd p -> Snd (f p)
 
+
+
 let rec bottom_up f x = x |> rec_map (bottom_up f) |> f
+let rec top_down f x = x |> f |> rec_map (top_down f)
 
 let lift i = bottom_up (function U (Const j) -> U (Const (j + i)) | x -> x)
 
@@ -57,10 +65,10 @@ let rec pp_term (e : t) : string =
     | Ap (e1,e2) -> sprintf "%s %s" (pp_term e1) (pp_atomic e2)
     | Intro {name ; args = arg::args} -> sprintf "%s %s" name (pp_args (arg::args))
     | Elim {mot = _ ; arms ; scrut} ->
-      sprintf "elim %s with %s" (pp_term scrut) (pp_arms arms)
+      sprintf "elim %s with %s" (pp_atomic scrut) (pp_arms arms)
     | Id (a,x,y) -> sprintf "Id %s %s %s" (pp_atomic a) (pp_atomic x) (pp_atomic y)
-    | J {mot = _; body = (a,case) ; scrut} -> 
-      sprintf "match %s with refl %s ⇒ %s" (pp_term scrut) a (pp_term case)
+    | J {mot = (x,y,p,m); body = (a,case) ; scrut} -> 
+      sprintf "match %s at %s %s %s => %s with refl %s ⇒ %s" (pp_atomic scrut) x y p (pp_term m) a (pp_term case)
     | Refl x -> sprintf "refl %s" (pp_atomic x)
     | _ -> pp_atomic e 
 
@@ -96,3 +104,63 @@ and pp_atomic (e : t) : string =
     | _ -> sprintf "(%s)" (pp_term e)
 
 let show = pp_term
+
+
+let (++) m (key,data) = String.Map.set m ~key ~data
+
+let equal (e1 : t) (e2 : t) : bool =
+  let rec go (i : int) (g1 : int String.Map.t) (e1 : t) (g2 : int String.Map.t) (e2 : t) : bool =
+    match e1,e2 with
+      | Var x,Var y ->
+        begin
+        match String.Map.find g1 x,String.Map.find g2 y with
+          | Some i, Some j -> i = j
+          | None,None -> String.equal x y
+          | _ -> false
+        end
+      | Lift l1,Lift l2 -> l1.lvl = l2.lvl && String.equal l1.name l2.name
+      | Ap (e1,e2),Ap (e1',e2') ->
+        go i g1 e1 g2 e1' && go i g1 e2 g2 e2'
+      | Lam (x,e), Lam (y,e') ->
+        go (i+1) (g1 ++ (x,i)) e (g2 ++ (y,i)) e'
+      | Pi ((x,t),e),Pi ((y,t'),e') | Sg ((x,t),e),Sg ((y,t'),e') -> 
+        go i g1 t g2 t' && go (i+1) (g1 ++ (x,i)) e (g2 ++ (y,i)) e'
+      | Pair (x,y), Pair (x',y') ->
+        go i g1 x g2 x' && go i g1 y g2 y'
+      | U Omega, U Omega -> true
+      | U Const i, U Const j -> i = j 
+      | Refl e, Refl e' | Fst e, Fst e' | Snd e, Snd e' ->
+        go i g1 e g2 e' 
+      | Id (t,e1,e2), Id (t',e1',e2') ->
+        go i g1 t g2 t' && go i g1 e1 g2 e1' && go i g1 e2 g2 e2'
+      | J {mot = (x,y,z,mot) ; body = (a,case) ; scrut = scrut},J {mot = (x',y',z',mot') ; body = (a',case') ; scrut = scrut'} ->
+        go (i+3) (g1 ++ (x,i) ++ (y,i+1) ++ (z,i+2)) mot (g2 ++ (x',i) ++ (y',i+1) ++ (z',i+2)) mot' &&
+        go (i+1) (g1 ++ (a,i)) case (g2 ++ (a',i)) case' &&
+        go i g1 scrut g2 scrut'
+      | Data d, Data d' -> String.equal d d'
+      | Intro con, Intro con' -> String.equal con.name con'.name && List.equal (fun e1 e2 -> go i g1 e1 g2 e2) con.args con'.args
+      | Elim e, Elim e' ->
+        let (x,m),(x',m') = e.mot,e'.mot in
+        go (i+1) (g1 ++ (x,i)) m (g2 ++ (x',i)) m' &&
+        go i g1 e.scrut g2 e'.scrut &&
+        begin
+        match List.for_all2 ~f:(fun (con1,(args1,arm1)) (con2,(args2,arm2)) -> 
+          String.equal con1 con2 && equal_arm i g1 (flatten_arm_args args1,arm1) g2 (flatten_arm_args args2,arm2)) e.arms e'.arms with
+          | Ok b -> b
+          | _ -> false
+        end
+      | _ -> false
+  and equal_arm i g1 (args1,arm1) g2 (args2,arm2) =
+    match args1,args2 with
+      | [],[] -> go i g1 arm1 g2 arm2
+      | arg1::args1,arg2::args2 -> equal_arm (i+1) (g1++(arg1,i)) (args1,arm1) (g2++(arg2,i)) (args2,arm2)
+      | _ -> false
+  in 
+  go 0 String.Map.empty e1 String.Map.empty e2
+
+
+
+(* This is definitely wrong because it can cause variable capture *)
+let subst (subst : t) (fr : t) : t -> t =
+  top_down (fun x -> if equal fr x then subst else x)
+
