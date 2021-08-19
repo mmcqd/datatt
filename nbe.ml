@@ -11,6 +11,7 @@ let error s = raise (EquateError s)
 let var x tp = Dom.Neutral {ne = Var x ; tp}
 
 let rec eval (env : Dom.env) (s : Syn.t) : Dom.t =
+  (* printf "EVAL %s\n" (Syn.show s); *)
   match s with
     | Var x -> String.Map.find_exn env x
     | U i -> U i

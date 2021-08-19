@@ -49,12 +49,13 @@ let rec pp_term (e : t) : string =
     | Ap ((Lam _ | J _ | Elim _) as e1,e2) -> sprintf "(%s) %s" (pp_term e1) (pp_term e2)
     | Ap (e1,(Ap _ as e2)) -> sprintf "%s (%s)" (pp_term e1) (pp_term e2)
     | Ap (e1,e2) -> sprintf "%s %s" (pp_term e1) (pp_atomic e2)
-    | Intro {name ; args} -> sprintf "%s %s" name (pp_args args)
+    | Intro {name ; args = arg::args} -> sprintf "%s %s" name (pp_args (arg::args))
     | Elim {mot = _ ; arms ; scrut} ->
       sprintf "elim %s with %s" (pp_term scrut) (pp_arms arms)
     | Id (a,x,y) -> sprintf "Id %s %s %s" (pp_atomic a) (pp_atomic x) (pp_atomic y)
     | J {mot = _; body = (a,case) ; scrut} -> 
       sprintf "match %s with refl %s ⇒ %s" (pp_term scrut) a (pp_term case)
+    | Refl x -> sprintf "refl %s" (pp_atomic x)
     | _ -> pp_atomic e 
 
 and pp_args = function
@@ -84,9 +85,8 @@ and pp_atomic (e : t) : string =
     | Pair (e1,e2) -> sprintf "(%s,%s)" (pp_term e1) (pp_term e2)
     | Fst e -> sprintf "%s.1" (pp_atomic e)
     | Snd e -> sprintf "%s.2" (pp_atomic e)
-    | Data name -> name
+    | Data d -> d
     | Intro {name ; args = []} -> name
-    | Refl x -> sprintf "refl %s" (pp_atomic x)
     | _ -> sprintf "(%s)" (pp_term e)
 
 let show = pp_term

@@ -52,11 +52,11 @@ and spec =
   | Rec
   | Tp of Syntax.t
 
-and dtele =
+and 'a tele =
   | Nil
-  | One of spec
-  | Cons of spec bnd * dtele
+  | One of 'a
+  | Cons of 'a bnd * 'a tele
 
-and desc = {name : string ; cons : dtele bnd list ; env : env}
+and desc = {name : string ; cons : spec tele bnd list ; env : env}
 
 [@@@ocaml.warning "+30"]

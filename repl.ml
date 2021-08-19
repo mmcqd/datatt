@@ -35,9 +35,9 @@ let normalize ~tm ~tp ~ctx =
 
 let run_stm ctx = function
   | Eval e ->
-    let tp,e = Elab.synth ctx e in 
+    let tp,tm = Elab.synth ctx e in 
     printf "_ : %s\n" (Syn.show (Nbe.read_back (Ctx.to_names ctx) tp (U Omega)));
-    printf "_ = %s\n\n" (Syn.show (normalize ~tm:e ~tp ~ctx));
+    printf "_ = %s\n\n" (Syn.show (normalize ~tm ~tp ~ctx));
     ctx
   | Def (x,e) -> 
     let tp,e = Elab.synth ctx e in

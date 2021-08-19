@@ -26,105 +26,108 @@ def not (A : Type) : Type = A -> Void
 data Unit =
   | <>
 
-def Unit-Ind (P : Unit -> Type) (p : P <>) : (x : Unit) -> P x =
-  elim with
-    | <> => p
+def Unit-Ind (P : Unit -> Type) (p : P <>) : (x : Unit) -> P x = elim with
+  | <> => p
 
-def Unit-Eta : (x : Unit) -> Id Unit x <> = 
-  elim with
-    | <> => refl
-
-def Unit-not-Void (p : Id Type Unit Void) : Void =
-  coe Unit Void p <>
+def Unit-Eta : (x : Unit) -> Id Unit <> x = elim with
+  | <> => refl
 
 data Bool =
   | tt
   | ff
 
-def Bool-Ind (P : Bool -> Type) (t : P tt) (f : P ff) : (b : Bool) -> P b =
-  elim with
-    | tt => t
-    | ff => f
+def Bool-Ind (P : Bool -> Type) (t : P tt) (f : P ff) : (b : Bool) -> P b = elim with
+  | tt => t
+  | ff => f
 
-def not : Bool -> Bool =
-  elim with
-    | tt => ff
-    | ff => tt
+def not : Bool -> Bool = elim with
+  | tt => ff
+  | ff => tt
 
-def and : Bool -> Bool -> Bool =
-  elim with
-    | tt => fn b => b
-    | ff => fn _ => ff
+def and : Bool -> Bool -> Bool = elim with
+  | tt => fn b => b
+  | ff => fn _ => ff
 
-def or : Bool -> Bool -> Bool =
-  elim with
-    | tt => fn _ => tt
-    | ff => fn b => b
+def or : Bool -> Bool -> Bool = elim with
+  | tt => fn _ => tt
+  | ff => fn b => b
 
-def not-not : (b : Bool) -> Id Bool b (not (not b)) =
-  elim with
-    | tt => refl
-    | ff => refl
 
-def demorgan1 : (p q : Bool) -> Id Bool (not (and p q)) (or (not p) (not q)) =
-  elim with
-    | tt => fn _ => refl
-    | ff => fn _ => refl
+def not-not : (b : Bool) -> Id Bool b (not (not b)) = elim with
+  | tt => refl
+  | ff => refl
 
-def demorgan2 : (p q : Bool) -> Id Bool (not (or p q)) (and (not p) (not q)) =
-  elim with
-    | tt => fn _ => refl
-    | ff => fn _ => refl
+def demorgan1 : (p q : Bool) -> Id Bool (not (and p q)) (or (not p) (not q)) = elim with
+  | tt => fn _ => refl
+  | ff => fn _ => refl
+
+def demorgan2 : (p q : Bool) -> Id Bool (not (or p q)) (and (not p) (not q)) = elim with
+  | tt => fn _ => refl
+  | ff => fn _ => refl
 
 data Nat =
   | zero
   | suc (n : Nat)
 
 def one : Nat = suc zero
-def two : Nat = suc (suc zero)
+def two : Nat = suc one
+def three : Nat = suc two
+def four : Nat = suc three
 
-def Nat-Ind (P : Nat -> Type) (z : P zero) (s : (m : Nat) -> P m -> P (suc m)) : (n : Nat) -> P n =
-  elim with
-    | zero => z
-    | suc (n' / ih) => s n' ih
+def Nat-Ind (P : Nat -> Type) (z : P zero) (s : (m : Nat) -> P m -> P (suc m)) : (n : Nat) -> P n = elim with
+  | zero => z
+  | suc (n' / ih) => s n' ih
 
 
-def pred : Nat -> Nat =
-  elim with
-    | zero => zero
-    | suc n => n
+def pred : Nat -> Nat = elim with
+  | zero => zero
+  | suc n => n
 
-def + : Nat -> Nat -> Nat =
-  elim with
-    | zero => fn m => m
-    | suc (_ / ih) => fn m => suc (ih m)
+def + : Nat -> Nat -> Nat = elim with
+  | zero => fn m => m
+  | suc (_ / ih) => fn m => suc (ih m)
 
-def mult : Nat -> Nat -> Nat =
-  elim with
-    | zero => fn _ => zero
-    | suc (n / ih) => fn m => + m (ih m)
 
-def +-assoc : (n m p : Nat) -> Id Nat (+ (+ n m) p) (+ n (+ m p)) =
-  elim with
-    | zero => fn _ _ => refl
-    | suc (n' / ih) => fn m p =>
-      match ih m p at x y _ => Id Nat (suc x) (suc y) with
-        | refl z => refl
+def mult : Nat -> Nat -> Nat = elim with
+  | zero => fn _ => zero
+  | suc (n / ih) => fn m => + m (ih m)
 
-def +-zero : (n : Nat) -> Id Nat n (+ n zero) =
-  elim with
-    | zero => refl
-    | suc (n' / ih) => 
-      match ih at x y _ => Id Nat (suc x) (suc y) with
-        | refl x => refl
+def +-assoc : (n m p : Nat) -> Id Nat (+ (+ n m) p) (+ n (+ m p)) = elim with
+  | zero => fn _ _ => refl
+  | suc (n / ih) => fn m p =>
+    match ih m p at x y _ => Id Nat (suc x) (suc y) with
+      | refl z => refl
 
-def +-suc : (n m : Nat) -> Id Nat (suc (+ n m)) (+ n (suc m)) =
-  elim with
-    | zero => fn _ => refl
-    | suc (n' / ih) => fn m =>
-      match ih m at x y _ => Id Nat (suc x) (suc y) with
-        | refl x => refl
+def +-zero : (n : Nat) -> Id Nat n (+ n zero) = elim with
+  | zero => refl
+  | suc (n' / ih) => 
+    match ih at x y _ => Id Nat (suc x) (suc y) with
+      | refl x => refl
 
+def +-suc : (n m : Nat) -> Id Nat (suc (+ n m)) (+ n (suc m)) = elim with
+  | zero => fn _ => refl
+  | suc (n' / ih) => fn m =>
+    match ih m at x y _ => Id Nat (suc x) (suc y) with
+      | refl x => refl
+
+def leq : Nat -> Nat -> Type = elim with
+  | zero => fn _ => Unit
+  | suc (_ / ih) => elim with
+    | zero => Void
+    | suc n => ih n
+
+
+def leq-zero (n : Nat) : leq zero n = <>
+def leq-suc (m n : Nat) (p : leq m n) : leq (suc m) (suc n) = p
+
+
+def id-elim : Nat -> Nat = elim with
+  | zero => zero
+  | suc n => suc n
+
+def id-elim-id : (n : Nat) -> Id Nat (id Nat n) (id-elim n) = elim with
+  | zero => refl
+  | suc _ => refl
 
 data Maybe =
   | none
@@ -134,36 +137,31 @@ data List =
   | nil
   | cons (x : Nat) (xs : List)
 
-def List-Ind (P : List -> Type) (n : P nil) (c : (n : Nat) (xs : List) -> P xs -> P (cons n xs)) : (xs : List) -> P xs =
-  elim with
-    | nil => n
-    | cons x (xs / ih) => c x xs ih
+def List-Ind (P : List -> Type) (n : P nil) (c : (n : Nat) (xs : List) -> P xs -> P (cons n xs)) : (xs : List) -> P xs = elim with
+  | nil => n
+  | cons x (xs / ih) => c x xs ih
 
-def ++ : List -> List -> List =
-  elim with
-    | nil => fn ys => ys
-    | cons x (_ / ih) => fn ys => cons x (ih ys)
+def ++ : List -> List -> List = elim with
+  | nil => fn ys => ys
+  | cons x (_ / ih) => fn ys => cons x (ih ys)
 
-def hd : List -> Maybe =
-  elim with
-    | nil => none
-    | cons x xs => some x
+def hd : List -> Maybe = elim with
+  | nil => none
+  | cons x _ => some x
 
-def tl : List -> List =
-  elim with
-    | nil => nil
-    | cons x xs => xs
+def tl : List -> List = elim with
+  | nil => nil
+  | cons _ xs => xs
 
 data Exp =
   | num (n : Nat)
   | add (m n : Exp) 
   | mul (m n : Exp)
 
-def eval : Exp -> Nat =
-  elim with
-    | num n => n
-    | add (_ / ih1) (_ / ih2) => + ih1 ih2
-    | mul (_ / ih1) (_ / ih2) => mult ih1 ih2
+def eval : Exp -> Nat = elim with
+  | num n => n
+  | add (_ / ih1) (_ / ih2) => + ih1 ih2
+  | mul (_ / ih1) (_ / ih2) => mult ih1 ih2
 
 def e : Exp = mul (add (num one) (num one)) (num two)
 
@@ -171,13 +169,38 @@ data Tree =
   | empty
   | node (l : Tree) (x : Nat) (r : Tree)
 
-def tree-rev : Tree -> Tree =
-  elim with
-    | empty => empty
-    | node (l / ihl) x (r / ihr) => node ihr x ihl
+def tree-rev : Tree -> Tree = elim with
+  | empty => empty
+  | node (l / ihl) x (r / ihr) => node ihr x ihl
 
 def Iso (A B : Type) : Type^1 =
   (f : A -> B) *
   (g : B -> A) *
   ((x : A) -> Id A x (g (f x))) *
   ((y : B) -> Id B y (f (g y)))
+
+def PType : Type^1 = (A : Type) * A
+
+def PUnit : PType = (Unit,<>)
+def PNat : PType = (Nat,zero)
+
+def Loop (P : PType) : PType =
+  (Id P.1 P.2 P.2, refl)
+
+def LoopN (P : PType) : Nat -> PType = elim with
+  | zero => P
+  | suc (_ / ih) => Loop ih
+
+def PType-not-Void (P : PType) (p : Id Type P.1 Void) : Void =
+  coe P.1 Void p P.2
+
+def Contr (A : Type) : Type = (x : A) * (y : A) -> Id A x y
+
+def Prop (A : Type) : Type = (x y : A) -> Id A x y
+
+def Set (A : Type) : Type = (x y : A) -> Prop (Id A x y)
+
+def Contr-Unit : Contr Unit = (<>,Unit-Eta)
+
+def Prop-Unit : Prop Unit = elim with 
+  | <> => elim with <> => refl

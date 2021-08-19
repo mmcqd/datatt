@@ -14,7 +14,7 @@ let to_env = String.Map.mapi ~f:(fun ~key ~data ->
   match data with 
     | Var tp -> Dom.Neutral {ne = Var key ; tp} 
     | Def {tm ; _} -> tm
-    | Data {name ; cons ; env} -> Dom.Data {name ; cons ; env}
+    | Data d -> Dom.Data d
   )
 
 let to_names = String.Map.key_set

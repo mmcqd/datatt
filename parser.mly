@@ -98,11 +98,11 @@ let term :=
   
 
   | Elim; With;
-    arms = list(arm);
+    option(Bar); arms = separated_list(Bar,arm);
     { Concrete_syntax.ElimFun arms}
   
   | Elim; scrut = term; At; x = bound_name; Thick_arrow; mot = term; With;
-    arms = list(arm);
+    option(Bar); arms = separated_list(Bar,arm);
     { Concrete_syntax.Elim {mot = Some (x,mot) ; scrut ; arms}}
 
   | Match; scrut = term; With;
@@ -114,7 +114,7 @@ let term :=
     { Concrete_syntax.J {mot = Some (x,y,z,mot) ; body = (a,case) ; scrut} }
 
 let arm :=
-  | Bar; con = Ident; args = list(arm_pat); Thick_arrow; body = term; { (con,(args,body)) }
+  | con = Ident; args = list(arm_pat); Thick_arrow; body = term; { (con,(args,body)) }
 
 let arm_pat :=
   | ~ = bound_name; <`Arg>
