@@ -60,7 +60,7 @@ let rec check (ctx : Ctx.t) (cs : CSyn.t) (tp : Dom.t) : Syn.t =
     | ElimFun arms, Pi (Data desc,clos) ->
       if not (List.equal String.equal (List.map ~f:fst desc.cons) (List.map ~f:fst arms)) then error "Elim arms don't match constructors" else
       let x = match clos.name with "_" -> fresh () | x -> x in
-      Lam (x,Elim { mot = (x,clos.tm)
+      Lam (x,Elim { mot = (x,Nbe.read_back (Ctx.to_names ctx) (Nbe.do_clos clos (Nbe.var x (Data desc))) (U Omega))
             ; scrut = Var x
             ; arms = List.map2_exn arms desc.cons ~f:(fun (con,(args,arm)) (_,dtele) -> 
               let dom_args,ctx = collect_elim_args clos args dtele desc ctx in

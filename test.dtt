@@ -204,3 +204,4 @@ def Contr-Unit : Contr Unit = (<>,Unit-Eta)
 
 def Prop-Unit : Prop Unit = elim with 
   | <> => elim with <> => refl
+
