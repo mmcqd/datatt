@@ -71,7 +71,7 @@ and do_elim mot arms scrut env_s =
                           ; scrut = ne
                           ; desc = d
                           }
-              }
+              } 
     | _ -> failwith "do_elim"
 
 
@@ -159,8 +159,9 @@ and equate_ne used ne1 ne2 =
       Elim { mot = (x,equate used (do_clos e1.mot (var x (Data e1.desc))) (do_clos e2.mot (var x (Data e2.desc))) (U Omega))
            ; arms = List.map2_exn e1.arms e2.arms ~f:(fun (con1,clos1) (_,clos2) ->
             let dtele = List.Assoc.find_exn e1.desc.cons ~equal:String.equal con1 in
-            let args,env = collect_elim_args e1.mot clos1.names dtele e1.desc clos1.env in
-            (con1,(clos1.names,equate used (eval env clos1.arm) (eval env clos2.arm) (do_clos e1.mot (Intro {name = con1 ; args}))))
+            let args,env1 = collect_elim_args e1.mot clos1.names dtele e1.desc clos1.env in
+            let _,env2 = collect_elim_args e2.mot clos2.names dtele e2.desc clos2.env in
+            (con1,(clos1.names,equate used (eval env1 clos1.arm) (eval env2 clos2.arm) (do_clos e1.mot (Intro {name = con1 ; args}))))
            )
            ; scrut = equate_ne used e1.scrut e2.scrut
            }

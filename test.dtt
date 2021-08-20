@@ -4,9 +4,13 @@ def sym (A : Type) (x y : A) (p : Id A x y) : Id A y x =
   match p with
     | refl _ => refl
 
-def trans (A : Type) (x y z : A) (p : Id A x y) (q : Id A y z) : Id A x z =
-  (match p at x y _ => Id A y z -> Id A x z with
-     | refl _ => λ eq => eq) q
+def trans (A : Type) (x y z : A) (p : Id A x y) : Id A y z -> Id A x z =
+  match p with
+    | refl _ => fn x => x
+
+def cong (A B : Type) (f : A -> B) (x y : A) (p : Id A x y) : Id B (f x) (f y) =
+  match p with
+    | refl _ => refl
 
 def subst (A : Type) (x y : A) (p : Id A x y) (P : A -> Type) : P x -> P y =
   match p with
@@ -76,7 +80,7 @@ def four : Nat = suc three
 
 def Nat-Ind (P : Nat -> Type) (z : P zero) (s : (m : Nat) -> P m -> P (suc m)) : (n : Nat) -> P n = elim with
   | zero => z
-  | suc (n' / ih) => s n' ih
+  | suc (n / ih) => s n ih
 
 
 def pred : Nat -> Nat = elim with
@@ -109,6 +113,13 @@ def +-suc (n m : Nat) : Id Nat (suc (+ n m)) (+ n (suc m)) = elim n with
   | suc (n' / ih) => 
     match ih with
       | refl z => refl
+
+def +-comm (n m : Nat) : Id Nat (+ n m) (+ m n) = elim n with
+  | zero => +-zero m
+  | suc (n / ih) => trans Nat (suc (+ n m)) (suc (+ m n)) (+ m (suc n)) 
+    (cong Nat Nat (fn x => suc x) (+ n m) (+ m n) ih) 
+    (+-suc m n)
+
 
 def leq : Nat -> Nat -> Type = elim with
   | zero => fn _ => Unit
@@ -232,3 +243,10 @@ def Vec-Ind (A : Type) (P : (n : Nat) -> Vec A n -> Type) (b : P zero <>)
 def vrec (A B : Type) (b : B) (c : A -> B -> B) : (n : Nat) -> Vec A n -> B = elim with
   | zero => fn _ => b
   | suc (n / ih) => fn v => c v.1 (ih v.2)
+
+
+
+def Sum (A B : Type) : Type = (b : Bool) * (elim b with tt => A | ff => B)
+def inl (A B : Type) (x : A) : Sum A B = (tt,x)
+def inr (A B : Type) (x : B) : Sum A B = (ff,x)
+

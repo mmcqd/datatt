@@ -60,10 +60,9 @@ let rec check (ctx : Ctx.t) (cs : CSyn.t) (tp : Dom.t) : Syn.t =
     | Id (a,x,y), U i ->
       let a = check ctx a (U i) in
       let a' = Nbe.eval (Ctx.to_env ctx) a in
-      let x' = check ctx x a' in
-      let y' = check ctx y a' in
-      Id (a,x',y')
-    | Refl, Id (a,x,y) -> Refl (Nbe.equate (Ctx.to_names ctx) x y a)
+      Id (a,check ctx x a',check ctx y a')
+    | Refl, Id (a,x,y) -> 
+      Refl (Nbe.equate (Ctx.to_names ctx) x y a)
     | ElimFun arms, Pi (Data desc,clos) ->
       if not (List.equal String.equal (List.map ~f:fst desc.cons) (List.map ~f:fst arms)) then error (sprintf "%s - Elim arms don't match constructors" (Mark.show cs))else
       let x = match clos.name with "_" -> fresh () | x -> x in
@@ -82,6 +81,7 @@ let rec check (ctx : Ctx.t) (cs : CSyn.t) (tp : Dom.t) : Syn.t =
           let tp_syn = Nbe.read_back used tp (U Omega) in
           let x = fresh () in
           let mot_body = Syn.subst (Var x) scrut tp_syn in
+          (* print_endline (sprintf "GUSSED MOT: %s => %s" x (Syn.show mot_body)); *)
           let ctx' = ctx |> Ctx.add ~var:x ~tp:(Data desc) in
           (try const () @@ check ctx' (Syn.to_concrete mot_body) (U Omega) with TypeError s -> error (sprintf "%s - In guessed motive: %s" (Mark.show cs) s));
           let mot_clos = Dom.{name = x ; tm = mot_body ; env = Ctx.to_env ctx} in
@@ -89,7 +89,10 @@ let rec check (ctx : Ctx.t) (cs : CSyn.t) (tp : Dom.t) : Syn.t =
                ; scrut 
                ; arms = List.map2_exn arms desc.cons ~f:(fun (con,(args,arm)) (_,dtele) -> 
                  let dom_args,ctx = collect_elim_args (Mark.show cs) mot_clos args dtele desc ctx in
-                 (con,(args,check ctx arm (Nbe.do_clos {name = x ; tm = mot_body ; env = Ctx.to_env ctx} (Intro {name = con ; args = dom_args})))))}
+                 let arm_tp = Nbe.do_clos mot_clos (Intro {name = con ; args = dom_args}) in
+                 (* print_endline ("ARM_TYPE: "^Dom.show arm_tp);
+                 print_endline ("ARM: "^CSyn.show arm); *)
+                 (con,(args,check ctx arm arm_tp)))}
         | _,scrut' -> error (sprintf "%s - %s is not a datatype, it cannot be eliminated" (Mark.show scrut) (Syn.show scrut'))
       end
     | J {mot = None ; body = (z,e) ; scrut}, tp ->
@@ -131,7 +134,7 @@ and mode_switch ctx cs tp =
   let used = Ctx.to_names ctx in
   let tp',s = synth ctx cs in
   (try Nbe.convertible used tp' tp (U Omega) with
-    | _ -> error (sprintf "%s - %s !<= %s" (Mark.show cs) (Syn.show @@ Nbe.read_back used tp' (U Omega)) (Syn.show @@ Nbe.read_back used tp (U Omega))));
+    | Nbe.EquateError _ -> error (sprintf "%s - %s !<= %s" (Mark.show cs) (Syn.show @@ Nbe.read_back used tp' (U Omega)) (Syn.show @@ Nbe.read_back used tp (U Omega))));
   s
 
 
@@ -187,7 +190,7 @@ and synth (ctx : Ctx.t) (cs : CSyn.t) : Dom.t * Syn.t =
                ; scrut 
                ; arms = List.map2_exn arms desc.cons ~f:(fun (con,(args,arm)) (_,dtele) -> 
                  let dom_args,ctx = collect_elim_args (Mark.show cs) mot_clos args dtele desc ctx in
-                 (con,(args,check ctx arm (Nbe.do_clos {name = x ; tm = mot_body ; env = Ctx.to_env ctx} (Intro {name = con ; args = dom_args})))))}
+                 (con,(args,check ctx arm (Nbe.do_clos mot_clos (Intro {name = con ; args = dom_args})))))}
         | _,scrut' -> error (sprintf "%s - %s is not a datatype, it cannot be eliminated" (Mark.show scrut) (Syn.show scrut'))
       end
     | J {mot = Some (x,y,p,m) ; body = (z,e) ; scrut} ->

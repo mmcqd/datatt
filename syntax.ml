@@ -108,59 +108,76 @@ let show = pp_term
 
 let (++) m (key,data) = String.Map.set m ~key ~data
 
-let equal (e1 : t) (e2 : t) : bool =
-  let rec go (i : int) (g1 : int String.Map.t) (e1 : t) (g2 : int String.Map.t) (e2 : t) : bool =
-    match e1,e2 with
-      | Var x,Var y ->
-        begin
-        match String.Map.find g1 x,String.Map.find g2 y with
-          | Some i, Some j -> i = j
-          | None,None -> String.equal x y
-          | _ -> false
-        end
-      | Lift l1,Lift l2 -> l1.lvl = l2.lvl && String.equal l1.name l2.name
-      | Ap (e1,e2),Ap (e1',e2') ->
-        go i g1 e1 g2 e1' && go i g1 e2 g2 e2'
-      | Lam (x,e), Lam (y,e') ->
-        go (i+1) (g1 ++ (x,i)) e (g2 ++ (y,i)) e'
-      | Pi ((x,t),e),Pi ((y,t'),e') | Sg ((x,t),e),Sg ((y,t'),e') -> 
-        go i g1 t g2 t' && go (i+1) (g1 ++ (x,i)) e (g2 ++ (y,i)) e'
-      | Pair (x,y), Pair (x',y') ->
-        go i g1 x g2 x' && go i g1 y g2 y'
-      | U Omega, U Omega -> true
-      | U Const i, U Const j -> i = j 
-      | Refl e, Refl e' | Fst e, Fst e' | Snd e, Snd e' ->
-        go i g1 e g2 e' 
-      | Id (t,e1,e2), Id (t',e1',e2') ->
-        go i g1 t g2 t' && go i g1 e1 g2 e1' && go i g1 e2 g2 e2'
-      | J {mot = (x,y,z,mot) ; body = (a,case) ; scrut = scrut},J {mot = (x',y',z',mot') ; body = (a',case') ; scrut = scrut'} ->
-        go (i+3) (g1 ++ (x,i) ++ (y,i+1) ++ (z,i+2)) mot (g2 ++ (x',i) ++ (y',i+1) ++ (z',i+2)) mot' &&
-        go (i+1) (g1 ++ (a,i)) case (g2 ++ (a',i)) case' &&
-        go i g1 scrut g2 scrut'
-      | Data d, Data d' -> String.equal d d'
-      | Intro con, Intro con' -> String.equal con.name con'.name && List.equal (fun e1 e2 -> go i g1 e1 g2 e2) con.args con'.args
-      | Elim e, Elim e' ->
-        let (x,m),(x',m') = e.mot,e'.mot in
-        go (i+1) (g1 ++ (x,i)) m (g2 ++ (x',i)) m' &&
-        go i g1 e.scrut g2 e'.scrut &&
-        begin
-        match List.for_all2 ~f:(fun (con1,(args1,arm1)) (con2,(args2,arm2)) -> 
-          String.equal con1 con2 && equal_arm i g1 (flatten_arm_args args1,arm1) g2 (flatten_arm_args args2,arm2)) e.arms e'.arms with
-          | Ok b -> b
-          | _ -> false
-        end
-      | _ -> false
-  and equal_arm i g1 (args1,arm1) g2 (args2,arm2) =
-    match args1,args2 with
-      | [],[] -> go i g1 arm1 g2 arm2
-      | arg1::args1,arg2::args2 -> equal_arm (i+1) (g1++(arg1,i)) (args1,arm1) (g2++(arg2,i)) (args2,arm2)
-      | _ -> false
-  in 
-  go 0 String.Map.empty e1 String.Map.empty e2
+let rec equal (i : int) (g1 : int String.Map.t) (e1 : t) (g2 : int String.Map.t) (e2 : t) : bool =
+  match e1,e2 with
+    | Var x,Var y ->
+      begin
+      match String.Map.find g1 x,String.Map.find g2 y with
+        | Some i, Some j -> i = j
+        | None,None -> String.equal x y
+        | _ -> false
+      end
+    | Lift l1,Lift l2 -> l1.lvl = l2.lvl && String.equal l1.name l2.name
+    | Ap (e1,e2),Ap (e1',e2') ->
+      equal i g1 e1 g2 e1' && equal i g1 e2 g2 e2'
+    | Lam (x,e), Lam (y,e') ->
+      equal (i+1) (g1 ++ (x,i)) e (g2 ++ (y,i)) e'
+    | Pi ((x,t),e),Pi ((y,t'),e') | Sg ((x,t),e),Sg ((y,t'),e') -> 
+      equal i g1 t g2 t' && equal (i+1) (g1 ++ (x,i)) e (g2 ++ (y,i)) e'
+    | Pair (x,y), Pair (x',y') ->
+      equal i g1 x g2 x' && equal i g1 y g2 y'
+    | U Omega, U Omega -> true
+    | U Const i, U Const j -> i = j 
+    | Refl e, Refl e' | Fst e, Fst e' | Snd e, Snd e' ->
+      equal i g1 e g2 e' 
+    | Id (t,e1,e2), Id (t',e1',e2') ->
+      equal i g1 t g2 t' && equal i g1 e1 g2 e1' && equal i g1 e2 g2 e2'
+    | J {mot = (x,y,z,mot) ; body = (a,case) ; scrut = scrut},J {mot = (x',y',z',mot') ; body = (a',case') ; scrut = scrut'} ->
+      equal (i+3) (g1 ++ (x,i) ++ (y,i+1) ++ (z,i+2)) mot (g2 ++ (x',i) ++ (y',i+1) ++ (z',i+2)) mot' &&
+      equal (i+1) (g1 ++ (a,i)) case (g2 ++ (a',i)) case' &&
+      equal i g1 scrut g2 scrut'
+    | Data d, Data d' -> String.equal d d'
+    | Intro con, Intro con' -> String.equal con.name con'.name && List.equal (fun e1 e2 -> equal i g1 e1 g2 e2) con.args con'.args
+    | Elim e, Elim e' ->
+      let (x,m),(x',m') = e.mot,e'.mot in
+      equal (i+1) (g1 ++ (x,i)) m (g2 ++ (x',i)) m' &&
+      equal i g1 e.scrut g2 e'.scrut &&
+      begin
+      match List.for_all2 ~f:(fun (con1,(args1,arm1)) (con2,(args2,arm2)) -> 
+        String.equal con1 con2 && equal_arm i g1 (flatten_arm_args args1,arm1) g2 (flatten_arm_args args2,arm2)) e.arms e'.arms with
+        | Ok b -> b
+        | _ -> false
+      end
+    | _ -> false
+and equal_arm i g1 (args1,arm1) g2 (args2,arm2) =
+  match args1,args2 with
+    | [],[] -> equal i g1 arm1 g2 arm2
+    | arg1::args1,arg2::args2 -> equal_arm (i+1) (g1++(arg1,i)) (args1,arm1) (g2++(arg2,i)) (args2,arm2)
+    | _ -> false
 
-(* This is definitely wrong because it can cause variable capture *)
-let subst (subst : t) (fr : t) : t -> t =
-  top_down (fun x -> if equal fr x then subst else x)
+
+let subst (sub : t) (fr : t) (e : t) : t =
+  let rec go i g e = if equal i g e String.Map.empty fr then sub else
+    match e with
+      | Ap (e1,e2) -> Ap (go i g e1,go i g e2)
+      | Lam (x,e) -> Lam (x,go (i+1) (g++(x,i)) e)
+      | Pi ((x,d),r) -> Pi ((x,go i g d),go (i+1) (g++(x,i)) r)
+      | Sg ((x,d),r) -> Sg ((x,go i g d),go (i+1) (g++(x,i)) r)
+      | Pair (e1,e2) -> Pair (go i g e1,go i g e2)
+      | Refl e -> Refl (go i g e)
+      | Id (a,m,n) -> Id (go i g a,go i g m,go i g n)
+      | J { mot = (x,y,p,m) ; body = (z,e) ; scrut} -> J {mot = (x,y,p,go (i+3) (g++(x,i)++(y,i+1)++(p,i+2)) m) ; body = (z,go (i+1) (g++(z,i)) e) ; scrut = go i g scrut}
+      | Intro {name;args} -> Intro {name ; args = List.map ~f:(go i g) args}
+      | Elim {mot = (x,m) ; arms ; scrut} -> 
+        Elim {mot = (x,go (i+1) (g++(x,i)) m) ; scrut = go i g scrut ; arms = List.map ~f:(fun (con,(vs,arm)) -> (con,(vs,go_arm i g (flatten_arm_args vs) arm))) arms}
+      | e -> e
+
+  and go_arm i g args arm = 
+    match args with
+      | [] -> go i g arm
+      | x::xs -> go_arm (i+1) (g++(x,i)) xs arm
+in go 0 String.Map.empty e
+
 
 
 let rec to_concrete (e : t) : Concrete_syntax.t = Mark.naked @@ to_concrete_ e
