@@ -30,6 +30,10 @@ let rec check (ctx : Ctx.t) (cs : CSyn.t) (tp : Dom.t) : Syn.t =
       let d = check ctx d (U i) in
       let sg = check (Ctx.add_syn ctx ~var:x ~tp:d) (Mark.naked @@ Sg (tele,r)) (U i) in
       Sg ((x,d),sg)
+    | Let ((x,e1),e2),tp ->
+      let e1_tp,e1' = synth ctx e1 in
+      let e2' = check (Ctx.add ctx ~var:x ~tp:e1_tp) e2 tp in
+      Let ((x,e1'),e2')
     | Lam ([],e),tp -> check ctx e tp
     | Lam (x::xs,e),Pi (d,clos) -> 
       Lam (x,check (Ctx.add ctx ~var:x ~tp:d) (Mark.naked @@ Lam (xs,e)) (Nbe.do_clos clos (Nbe.var x d)))
@@ -165,6 +169,10 @@ and synth (ctx : Ctx.t) (cs : CSyn.t) : Dom.t * Syn.t =
     | Ascribe {tm ; tp} ->
       let tp = Nbe.eval (Ctx.to_env ctx) (check ctx tp (U Omega)) in
       tp, check ctx tm tp
+    | Let ((x,e1),e2) ->
+      let e1_tp,e1' = synth ctx e1 in
+      let e2_tp,e2' = synth (Ctx.add ctx ~var:x ~tp:e1_tp) e2 in
+      e2_tp,Let ((x,e1'),e2')  
     | Fst p ->
       begin
       match synth ctx p with

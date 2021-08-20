@@ -29,6 +29,7 @@ let rec eval (env : Dom.env) (s : Syn.t) : Dom.t =
     | Id (a,m,n) -> Id (eval env a,eval env m,eval env n)
     | Refl x -> Refl (eval env x)
     | J {mot = (x,y,p,m); body = (z,e) ; scrut} -> do_j Dom.{names = (x,y,p) ; tm = m ; env} Dom.{name = z ; tm = e ; env} (eval env scrut)
+    | Let ((x,e1),e2) -> eval (String.Map.set env ~key:x ~data:(eval env e1)) e2 
 
 and do_clos ({name ; tm ; env } : Dom.clos) (arg : Dom.t) : Dom.t =
   eval (String.Map.set env ~key:name ~data:arg) tm

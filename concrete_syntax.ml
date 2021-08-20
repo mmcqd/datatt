@@ -36,6 +36,7 @@ type t_ =
   | Refl
   | J of {mot : (string * string * string * t) option ; scrut : t ; body : string * t}
   | Ascribe of {tm : t ; tp : t}
+  | Let of t bnd * t
   [@@deriving show]
 
 and t = t_ Mark.t

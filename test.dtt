@@ -20,6 +20,22 @@ def coe (A B : Type) (p : Id Type A B) : A -> B =
   match p with
     | refl _ => λ x => x
 
+
+def Comm (A : Type) (op : A -> A -> A) : Type = (x y : A) -> Id A (op x y) (op y x)
+
+def Assoc (A : Type) (op : A -> A -> A) : Type = (x y z : A) -> Id A (op (op x y) z) (op x (op y z))
+
+def Id-L (A : Type) (op : A -> A -> A) (z : A) : Type = (x : A) -> Id A x (op z x)
+
+def Id-R (A : Type) (op : A -> A -> A) (z : A) : Type = (x : A) -> Id A x (op x z)
+
+
+def curry (A B C : Type) (f : A * B -> C) : A -> B -> C = fn x y => f (x,y)
+def curryd (A : Type) (B : A -> Type) (C : (x : A) -> B x -> Type) (f : (p : (x : A) * B x) -> C p.1 p.2) : (x : A) (y : B x) -> C x y = fn x y => f (x,y)
+
+def uncurry (A B C : Type) (f : A -> B -> C) : A * B -> C = fn p => f p.1 p.2
+def uncurryd (A : Type) (B : A -> Type) (C : (x : A) -> B x -> Type) (f : (x : A) (y : B x) -> C x y) : (p : (x : A) * B x) -> C p.1 p.2 = fn p => f p.1 p.2
+
 data Void = |
 
 def Void-Ind (P : Void -> Type) : (x : Void) -> P x =
@@ -96,17 +112,15 @@ def mult (n m : Nat) : Nat = elim n with
   | suc (_ / ih) => + m ih
 
 
-def +-assoc (n m p : Nat) : Id Nat (+ (+ n m) p) (+ n (+ m p)) = elim n with
+def +-assoc : Assoc Nat + = fn n m p => elim n with
   | zero => refl
-  | suc (n / ih) => 
-    match ih with
-      | refl _ => refl
+  | suc (_ / ih) => match ih with
+    | refl _ => refl
 
 def +-zero : (n : Nat) -> Id Nat n (+ n zero) = elim with
   | zero => refl
-  | suc (n / ih) =>
-    match ih with
-      | refl z => refl
+  | suc (_ / ih) => match ih with
+      | refl _ => refl
 
 def +-suc (n m : Nat) : Id Nat (suc (+ n m)) (+ n (suc m)) = elim n with
   | zero => refl
@@ -114,7 +128,7 @@ def +-suc (n m : Nat) : Id Nat (suc (+ n m)) (+ n (suc m)) = elim n with
     match ih with
       | refl z => refl
 
-def +-comm (n m : Nat) : Id Nat (+ n m) (+ m n) = elim n with
+def +-comm : Comm Nat + = fn n m => elim n with
   | zero => +-zero m
   | suc (n / ih) => trans Nat (suc (+ n m)) (suc (+ m n)) (+ m (suc n)) 
     (cong Nat Nat (fn x => suc x) (+ n m) (+ m n) ih) 
@@ -163,18 +177,6 @@ def hd : List -> Maybe = elim with
 def tl : List -> List = elim with
   | nil => nil
   | cons _ xs => xs
-
-data Exp =
-  | num (n : Nat)
-  | add (m n : Exp) 
-  | mul (m n : Exp)
-
-def eval : Exp -> Nat = elim with
-  | num n => n
-  | add (_ / ih1) (_ / ih2) => + ih1 ih2
-  | mul (_ / ih1) (_ / ih2) => mult ih1 ih2
-
-def e : Exp = mul (add (num one) (num one)) (num two)
 
 data Tree =
   | empty
@@ -245,8 +247,75 @@ def vrec (A B : Type) (b : B) (c : A -> B -> B) : (n : Nat) -> Vec A n -> B = el
   | suc (n / ih) => fn v => c v.1 (ih v.2)
 
 
+def vzip (A B : Type) : (n : Nat) -> Vec A n -> Vec B n -> Vec (A * B) n = elim with
+  | zero => fn _ _ => <>
+  | suc (_ / ih) => fn v1 v2 => ((v1.1,v2.1),ih v1.2 v2.2)
 
-def Sum (A B : Type) : Type = (b : Bool) * (elim b with tt => A | ff => B)
+def sumty (A B : Type) : Bool -> Type = elim with tt => A | ff => B
+
+def Sum (A B : Type) : Type = (b : Bool) * sumty A B b
 def inl (A B : Type) (x : A) : Sum A B = (tt,x)
 def inr (A B : Type) (x : B) : Sum A B = (ff,x)
+
+{-
+data SumNatBool =
+  | in1 (n : Nat)
+  | in2 (b : Bool)
+
+def iso/Sum : Iso (Sum Nat Bool) (SumNatBool) = 
+  let f = uncurryd Bool (sumty Nat Bool) (fn _ _ => SumNatBool) (elim with tt => fn x => in1 x | ff => fn x => in2 x) in
+  let g : SumNatBool -> Sum Nat Bool = elim with in1 x => (tt,x) | in2 x => (ff,x) in
+  let fg : (s : SumNatBool) -> Id SumNatBool s (f (g s)) = elim with in1 x => ? | in2 x => ? in
+  let gf = uncurryd Bool (sumty Nat Bool) (fn x1 x2 => Id (Sum Nat Bool) (x1,x2) (g (f (x1,x2)))) 
+    (elim with tt => fn n => ? | ff => ?) in
+  ( f 
+  , g
+  , ?
+  , ?
+  )
+-}
+
+
+def Monoid (M : Type) : Type =
+  (z : M) *
+  (op : M -> M -> M) *
+  Id-L M op z *
+  Id-R M op z *
+  Assoc M op
+
+def Monoid-Nat-+ : Monoid Nat =
+  ( zero
+  , +
+  , fn _ => refl
+  , +-zero
+  , +-assoc
+  )
+
+
+data U =
+  | arrow (e1 e2 : U)
+  | nat | bool
+
+def El : U -> Type = elim with
+  | arrow (_ / t1) (_ / t2) => t1 -> t2
+  | nat => Nat
+  | bool => Bool
+
+data Exp =
+  | num (n : Nat)
+  | add (m n : Exp) 
+
+def eval : Exp -> Nat = elim with
+  | num n => n
+  | add (_ / ih1) (_ / ih2) => + ih1 ih2
+
+def eval-tail' : Exp -> Nat -> Nat = elim with
+  | num n => fn acc => + n acc
+  | add (n / ih1) (m / ih2) => fn acc => ih1 (ih2 acc) 
+
+def eval-tail : Exp -> Nat = fn e => eval-tail' e zero
+
+def lemma (e : Exp) (acc : Nat) : Id Nat (eval-tail' e acc) (+ (eval e) acc) = elim e with
+  | num n => refl
+  | add (n / ih1) (m / ih2) => ?
 

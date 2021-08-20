@@ -18,6 +18,7 @@ let func_syntax (args,t,e) =
 %token L_paren R_paren
 %token Lambda Thick_arrow Arrow
 %token Comma DotOne DotTwo Star
+%token Let In
 %token Type Caret
 %token Colon
 %token Underbar
@@ -28,9 +29,8 @@ let func_syntax (args,t,e) =
 %token <string> Ident
 %token <int> Dec_const
 
-
 %right Arrow
-
+%right Star
 
 %type <Concrete_syntax.cmd list> init
 
@@ -102,6 +102,10 @@ let term :=
   | t1 = m(term); Star; t2 = m(term); { Concrete_syntax.Sg ([("_",t1)],t2) }
   | Id; t = m(atomic); e1 = m(atomic); e2 = m(atomic); <Concrete_syntax.Id>
   
+  | Let; x = bound_name; Equal; e1 = m(term); In; e2 = m(term);
+     {Concrete_syntax.Let ((x,e1),e2) }
+  | Let; x = bound_name; Colon; t = m(term); Equal; e1 = m(term); In; e2 = m(term); 
+    { Concrete_syntax.Let ((x,Mark.naked @@ Concrete_syntax.Ascribe {tm = e1 ; tp = t}),e2) } 
 
   | Elim; With;
     option(Bar); arms = separated_list(Bar,arm);

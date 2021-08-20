@@ -22,6 +22,8 @@ rule initial = parse
   | "fn" | "λ" { Lambda }
   | "->" | "→" { Arrow }
   | "=>" { Thick_arrow }
+  | "let" { Let }
+  | "in" { In }
   | "data" { Data }
   | "elim" { Elim }
   | '^' { Caret }

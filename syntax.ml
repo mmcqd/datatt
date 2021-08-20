@@ -20,6 +20,7 @@ type t =
   | Id of t * t * t
   | Refl of t
   | J of {mot : string * string * string * t ; scrut : t ; body : string * t}
+  | Let of t bnd * t
   [@@deriving show]
 
 let rec flatten_arm_args = function
@@ -44,6 +45,7 @@ let rec_map (f : t -> t) = function
   | Pair (x,y) -> Pair (f x, f y)
   | Fst p -> Fst (f p)
   | Snd p -> Snd (f p)
+  | Let ((x,e1),e2) -> Let ((x,f e1),f e2)
 
 
 
@@ -70,6 +72,7 @@ let rec pp_term (e : t) : string =
     | J {mot = (x,y,p,m); body = (a,case) ; scrut} -> 
       sprintf "match %s at %s %s %s => %s with refl %s ⇒ %s" (pp_atomic scrut) x y p (pp_term m) a (pp_term case)
     | Refl x -> sprintf "refl %s" (pp_atomic x)
+    | Let ((x,e1),e2) -> sprintf "let %s = %s in %s" x (pp_term e1) (pp_term e2)
     | _ -> pp_atomic e 
 
 and pp_args = function
@@ -122,7 +125,7 @@ let rec equal (i : int) (g1 : int String.Map.t) (e1 : t) (g2 : int String.Map.t)
       equal i g1 e1 g2 e1' && equal i g1 e2 g2 e2'
     | Lam (x,e), Lam (y,e') ->
       equal (i+1) (g1 ++ (x,i)) e (g2 ++ (y,i)) e'
-    | Pi ((x,t),e),Pi ((y,t'),e') | Sg ((x,t),e),Sg ((y,t'),e') -> 
+    | Pi ((x,t),e),Pi ((y,t'),e') | Sg ((x,t),e),Sg ((y,t'),e') | Let ((x,t),e),Let ((y,t'),e') -> 
       equal i g1 t g2 t' && equal (i+1) (g1 ++ (x,i)) e (g2 ++ (y,i)) e'
     | Pair (x,y), Pair (x',y') ->
       equal i g1 x g2 x' && equal i g1 y g2 y'
@@ -163,6 +166,7 @@ let subst (sub : t) (fr : t) (e : t) : t =
       | Lam (x,e) -> Lam (x,go (i+1) (g++(x,i)) e)
       | Pi ((x,d),r) -> Pi ((x,go i g d),go (i+1) (g++(x,i)) r)
       | Sg ((x,d),r) -> Sg ((x,go i g d),go (i+1) (g++(x,i)) r)
+      | Let ((x,d),r) -> Let ((x,go i g d),go (i+1) (g++(x,i)) r)
       | Pair (e1,e2) -> Pair (go i g e1,go i g e2)
       | Refl e -> Refl (go i g e)
       | Id (a,m,n) -> Id (go i g a,go i g m,go i g n)
@@ -200,3 +204,4 @@ and to_concrete_ (e : t) : Concrete_syntax.t_ = let open Concrete_syntax in
     | Id (a,m,n) -> Id (to_concrete a,to_concrete m,to_concrete n)
     | Refl _ -> Refl
     | J {mot = (x,y,p,m) ; body = (z,e) ; scrut} -> J {mot = Some (x,y,p,to_concrete m) ; body = (z,to_concrete e) ; scrut = to_concrete scrut} 
+    | Let ((x,d),r) -> Let ((x,to_concrete d),to_concrete r)
