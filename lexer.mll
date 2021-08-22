@@ -33,6 +33,7 @@ rule initial = parse
   | '/' { F_slash }
   | "Type" { Type }
   | "def" { Def }
+  | "axiom" { Axiom }
   | "rec" { Rec }
   | "=" { Equal }
   | "refl" { Refl }

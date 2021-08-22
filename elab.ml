@@ -32,7 +32,7 @@ let rec check (ctx : Ctx.t) (cs : CSyn.t) (tp : Dom.t) : Syn.t =
       Sg ((x,d),sg)
     | Let ((x,e1),e2),tp ->
       let e1_tp,e1' = synth ctx e1 in
-      let e2' = check (Ctx.add ctx ~var:x ~tp:e1_tp) e2 tp in
+      let e2' = check (Ctx.add_def ctx ~var:x ~def:(Nbe.eval (Ctx.to_env ctx) e1') ~tp:e1_tp) e2 tp in
       Let ((x,e1'),e2')
     | Lam ([],e),tp -> check ctx e tp
     | Lam (x::xs,e),Pi (d,clos) -> 
@@ -178,7 +178,7 @@ and synth (ctx : Ctx.t) (cs : CSyn.t) : Dom.t * Syn.t =
       tp, check ctx tm tp
     | Let ((x,e1),e2) ->
       let e1_tp,e1' = synth ctx e1 in
-      let e2_tp,e2' = synth (Ctx.add ctx ~var:x ~tp:e1_tp) e2 in
+      let e2_tp,e2' = synth (Ctx.add_def ctx ~var:x ~def:(Nbe.eval (Ctx.to_env ctx) e1') ~tp:e1_tp) e2 in
       e2_tp,Let ((x,e1'),e2')  
     | Fst p ->
       begin

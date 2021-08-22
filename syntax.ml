@@ -60,7 +60,7 @@ let rec pp_term (e : t) : string =
   match e with
     | Lam (x,e) -> sprintf "λ %s => %s" x (pp_term e)
     (* | Fun (f,x,e) -> sprintf "fun %s %s => %s" f x (pp_term e) *)
-    | Pi (("_",(Pi _ as d)),r) -> sprintf "(%s) → %s" (pp_term d) (pp_term r)
+    | Pi (("_",(Pi _ | Sg _ as d)),r) -> sprintf "(%s) → %s" (pp_term d) (pp_term r)
     | Pi (("_",d),r) -> sprintf "%s → %s" (pp_term d) (pp_term r)
     | Pi ((x,d),r) -> sprintf "(%s : %s) → %s" x (pp_term d) (pp_term r)
     | Sg (("_",t),e) -> sprintf "%s × %s" (pp_atomic t) (pp_atomic e)

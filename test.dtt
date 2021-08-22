@@ -1,5 +1,10 @@
 def id (A : Type) (x : A) : A = x
 
+
+def J (A : Type) (P : (x y : A) -> Id A x y -> Type) (f : (x : A) -> P x x refl) (x y : A) (p : Id A x y) : P x y p =
+  match p with
+    | refl i => f i
+
 def sym (A : Type) (x y : A) (p : Id A x y) : Id A y x =
   match p with
     | refl _ => refl
@@ -65,6 +70,7 @@ def Unit-Ind (P : Unit -> Type) (p : P <>) : (x : Unit) -> P x = elim with
 
 def Unit-Eta : (x : Unit) -> Id Unit <> x = elim with
   | <> => refl
+
 
 data Bool =
   | tt
@@ -178,6 +184,10 @@ def id-elim-id : (n : Nat) -> Id Nat (id Nat n) (id-elim n) = elim with
   | zero => refl
   | suc _ => refl
 
+def suc-Inj (n m : Nat) : Id Nat (suc n) (suc m) -> Id Nat n m =
+  cong Nat Nat pred (suc n) (suc m)
+
+
 data Maybe =
   | none
   | some (x : Nat)
@@ -277,7 +287,7 @@ def Sum (A B : Type) : Type = (b : Bool) * sumty A B b
 def inl (A B : Type) (x : A) : Sum A B = (tt,x)
 def inr (A B : Type) (x : B) : Sum A B = (ff,x)
 
-{-
+
 data SumNatBool =
   | in1 (n : Nat)
   | in2 (b : Bool)
@@ -285,15 +295,15 @@ data SumNatBool =
 def iso/Sum : Iso (Sum Nat Bool) (SumNatBool) = 
   let f = uncurryd Bool (sumty Nat Bool) (fn _ _ => SumNatBool) (elim with tt => fn x => in1 x | ff => fn x => in2 x) in
   let g : SumNatBool -> Sum Nat Bool = elim with in1 x => (tt,x) | in2 x => (ff,x) in
-  let fg : (s : SumNatBool) -> Id SumNatBool s (f (g s)) = elim with in1 x => ? | in2 x => ? in
+  let fg : (s : SumNatBool) -> Id SumNatBool s (f (g s)) = elim with in1 x => refl | in2 x => refl in
   let gf = uncurryd Bool (sumty Nat Bool) (fn x1 x2 => Id (Sum Nat Bool) (x1,x2) (g (f (x1,x2)))) 
-    (elim with tt => fn n => ? | ff => ?) in
+    (elim with tt => fn n => refl | ff => fn n => refl) in
   ( f 
   , g
-  , ?
-  , ?
+  , gf
+  , fg
   )
--}
+
 
 
 def Monoid (M : Type) : Type =
@@ -351,11 +361,35 @@ def Prop (A : Type) : Type = (x y : A) -> Id A x y
 
 def Set (A : Type) : Type = (x y : A) -> Prop (Id A x y)
 
+def HLevel : Nat -> Type -> Type = elim with
+  | zero  => Contr
+  | suc n => elim n with
+    | zero => Prop
+    | suc (_ / ih) => fn A => (x y : A) -> ih (Id A x y)
+
+
+{-
+def HLevel-suc (A : Type) : (n : Nat) -> HLevel n A -> HLevel (suc n) A = elim with
+  | zero => ?
+  | suc n => elim n with
+    | zero => ?
+    | suc (_ / ih) => ?
+-}
+
 def Contr-Unit : Contr Unit = (<>,Unit-Eta)
 
 def Prop-Unit : Prop Unit = elim with 
   | <> => elim with <> => refl
 
+
+
+def Set-Unit : Set Unit = elim with <> => elim with <> => fn p =>
+  let P1 : (x y : Unit) -> Id Unit x y -> Type = elim with <> => elim with <> => fn p => (q : Id Unit <> <>) -> Id (Id Unit <> <>) p q in
+  let P2 : (x y : Unit) -> Id Unit x y -> Type = elim with <> => elim with <> => fn q => Id (Id Unit <> <>) refl q in
+  match p at x y p => P1 x y p with
+    | refl i => elim i with <> => fn q => 
+      match q at x y q => P2 x y q with
+        | refl j => elim j with <> => refl
 
 def Prop-Void : Prop Void = elim with
 
@@ -366,3 +400,4 @@ def Singl (A : Type) (x : A) : Type = (y : A) * Id A x y
 def Contr-Singl (A : Type) (x : A) : Contr (Singl A x) = 
   ((x,refl),fn p => match p.2 with refl w => refl)
 
+axiom funext : (A B : Type) (f g : A -> B) -> ((x : A) -> Id B (f x) (g x)) -> Id (A -> B) f g

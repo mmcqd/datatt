@@ -44,10 +44,15 @@ let run_stm ctx = function
     let e = Nbe.eval (Ctx.to_env ctx) e in
     printf "def %s\n\n" x;
     Ctx.add_def ctx ~var:x ~def:e ~tp
+  | Axiom (x,tp) ->
+    let tp = Nbe.eval (Ctx.to_env ctx) @@ Elab.check ctx tp (U Omega) in
+    printf "axiom %s\n\n" x;
+    Ctx.add_def ctx ~var:x ~def:(Nbe.var x tp) ~tp
   | Data {name ; cons} -> 
     let desc = Elab.elab_data ctx name cons in
     printf "data %s\n\n" name;
     Ctx.add_data ctx desc
+
 
 let rec repl ctx = 
   print_string "-- ";

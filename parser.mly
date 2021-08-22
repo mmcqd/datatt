@@ -30,7 +30,7 @@ let rec_func_syntax (name,args,t,e) =
 %token Id Refl 
 %token Match With Bar At
 %token Data Elim F_slash
-%token Def Equal Rec
+%token Def Equal Rec Axiom
 %token <string> Ident
 %token <int> Dec_const
 
@@ -60,6 +60,7 @@ let cmd :=
     { let tm,tp = func_syntax (args,t,e) in
       Concrete_syntax.Def (x,Mark.naked @@ Concrete_syntax.Ascribe {tm ; tp}) 
     }
+  | Axiom; x = bound_name; Colon; tp = m(term); { Concrete_syntax.Axiom (x,tp) }
 
 (*
   | Def; Rec; x = bound_name; args = nonempty_list(paren(annot_args)); Colon; t = m(term); Equal; e = m(term); 
