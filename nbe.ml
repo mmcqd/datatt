@@ -18,6 +18,7 @@ let rec eval (env : Dom.env) (s : Syn.t) : Dom.t =
     | U i -> U i
     | Pi ((x,d),r) -> Pi (eval env d,{name = x ; tm = r ; env})
     | Lam (x,s) -> Lam {name = x ; tm = s ; env}
+    (* | Fun (f,x,e) -> Fun {names = (f,x) ; tm = e ; env} *)
     | Ap (f,s) -> do_ap (eval env f) (eval env s)
     | Sg ((x,f),s) -> Sg (eval env f,{name = x ; tm = s ; env})
     | Pair (a,b) -> Pair (eval env a, eval env b)
@@ -34,6 +35,9 @@ let rec eval (env : Dom.env) (s : Syn.t) : Dom.t =
 and do_clos ({name ; tm ; env } : Dom.clos) (arg : Dom.t) : Dom.t =
   eval (String.Map.set env ~key:name ~data:arg) tm
 
+(* and do_clos2 ({names = (x,y) ; tm ; env } : Dom.clos2) (a : Dom.t) (b : Dom.t) : Dom.t =
+  eval (env |> String.Map.set ~key:x ~data:a |> String.Map.set ~key:y ~data:b) tm *)
+
 and do_clos3 ({names = (x,y,z) ; tm ; env } : Dom.clos3) (a : Dom.t) (b : Dom.t) (c : Dom.t) : Dom.t =
   eval (env |> String.Map.set ~key:x ~data:a |> String.Map.set ~key:y ~data:b |> String.Map.set ~key:z ~data:c) tm
 
@@ -41,6 +45,7 @@ and do_clos3 ({names = (x,y,z) ; tm ; env } : Dom.clos3) (a : Dom.t) (b : Dom.t)
 and do_ap (f : Dom.t) (arg : Dom.t) : Dom.t =
   match f with
     | Lam clos -> do_clos clos arg
+    (* | Fun clos -> do_clos2 clos (Fun clos) arg *)
     | Neutral {tp = Pi (d,clos) ; ne} ->
       Neutral {tp = do_clos clos arg ; ne = Ap (ne,{tm = arg ; tp = d})}
     | _ -> failwith "do_ap"
@@ -109,10 +114,18 @@ let resolve_arg_tp desc = function
   | Dom.Tp tp -> eval desc.env tp
 
 
-let rec equate (used : String.Set.t) (e1 : Dom.t) (e2 : Dom.t) (tp : Dom.t) : Syn.t =
+let rec equate (used : String.Set.t) ?(subtype = false)(e1 : Dom.t) (e2 : Dom.t) (tp : Dom.t) : Syn.t =
   (* printf "-----\nEQUATING\n%s\nWITH\n%s\nAT\n%s\n-----\n" (Dom.show e1) (Dom.show e2) (Dom.show tp); *)
   match e1,e2,tp with
-    | U i, U j, U _ -> if Level.(<=) i j then U i else error (sprintf "Level Error: %s !<= %s" (Level.show i) (Level.show j))
+    | U i, U j, U _ -> 
+      if subtype then 
+        if Level.(<=) i j then U i else error (sprintf "Level Error: %s !<= %s" (Level.show i) (Level.show j))
+      else
+        if Level.equal i j then U i else error (sprintf "Level Error: %s !<= %s" (Level.show i) (Level.show j))
+    (* | Fun clos1,Fun clos2, Pi (d,clos) ->
+      let (f,x) = clos1.names in
+      let x,used = fresh used x in
+      Fun (f,x,equate used (do_clos2 clos1 (var f tp) (var x d)) (do_clos2 clos2 (var f tp) (var x d)) (do_clos clos (var x d))) *)
     | f1,f2, Pi (d,clos) -> 
       let x,used = resolve_name used f1 (clos.name) in
       Lam (x,equate used (do_ap f1 (var x d)) (do_ap f2 (var x d)) (do_clos clos (var x d)))
@@ -206,7 +219,7 @@ and collect_elim_args mot args dtele desc env =
 
 and read_back used e tp = equate used e e tp
 
-and convertible used e1 e2 tp = (fun _ -> ()) (equate used e1 e2 tp)
+and convertible used e1 e2 tp = (fun _ -> ()) (equate ~subtype:true used e1 e2 tp)
 
 let equal used e1 e2 tp = 
   try convertible used e1 e2 tp; true with

@@ -9,6 +9,7 @@ type t =
   | U of Level.t
   | Pi of t bnd * t
   | Lam of string * t
+  (* | Fun of string * string * t *)
   | Ap of t * t
   | Sg of t bnd * t
   | Pair of t * t
@@ -33,6 +34,7 @@ let rec_map (f : t -> t) = function
   | Lift x -> Lift x
   | Pi ((x,d),r) -> Pi ((x,f d), f r)
   | Lam (x,e) -> Lam (x,f e)
+  (* | Fun (g,x,e) -> Fun (g,x,f e) *)
   | Ap (g,e) -> Ap (f g, f e)
   | U i -> U i
   | Data d -> Data d
@@ -56,7 +58,8 @@ let lift i = bottom_up (function U (Const j) -> U (Const (j + i)) | x -> x)
 
 let rec pp_term (e : t) : string =
   match e with
-    | Lam (x,e) -> sprintf "λ %s ⇒ %s" x (pp_term e)
+    | Lam (x,e) -> sprintf "λ %s => %s" x (pp_term e)
+    (* | Fun (f,x,e) -> sprintf "fun %s %s => %s" f x (pp_term e) *)
     | Pi (("_",(Pi _ as d)),r) -> sprintf "(%s) → %s" (pp_term d) (pp_term r)
     | Pi (("_",d),r) -> sprintf "%s → %s" (pp_term d) (pp_term r)
     | Pi ((x,d),r) -> sprintf "(%s : %s) → %s" x (pp_term d) (pp_term r)
@@ -125,6 +128,8 @@ let rec equal (i : int) (g1 : int String.Map.t) (e1 : t) (g2 : int String.Map.t)
       equal i g1 e1 g2 e1' && equal i g1 e2 g2 e2'
     | Lam (x,e), Lam (y,e') ->
       equal (i+1) (g1 ++ (x,i)) e (g2 ++ (y,i)) e'
+    (* | Fun (f,x,e),Fun (f',x',e') ->
+      equal (i+2) (g1++(f,i)++(x,i+1)) e (g2++(f',i)++(x',i+1)) e' *)
     | Pi ((x,t),e),Pi ((y,t'),e') | Sg ((x,t),e),Sg ((y,t'),e') | Let ((x,t),e),Let ((y,t'),e') -> 
       equal i g1 t g2 t' && equal (i+1) (g1 ++ (x,i)) e (g2 ++ (y,i)) e'
     | Pair (x,y), Pair (x',y') ->
@@ -164,6 +169,7 @@ let subst (sub : t) (fr : t) (e : t) : t =
     match e with
       | Ap (e1,e2) -> Ap (go i g e1,go i g e2)
       | Lam (x,e) -> Lam (x,go (i+1) (g++(x,i)) e)
+      (* | Fun (f,x,e) -> Fun (f,x,go (i+2) (g++(f,i)++(x,i+1)) e) *)
       | Pi ((x,d),r) -> Pi ((x,go i g d),go (i+1) (g++(x,i)) r)
       | Sg ((x,d),r) -> Sg ((x,go i g d),go (i+1) (g++(x,i)) r)
       | Let ((x,d),r) -> Let ((x,go i g d),go (i+1) (g++(x,i)) r)
@@ -193,6 +199,7 @@ and to_concrete_ (e : t) : Concrete_syntax.t_ = let open Concrete_syntax in
     | U i -> U i
     | Pi ((x,d),r) -> Pi ([(x,to_concrete d)],to_concrete r)
     | Lam (x,e) -> Lam ([x],to_concrete e)
+    (* | Fun (f,x,e) -> Fun {name = f ; args = [x] ; body = to_concrete e} *)
     | Ap (f,e) -> Spine (to_concrete f,Snoc (Nil,to_concrete e))
     | Sg ((x,d),r) -> Sg ([(x,to_concrete d)],to_concrete r)
     | Pair (x,y) -> Tuple [to_concrete x;to_concrete y]

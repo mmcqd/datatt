@@ -15,6 +15,7 @@ type 'a bnd = string * 'a
 type t =
   | U of Level.t
   | Lam of clos
+  (* | Fun of clos2 *)
   | Pi of t * clos
   | Sg of t * clos
   | Pair of t * t
@@ -39,6 +40,9 @@ and nf = {tm : t ; tp : t}
 
 and clos = {name : string ; tm : Syntax.t ; env : env}
   [@@deriving show {with_path = false}]
+(* 
+and clos2 = {names : string * string ; tm : Syntax.t ; env : env }
+  [@@deriving show {with_path = false}] *)
 
 and clos3 = {names : string * string * string ; tm : Syntax.t ; env : env }
   [@@deriving show {with_path = false}]
@@ -63,6 +67,7 @@ and desc = {name : string ; cons : spec tele bnd list ; env : env}
 
 let rec lift i = function
   | Lam clos -> Lam (lift_clos i clos)
+  (* | Fun clos -> Fun (lift_clos2 i clos) *)
   | Pi (d,clos) -> Pi (lift i d, lift_clos i clos)
   | Sg (d,clos) -> Sg (lift i d, lift_clos i clos)
   | Pair (x,y) -> Pair (lift i x,lift i y)
@@ -76,6 +81,9 @@ let rec lift i = function
 
 and lift_clos i clos =
   {clos with tm = Syntax.lift i clos.tm}
+(* 
+and lift_clos2 i (clos : clos2) =
+  {clos with tm = Syntax.lift i clos.tm} *)
 
 and lift_clos3 i (clos : clos3) =
   {clos with tm = Syntax.lift i clos.tm}

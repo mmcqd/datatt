@@ -20,6 +20,20 @@ def coe (A B : Type) (p : Id Type A B) : A -> B =
   match p with
     | refl _ => λ x => x
 
+def trans-refl (A : Type) (x y : A) (p : Id A x y) : Id (Id A x y) p (trans A x y y p refl) =
+  match p with
+    | refl _ => refl
+
+def refl-trans (A : Type) (x y : A) (p : Id A x y) : Id (Id A x y) p (trans A x x y refl p) =
+  match p with
+    | refl _ => refl
+
+def sym-sym (A : Type) (x y : A) (p : Id A x y) : Id (Id A x y) p (sym A y x (sym A x y p)) =
+  match p with
+    | refl _ => refl
+
+def coe-refl (A : Type) (x : A) : Id A (coe A A refl x) x = refl
+
 
 def Comm (A : Type) (op : A -> A -> A) : Type = (x y : A) -> Id A (op x y) (op y x)
 
@@ -56,6 +70,9 @@ data Bool =
   | tt
   | ff
 
+def no-confusion-Bool : Not (Id Bool tt ff) = fn p =>
+  subst Bool tt ff p (elim with tt => Unit | ff => Void) <>
+
 def Bool-Ind (P : Bool -> Type) (t : P tt) (f : P ff) : (b : Bool) -> P b = elim with
   | tt => t
   | ff => f
@@ -64,26 +81,27 @@ def not : Bool -> Bool = elim with
   | tt => ff
   | ff => tt
 
-def and : Bool -> Bool -> Bool = elim with
-  | tt => fn b => b
-  | ff => fn _ => ff
 
-def or : Bool -> Bool -> Bool = elim with
-  | tt => fn _ => tt
-  | ff => fn b => b
+def and (a b : Bool) : Bool = elim a with
+  | tt => b
+  | ff => ff
+
+def or (a b : Bool) : Bool = elim a with
+  | tt => tt
+  | ff => b
 
 
 def not-not : (b : Bool) -> Id Bool b (not (not b)) = elim with
   | tt => refl
   | ff => refl
 
-def demorgan1 : (p q : Bool) -> Id Bool (not (and p q)) (or (not p) (not q)) = elim with
-  | tt => fn _ => refl
-  | ff => fn _ => refl
+def demorgan1 (a b : Bool) : Id Bool (not (and a b)) (or (not a) (not b)) = elim a with
+  | tt => refl
+  | ff => refl
 
-def demorgan2 : (p q : Bool) -> Id Bool (not (or p q)) (and (not p) (not q)) = elim with
-  | tt => fn _ => refl
-  | ff => fn _ => refl
+def demorgan2 (a b : Bool) : Id Bool (not (or a b)) (and (not a) (not b)) = elim a with
+  | tt => refl
+  | ff => refl
 
 data Nat =
   | zero
@@ -98,6 +116,8 @@ def Nat-Ind (P : Nat -> Type) (z : P zero) (s : (m : Nat) -> P m -> P (suc m)) :
   | zero => z
   | suc (n / ih) => s n ih
 
+def no-confusion-Nat (n : Nat) : Not (Id Nat zero (suc n)) = fn p =>
+  subst Nat zero (suc n) p (elim with zero => Unit | suc _ => Void) <>
 
 def pred : Nat -> Nat = elim with
   | zero => zero
@@ -117,7 +137,7 @@ def +-assoc : Assoc Nat + = fn n m p => elim n with
   | suc (_ / ih) => match ih with
     | refl _ => refl
 
-def +-zero : (n : Nat) -> Id Nat n (+ n zero) = elim with
+def +-zero : Id-R Nat + zero = elim with
   | zero => refl
   | suc (_ / ih) => match ih with
       | refl _ => refl
@@ -141,10 +161,14 @@ def leq : Nat -> Nat -> Type = elim with
     | zero => Void
     | suc n => ih n
 
-
 def leq-zero (n : Nat) : leq zero n = <>
 def leq-suc (m n : Nat) (p : leq m n) : leq (suc m) (suc n) = p
 
+{-
+def lemma : (m n : Nat) (p : leq m n) -> (k : Nat) * Id Nat (+ m k) n = elim with
+  | zero => fn n _ => (n,refl)
+  | suc (m / ih) => ?
+-}
 
 def id-elim : Nat -> Nat = elim with
   | zero => zero
@@ -178,6 +202,17 @@ def tl : List -> List = elim with
   | nil => nil
   | cons _ xs => xs
 
+def ++-assoc : Assoc List ++ = fn xs ys zs => elim xs with
+  | nil => refl
+  | cons x (xs / ih) => match ih with
+    | refl _ => refl
+
+def ++-nil : Id-R List ++ nil = elim with
+  | nil => refl
+  | cons x (xs / ih) => match ih with
+    | refl _ => refl
+
+
 data Tree =
   | empty
   | node (l : Tree) (x : Nat) (r : Tree)
@@ -206,21 +241,6 @@ def LoopN (P : PType) : Nat -> PType = elim with
 
 def PType-not-Void (P : PType) : Not^1 (Id Type P.1 Void) = fn p =>
   coe P.1 Void p P.2
-
-def Contr (A : Type) : Type = (x : A) * (y : A) -> Id A x y
-
-def Prop (A : Type) : Type = (x y : A) -> Id A x y
-
-def Set (A : Type) : Type = (x y : A) -> Prop (Id A x y)
-
-def Contr-Unit : Contr Unit = (<>,Unit-Eta)
-
-def Prop-Unit : Prop Unit = elim with 
-  | <> => elim with <> => refl
-
-def Prop-Void : Prop Void = elim with
-
-def Set-Void : Set Void = elim with
 
 def pair-ext (A B : Type) (x y : A * B) (p : Id A x.1 y.1) (q : Id B x.2 y.2) : Id (A * B) x y =
   match p with
@@ -291,6 +311,15 @@ def Monoid-Nat-+ : Monoid Nat =
   , +-assoc
   )
 
+def Monoid-List-++ : Monoid List =
+  ( nil
+  , ++
+  , fn _ => refl
+  , ++-nil
+  , ++-assoc
+  )
+
+
 
 data U =
   | arrow (e1 e2 : U)
@@ -315,7 +344,25 @@ def eval-tail' : Exp -> Nat -> Nat = elim with
 
 def eval-tail : Exp -> Nat = fn e => eval-tail' e zero
 
-def lemma (e : Exp) (acc : Nat) : Id Nat (eval-tail' e acc) (+ (eval e) acc) = elim e with
-  | num n => refl
-  | add (n / ih1) (m / ih2) => ?
+
+def Contr (A : Type) : Type = (x : A) * (y : A) -> Id A x y
+
+def Prop (A : Type) : Type = (x y : A) -> Id A x y
+
+def Set (A : Type) : Type = (x y : A) -> Prop (Id A x y)
+
+def Contr-Unit : Contr Unit = (<>,Unit-Eta)
+
+def Prop-Unit : Prop Unit = elim with 
+  | <> => elim with <> => refl
+
+
+def Prop-Void : Prop Void = elim with
+
+def Set-Void : Set Void = elim with
+
+def Singl (A : Type) (x : A) : Type = (y : A) * Id A x y
+
+def Contr-Singl (A : Type) (x : A) : Contr (Singl A x) = 
+  ((x,refl),fn p => match p.2 with refl w => refl)
 

@@ -1,5 +1,6 @@
 open Core
 module Dom = Domain
+module Syn = Syntax
 
 type entry = 
   | Def of {tm : Dom.t ; tp : Dom.t}

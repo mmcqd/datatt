@@ -37,6 +37,8 @@ let rec check (ctx : Ctx.t) (cs : CSyn.t) (tp : Dom.t) : Syn.t =
     | Lam ([],e),tp -> check ctx e tp
     | Lam (x::xs,e),Pi (d,clos) -> 
       Lam (x,check (Ctx.add ctx ~var:x ~tp:d) (Mark.naked @@ Lam (xs,e)) (Nbe.do_clos clos (Nbe.var x d)))
+    (* | Fun {name ; args = x::xs ; body},Pi (d,clos) ->
+      Fun (name,x,check (ctx |> Ctx.add ~var:name ~tp |> Ctx.add ~var:x ~tp:d) (Mark.naked @@ Lam (xs,body)) (Nbe.do_clos clos (Nbe.var x d))) *)
     | Tuple [x],tp -> check ctx x tp
     | Tuple (x::xs),Sg (f,clos) -> 
       let x' = check ctx x f in
@@ -65,8 +67,13 @@ let rec check (ctx : Ctx.t) (cs : CSyn.t) (tp : Dom.t) : Syn.t =
       let a = check ctx a (U i) in
       let a' = Nbe.eval (Ctx.to_env ctx) a in
       Id (a,check ctx x a',check ctx y a')
-    | Refl, Id (a,x,y) -> 
-      Refl (Nbe.equate (Ctx.to_names ctx) x y a)
+    | Refl, Id (a,x,y) ->
+      begin
+      try Refl (Nbe.equate (Ctx.to_names ctx) x y a) with
+        | Nbe.EquateError _ -> 
+          let used = Ctx.to_names ctx in
+          error (sprintf "%s - %s !<= %s" (Mark.show cs) (Syn.show @@ Nbe.read_back used x a) (Syn.show @@ Nbe.read_back used y a))
+      end
     | ElimFun arms, Pi (Data desc,clos) ->
       if not (List.equal String.equal (List.map ~f:fst desc.cons) (List.map ~f:fst arms)) then error (sprintf "%s - Elim arms don't match constructors" (Mark.show cs))else
       let x = match clos.name with "_" -> fresh () | x -> x in

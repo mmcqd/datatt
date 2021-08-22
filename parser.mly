@@ -8,8 +8,13 @@ let rec args_to_tele = function
 
 let func_syntax (args,t,e) =
   let tele = args_to_tele args in
-  Mark.naked @@ Concrete_syntax.Ascribe {tm = Mark.naked @@ Concrete_syntax.Lam (map ~f:fst tele,e); tp = Mark.naked @@ Concrete_syntax.Pi (tele,t) }
+  (Mark.naked @@ Concrete_syntax.Lam (map ~f:fst tele,e), Mark.naked @@ Concrete_syntax.Pi (tele,t))
 
+(*
+let rec_func_syntax (name,args,t,e) =
+  let tele = args_to_tele args in
+  (Mark.naked @@ Concrete_syntax.Fun {name ; args = map ~f:fst tele ; body = e},Mark.naked @@ Concrete_syntax.Pi (tele,t))
+*)
 
 %}
 
@@ -25,7 +30,7 @@ let func_syntax (args,t,e) =
 %token Id Refl 
 %token Match With Bar At
 %token Data Elim F_slash
-%token Def Equal
+%token Def Equal Rec
 %token <string> Ident
 %token <int> Dec_const
 
@@ -51,7 +56,17 @@ let init := ~ = nonempty_list(cmd); Eof; <>
 let cmd := 
   | Def; ~ = bound_name; Equal; ~ = m(term); <Concrete_syntax.Def>
   | Def; x = bound_name; Colon; tp = m(term); Equal; tm = m(term); { Concrete_syntax.Def (x, Mark.naked @@ Concrete_syntax.Ascribe {tp ; tm}) } 
-  | Def; x = bound_name; args = nonempty_list(paren(annot_args)); Colon; t = m(term); Equal; e = m(term); { Concrete_syntax.Def (x,func_syntax (args,t,e)) }
+  | Def; x = bound_name; args = nonempty_list(paren(annot_args)); Colon; t = m(term); Equal; e = m(term); 
+    { let tm,tp = func_syntax (args,t,e) in
+      Concrete_syntax.Def (x,Mark.naked @@ Concrete_syntax.Ascribe {tm ; tp}) 
+    }
+
+(*
+  | Def; Rec; x = bound_name; args = nonempty_list(paren(annot_args)); Colon; t = m(term); Equal; e = m(term); 
+    { let tm,tp = rec_func_syntax (x,args,t,e) in
+      Concrete_syntax.Def (x,Mark.naked @@ Concrete_syntax.Ascribe {tm ; tp})
+    }  
+*)
   | data_def
   | ~ = m(term); <Concrete_syntax.Eval>
 

@@ -1,7 +1,9 @@
+open Core
+
 type t =
   | Const of int
   | Omega
-  [@@deriving show]
+  [@@deriving show,equal]
 
 let (+) l1 l2 =
   match l1,l2 with
