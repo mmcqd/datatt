@@ -5,6 +5,8 @@ def J (A : Type) (P : (x y : A) -> Id A x y -> Type) (f : (x : A) -> P x x refl)
   match p with
     | refl i => f i
 
+axiom K : (A : Type) (x : A) (P : Id A x x -> Type) (r : P refl) (p : Id A x x) -> P p
+
 def sym (A : Type) (x y : A) (p : Id A x y) : Id A y x =
   match p with
     | refl _ => refl
@@ -170,11 +172,7 @@ def leq : Nat -> Nat -> Type = elim with
 def leq-zero (n : Nat) : leq zero n = <>
 def leq-suc (m n : Nat) (p : leq m n) : leq (suc m) (suc n) = p
 
-{-
-def lemma : (m n : Nat) (p : leq m n) -> (k : Nat) * Id Nat (+ m k) n = elim with
-  | zero => fn n _ => (n,refl)
-  | suc (m / ih) => ?
--}
+
 
 def id-elim : Nat -> Nat = elim with
   | zero => zero
@@ -306,6 +304,7 @@ def iso/Sum : Iso (Sum Nat Bool) (SumNatBool) =
 
 
 
+
 def Monoid (M : Type) : Type =
   (z : M) *
   (op : M -> M -> M) *
@@ -368,11 +367,14 @@ def HLevel : Nat -> Type -> Type = elim with
     | suc (_ / ih) => fn A => (x y : A) -> ih (Id A x y)
 
 
+
 {-
 def HLevel-suc (A : Type) : (n : Nat) -> HLevel n A -> HLevel (suc n) A = elim with
-  | zero => ?
+  | zero => fn p x y => trans A x p.1 y (sym A p.1 x (p.2 x)) (p.2 y)
   | suc n => elim n with
-    | zero => ?
+    | zero => fn f x y p q => 
+      let id-point = f x in
+      ?
     | suc (_ / ih) => ?
 -}
 
@@ -380,8 +382,6 @@ def Contr-Unit : Contr Unit = (<>,Unit-Eta)
 
 def Prop-Unit : Prop Unit = elim with 
   | <> => elim with <> => refl
-
-
 
 def Set-Unit : Set Unit = elim with <> => elim with <> => fn p =>
   let P1 : (x y : Unit) -> Id Unit x y -> Type = elim with <> => elim with <> => fn p => (q : Id Unit <> <>) -> Id (Id Unit <> <>) p q in
@@ -395,9 +395,31 @@ def Prop-Void : Prop Void = elim with
 
 def Set-Void : Set Void = elim with
 
+def HLevel-suc-Void : (n : Nat) -> HLevel (suc n) Void = elim with
+  | zero  => (elim with)
+  | suc n => (elim with)
+
+
 def Singl (A : Type) (x : A) : Type = (y : A) * Id A x y
 
 def Contr-Singl (A : Type) (x : A) : Contr (Singl A x) = 
   ((x,refl),fn p => match p.2 with refl w => refl)
 
 axiom funext : (A B : Type) (f g : A -> B) -> ((x : A) -> Id B (f x) (g x)) -> Id (A -> B) f g
+
+axiom ua : (A B : Type) -> Iso A B -> Id Type A B
+
+def Functor (F : Type -> Type) : Type^1 = (A B : Type) -> (A -> B) -> F A -> F B
+
+def Applicative (F : Type -> Type) : Type^1 =
+  (pure : (A : Type) -> A -> F A) *
+  (<*> : (A B : Type) -> F (A -> B) -> F A -> F B) *
+  Functor F
+
+def Monad (F : Type -> Type) : Type^1 = 
+  (join : (A : Type) -> F (F A) -> F A) *
+  Applicative F
+
+
+def bind (F : Type -> Type) (M : Monad F) (A B : Type) (m : F A) (f : A -> F B) : F B =
+  M.1 B (M.2.2.2 A (F B) f m)

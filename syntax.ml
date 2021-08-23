@@ -9,7 +9,6 @@ type t =
   | U of Level.t
   | Pi of t bnd * t
   | Lam of string * t
-  (* | Fun of string * string * t *)
   | Ap of t * t
   | Sg of t bnd * t
   | Pair of t * t
@@ -34,7 +33,6 @@ let rec_map (f : t -> t) = function
   | Lift x -> Lift x
   | Pi ((x,d),r) -> Pi ((x,f d), f r)
   | Lam (x,e) -> Lam (x,f e)
-  (* | Fun (g,x,e) -> Fun (g,x,f e) *)
   | Ap (g,e) -> Ap (f g, f e)
   | U i -> U i
   | Data d -> Data d
@@ -59,21 +57,24 @@ let lift i = bottom_up (function U (Const j) -> U (Const (j + i)) | x -> x)
 let rec pp_term (e : t) : string =
   match e with
     | Lam (x,e) -> sprintf "λ %s => %s" x (pp_term e)
-    (* | Fun (f,x,e) -> sprintf "fun %s %s => %s" f x (pp_term e) *)
     | Pi (("_",(Pi _ | Sg _ as d)),r) -> sprintf "(%s) → %s" (pp_term d) (pp_term r)
     | Pi (("_",d),r) -> sprintf "%s → %s" (pp_term d) (pp_term r)
     | Pi ((x,d),r) -> sprintf "(%s : %s) → %s" x (pp_term d) (pp_term r)
+    | Sg (("_",t),(Sg _ as e)) -> sprintf "%s × %s" (pp_atomic t) (pp_term e)
     | Sg (("_",t),e) -> sprintf "%s × %s" (pp_atomic t) (pp_atomic e)
+    | Sg ((x,t),(Sg _ as e)) -> sprintf "(%s : %s) × %s" x (pp_term t) (pp_term e)
     | Sg ((x,t),e) -> sprintf "(%s : %s) × %s" x (pp_term t) (pp_atomic e)
     | Ap ((Lam _ | J _ | Elim _) as e1,e2) -> sprintf "(%s) %s" (pp_term e1) (pp_term e2)
     | Ap (e1,(Ap _ as e2)) -> sprintf "%s (%s)" (pp_term e1) (pp_term e2)
     | Ap (e1,e2) -> sprintf "%s %s" (pp_term e1) (pp_atomic e2)
     | Intro {name ; args = arg::args} -> sprintf "%s %s" name (pp_args (arg::args))
+    | Elim {mot = _ ; arms = [] ; scrut} ->
+      sprintf "elim %s with" (pp_atomic scrut)
     | Elim {mot = _ ; arms ; scrut} ->
       sprintf "elim %s with %s" (pp_atomic scrut) (pp_arms arms)
     | Id (a,x,y) -> sprintf "Id %s %s %s" (pp_atomic a) (pp_atomic x) (pp_atomic y)
-    | J {mot = (x,y,p,m); body = (a,case) ; scrut} -> 
-      sprintf "match %s at %s %s %s => %s with refl %s ⇒ %s" (pp_atomic scrut) x y p (pp_term m) a (pp_term case)
+    | J {mot = _; body = (a,case) ; scrut} -> 
+      sprintf "match %s with refl %s ⇒ %s" (pp_atomic scrut) a (pp_term case)
     | Refl x -> sprintf "refl %s" (pp_atomic x)
     | Let ((x,e1),e2) -> sprintf "let %s = %s in %s" x (pp_term e1) (pp_term e2)
     | _ -> pp_atomic e 
@@ -88,13 +89,18 @@ and pp_arms = function
   | arm::arms -> sprintf "%s %s" (pp_arm arm) (pp_arms arms)
 
 and pp_arm (con,(args,arm)) =
-  sprintf "| %s %s=> %s" con (pp_arm_args args) (pp_term arm)
+  match args with
+    | [] -> sprintf "| %s => %s" con (pp_term arm)
+    | _  -> sprintf "| %s %s => %s" con (pp_arm_args args) (pp_term arm)
+
+and pp_arm_arg = function
+  | `Arg x -> x
+  | `Rec (x,r) -> sprintf "(%s / %s)" x r
 
 and pp_arm_args = function
-  | [] -> " "
-  | `Arg x::args -> sprintf "%s %s" x (pp_arm_args args)
-  | `Rec (x,r)::args -> sprintf "(%s / %s) %s" x r (pp_arm_args args)
-
+  | [] -> ""
+  | [x] -> pp_arm_arg x
+  | x::xs -> pp_arm_arg x ^ " " ^ pp_arm_args xs
 
 and pp_atomic (e : t) : string =
   match e with
@@ -128,8 +134,6 @@ let rec equal (i : int) (g1 : int String.Map.t) (e1 : t) (g2 : int String.Map.t)
       equal i g1 e1 g2 e1' && equal i g1 e2 g2 e2'
     | Lam (x,e), Lam (y,e') ->
       equal (i+1) (g1 ++ (x,i)) e (g2 ++ (y,i)) e'
-    (* | Fun (f,x,e),Fun (f',x',e') ->
-      equal (i+2) (g1++(f,i)++(x,i+1)) e (g2++(f',i)++(x',i+1)) e' *)
     | Pi ((x,t),e),Pi ((y,t'),e') | Sg ((x,t),e),Sg ((y,t'),e') | Let ((x,t),e),Let ((y,t'),e') -> 
       equal i g1 t g2 t' && equal (i+1) (g1 ++ (x,i)) e (g2 ++ (y,i)) e'
     | Pair (x,y), Pair (x',y') ->
@@ -169,7 +173,6 @@ let subst (sub : t) (fr : t) (e : t) : t =
     match e with
       | Ap (e1,e2) -> Ap (go i g e1,go i g e2)
       | Lam (x,e) -> Lam (x,go (i+1) (g++(x,i)) e)
-      (* | Fun (f,x,e) -> Fun (f,x,go (i+2) (g++(f,i)++(x,i+1)) e) *)
       | Pi ((x,d),r) -> Pi ((x,go i g d),go (i+1) (g++(x,i)) r)
       | Sg ((x,d),r) -> Sg ((x,go i g d),go (i+1) (g++(x,i)) r)
       | Let ((x,d),r) -> Let ((x,go i g d),go (i+1) (g++(x,i)) r)
@@ -199,7 +202,6 @@ and to_concrete_ (e : t) : Concrete_syntax.t_ = let open Concrete_syntax in
     | U i -> U i
     | Pi ((x,d),r) -> Pi ([(x,to_concrete d)],to_concrete r)
     | Lam (x,e) -> Lam ([x],to_concrete e)
-    (* | Fun (f,x,e) -> Fun {name = f ; args = [x] ; body = to_concrete e} *)
     | Ap (f,e) -> Spine (to_concrete f,Snoc (Nil,to_concrete e))
     | Sg ((x,d),r) -> Sg ([(x,to_concrete d)],to_concrete r)
     | Pair (x,y) -> Tuple [to_concrete x;to_concrete y]

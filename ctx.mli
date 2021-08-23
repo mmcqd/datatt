@@ -16,4 +16,5 @@ val is_data : t -> string -> bool
 val add : t -> var:string -> tp:Domain.t -> t
 val add_syn : t -> var:string -> tp:Syntax.t -> t
 val add_def : t -> var:string -> def:Domain.t -> tp:Domain.t -> t
+val add_let : t -> var:string -> def:Domain.t -> tp:Domain.t -> t
 val add_data : t -> Domain.desc -> t

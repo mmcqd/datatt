@@ -13,8 +13,8 @@ let var x tp = Dom.Neutral {ne = Var x ; tp}
 let rec eval (env : Dom.env) (s : Syn.t) : Dom.t =
   (* printf "EVAL %s\n" (Syn.show s); *)
   match s with
-    | Var x -> String.Map.find_exn env x
-    | Lift {name ; lvl} -> Dom.lift lvl (String.Map.find_exn env name)
+    | Var x -> Dom.Env.find_exn env x
+    | Lift {name ; lvl} -> Dom.lift lvl (Dom.Env.find_exn env name)
     | U i -> U i
     | Pi ((x,d),r) -> Pi (eval env d,{name = x ; tm = r ; env})
     | Lam (x,s) -> Lam {name = x ; tm = s ; env}
@@ -24,28 +24,25 @@ let rec eval (env : Dom.env) (s : Syn.t) : Dom.t =
     | Pair (a,b) -> Pair (eval env a, eval env b)
     | Fst p -> do_fst (eval env p)
     | Snd p -> do_snd (eval env p)
-    | Data d -> String.Map.find_exn env d
+    | Data d -> Dom.Env.find_exn env d
     | Intro {name ; args} -> Intro {name ; args = List.map ~f:(eval env) args}
     | Elim {mot = (x,m) ; arms ; scrut} -> do_elim Dom.{name = x ; tm = m ; env} arms (eval env scrut) env
     | Id (a,m,n) -> Id (eval env a,eval env m,eval env n)
     | Refl x -> Refl (eval env x)
     | J {mot = (x,y,p,m); body = (z,e) ; scrut} -> do_j Dom.{names = (x,y,p) ; tm = m ; env} Dom.{name = z ; tm = e ; env} (eval env scrut)
-    | Let ((x,e1),e2) -> eval (String.Map.set env ~key:x ~data:(eval env e1)) e2 
+    | Let ((x,e1),e2) -> eval (Dom.Env.set env ~key:x ~data:(eval env e1)) e2 
 
 and do_clos ({name ; tm ; env } : Dom.clos) (arg : Dom.t) : Dom.t =
-  eval (String.Map.set env ~key:name ~data:arg) tm
+  eval (Dom.Env.set env ~key:name ~data:arg) tm
 
-(* and do_clos2 ({names = (x,y) ; tm ; env } : Dom.clos2) (a : Dom.t) (b : Dom.t) : Dom.t =
-  eval (env |> String.Map.set ~key:x ~data:a |> String.Map.set ~key:y ~data:b) tm *)
 
 and do_clos3 ({names = (x,y,z) ; tm ; env } : Dom.clos3) (a : Dom.t) (b : Dom.t) (c : Dom.t) : Dom.t =
-  eval (env |> String.Map.set ~key:x ~data:a |> String.Map.set ~key:y ~data:b |> String.Map.set ~key:z ~data:c) tm
+  eval (env |> Dom.Env.set ~key:x ~data:a |> Dom.Env.set ~key:y ~data:b |> Dom.Env.set ~key:z ~data:c) tm
 
 
 and do_ap (f : Dom.t) (arg : Dom.t) : Dom.t =
   match f with
     | Lam clos -> do_clos clos arg
-    (* | Fun clos -> do_clos2 clos (Fun clos) arg *)
     | Neutral {tp = Pi (d,clos) ; ne} ->
       Neutral {tp = do_clos clos arg ; ne = Ap (ne,{tm = arg ; tp = d})}
     | _ -> failwith "do_ap"
@@ -67,8 +64,8 @@ and do_elim mot arms scrut env_s =
     | Intro {name ; args} ->
       let (vars,body) = List.Assoc.find_exn arms ~equal:String.equal name in
       let env = List.fold2_exn args vars ~init:env_s ~f:(fun env arg -> function
-        | `Arg x -> env |> String.Map.set ~key:x ~data:arg
-        | `Rec (x,r) -> env |> String.Map.set ~key:x ~data:arg |> String.Map.set ~key:r ~data:(do_elim mot arms arg env_s)) in
+        | `Arg x -> env |> Dom.Env.set ~key:x ~data:arg
+        | `Rec (x,r) -> env |> Dom.Env.set ~key:x ~data:arg |> Dom.Env.set ~key:r ~data:(do_elim mot arms arg env_s)) in
       eval env body
     | Neutral {tp = Data d ; ne} -> 
       Neutral { tp = do_clos mot scrut
@@ -109,9 +106,9 @@ let resolve_name used (f : Dom.t) (x : string) =
     | _,"_" -> fresh used "x"
     | _ -> fresh used x
 
-let resolve_arg_tp desc = function
-  | Dom.Rec -> Dom.Data desc
-  | Dom.Tp tp -> eval desc.env tp
+let resolve_arg_tp desc : Dom.spec -> Dom.t = function
+  | Rec -> Data desc
+  | Tp tp -> eval desc.env tp
 
 
 let rec equate (used : String.Set.t) ?(subtype = false)(e1 : Dom.t) (e2 : Dom.t) (tp : Dom.t) : Syn.t =
@@ -122,10 +119,6 @@ let rec equate (used : String.Set.t) ?(subtype = false)(e1 : Dom.t) (e2 : Dom.t)
         if Level.(<=) i j then U i else error (sprintf "Level Error: %s !<= %s" (Level.show i) (Level.show j))
       else
         if Level.equal i j then U i else error (sprintf "Level Error: %s !<= %s" (Level.show i) (Level.show j))
-    (* | Fun clos1,Fun clos2, Pi (d,clos) ->
-      let (f,x) = clos1.names in
-      let x,used = fresh used x in
-      Fun (f,x,equate used (do_clos2 clos1 (var f tp) (var x d)) (do_clos2 clos2 (var f tp) (var x d)) (do_clos clos (var x d))) *)
     | f1,f2, Pi (d,clos) -> 
       let x,used = resolve_name used f1 (clos.name) in
       Lam (x,equate used (do_ap f1 (var x d)) (do_ap f2 (var x d)) (do_clos clos (var x d)))
@@ -159,7 +152,7 @@ and equate_intro_args used args1 args2 dtele desc =
     | [arg1],[arg2],One s -> [equate used arg1 arg2 (resolve_arg_tp desc s)]
     | arg1::args1,arg2::args2,Cons ((x,s),dtele) ->
       let arg = equate used arg1 arg2 (resolve_arg_tp desc s) in
-      arg::equate_intro_args used args1 args2 dtele {desc with env = String.Map.set desc.env ~key:x ~data:arg1}
+      arg::equate_intro_args used args1 args2 dtele {desc with env = Dom.Env.set desc.env ~key:x ~data:arg1}
     | _ -> error "Intro argument mismatch"
     
 and equate_ne used ne1 ne2 =
@@ -197,11 +190,11 @@ and collect_elim_args mot args dtele desc env =
   let f tp = function
     | `Arg x ->  
       let arg = var x tp in
-      arg,String.Map.set env ~key:x ~data:arg
+      arg,Dom.Env.set env ~key:x ~data:arg
     | `Rec (x,r) -> 
       let arg = var x tp in
       let arg_r = var r (do_clos mot arg) in
-      arg,env |> String.Map.set ~key:x ~data:arg |> String.Map.set ~key:r ~data:arg_r
+      arg,env |> Dom.Env.set ~key:x ~data:arg |> Dom.Env.set ~key:r ~data:arg_r
   in 
   match args,dtele with
     | [],Dom.Nil -> [],env
@@ -212,7 +205,7 @@ and collect_elim_args mot args dtele desc env =
     | arg::args,Cons ((y,s),dtele) -> 
       let tp = resolve_arg_tp desc s in
       let arg,env = f tp arg in
-      let args,env = collect_elim_args mot args dtele {desc with env = String.Map.set desc.env ~key:y ~data:tp} env in
+      let args,env = collect_elim_args mot args dtele {desc with env = Dom.Env.set desc.env ~key:y ~data:tp} env in
       arg::args,env
     | _ -> error "collect_elim_args NBE"
 

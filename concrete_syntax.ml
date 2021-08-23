@@ -25,7 +25,6 @@ type t_ =
   | U of Level.t
   | Pi of t bnd list * t
   | Lam of string list * t
-  (* | Fun of {name : string ; args : string list ; body : t} *)
   | Spine of t * t spine
   | Sg of t bnd list * t
   | Tuple of t list

@@ -32,7 +32,7 @@ let rec check (ctx : Ctx.t) (cs : CSyn.t) (tp : Dom.t) : Syn.t =
       Sg ((x,d),sg)
     | Let ((x,e1),e2),tp ->
       let e1_tp,e1' = synth ctx e1 in
-      let e2' = check (Ctx.add_def ctx ~var:x ~def:(Nbe.eval (Ctx.to_env ctx) e1') ~tp:e1_tp) e2 tp in
+      let e2' = check (Ctx.add_let ctx ~var:x ~def:(Nbe.eval (Ctx.to_env ctx) e1') ~tp:e1_tp) e2 tp in
       Let ((x,e1'),e2')
     | Lam ([],e),tp -> check ctx e tp
     | Lam (x::xs,e),Pi (d,clos) -> 
@@ -137,7 +137,7 @@ and check_intro_args ctx args dtele desc =
     | [arg],One tp -> [check ctx arg (Nbe.resolve_arg_tp desc tp)]
     | arg::args,Cons ((x,tp),dtele) ->
       let arg = check ctx arg (Nbe.resolve_arg_tp desc tp) in
-      arg::check_intro_args ctx args dtele {desc with env = String.Map.set desc.env ~key:x ~data:(Nbe.eval (Ctx.to_env ctx) arg)}
+      arg::check_intro_args ctx args dtele {desc with env = Dom.Env.set desc.env ~key:x ~data:(Nbe.eval (Ctx.to_env ctx) arg)}
     | _ -> error "Incorrect number of args provided to constructor"
 
 
@@ -178,7 +178,7 @@ and synth (ctx : Ctx.t) (cs : CSyn.t) : Dom.t * Syn.t =
       tp, check ctx tm tp
     | Let ((x,e1),e2) ->
       let e1_tp,e1' = synth ctx e1 in
-      let e2_tp,e2' = synth (Ctx.add_def ctx ~var:x ~def:(Nbe.eval (Ctx.to_env ctx) e1') ~tp:e1_tp) e2 in
+      let e2_tp,e2' = synth (Ctx.add_let ctx ~var:x ~def:(Nbe.eval (Ctx.to_env ctx) e1') ~tp:e1_tp) e2 in
       e2_tp,Let ((x,e1'),e2')  
     | Fst p ->
       begin
@@ -244,7 +244,7 @@ and collect_elim_args pos mot args dtele desc ctx =
     | arg::args,Cons ((y,s),dtele) -> 
       let tp = Nbe.resolve_arg_tp desc s in
       let arg,ctx = f tp arg in
-      let args,ctx = collect_elim_args pos mot args dtele {desc with env = String.Map.set desc.env ~key:y ~data:tp} ctx in
+      let args,ctx = collect_elim_args pos mot args dtele {desc with env = Dom.Env.set desc.env ~key:y ~data:tp} ctx in
       arg::args,ctx
     | _ -> error (sprintf "%s - Elim arm has incorrect number of args" pos)
 

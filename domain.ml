@@ -26,6 +26,8 @@ type t =
   | Neutral of {tp : t ; ne : ne}
   [@@deriving show {with_path = false}]
 
+and dom = t
+
 and ne =
   | Var of string
   | Ap of ne * nf
@@ -40,9 +42,6 @@ and nf = {tm : t ; tp : t}
 
 and clos = {name : string ; tm : Syntax.t ; env : env}
   [@@deriving show {with_path = false}]
-(* 
-and clos2 = {names : string * string ; tm : Syntax.t ; env : env }
-  [@@deriving show {with_path = false}] *)
 
 and clos3 = {names : string * string * string ; tm : Syntax.t ; env : env }
   [@@deriving show {with_path = false}]
@@ -50,7 +49,11 @@ and clos3 = {names : string * string * string ; tm : Syntax.t ; env : env }
 and arm_clos = {names : [`Rec of string * string | `Arg of string] list ; arm : Syntax.t ; env : env}
   [@@deriving show {with_path = false}]
 
-and env = t Map.t
+and env_entry =
+  | Data of desc
+  | Tm of t
+
+and env = env_entry Map.t
 
 and spec = 
   | Rec
@@ -65,9 +68,29 @@ and desc = {name : string ; cons : spec tele bnd list ; env : env}
 
 [@@@ocaml.warning "+30"]
 
+
+module Env =
+  struct
+    type t = env
+
+    let set env ~key ~data = String.Map.set env ~key ~data:(Tm data)
+  
+    let set_data env ~key ~data = String.Map.set env ~key ~data:(Data data)
+
+    let find_exn (env : env) (s : string) : dom =
+      match String.Map.find_exn env s with
+        | Tm t -> t
+        | Data d -> Data d
+    
+    let find_data_exn (env : env) (s : string) : desc =
+      match String.Map.find_exn env s with
+        | Tm _ -> failwith "find_data_exn - env"
+        | Data d -> d
+  end
+
+
 let rec lift i = function
   | Lam clos -> Lam (lift_clos i clos)
-  (* | Fun clos -> Fun (lift_clos2 i clos) *)
   | Pi (d,clos) -> Pi (lift i d, lift_clos i clos)
   | Sg (d,clos) -> Sg (lift i d, lift_clos i clos)
   | Pair (x,y) -> Pair (lift i x,lift i y)
@@ -81,9 +104,6 @@ let rec lift i = function
 
 and lift_clos i clos =
   {clos with tm = Syntax.lift i clos.tm}
-(* 
-and lift_clos2 i (clos : clos2) =
-  {clos with tm = Syntax.lift i clos.tm} *)
 
 and lift_clos3 i (clos : clos3) =
   {clos with tm = Syntax.lift i clos.tm}
