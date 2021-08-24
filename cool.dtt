@@ -1,0 +1,44 @@
+data Bool =
+  | true
+  | false
+
+def not (b : Bool) : Bool =
+  elim b with
+    | true  => false
+    | false => true
+  
+def and (a b : Bool) : Bool =
+  elim a with
+    | true => b
+    | false => false
+
+def or (a b : Bool) : Bool =
+  elim a with
+    | true => true
+    | false => b
+
+
+def not-not (b : Bool) : Id Bool b (not (not b)) =
+  elim b with
+    | true => refl
+    | false => refl
+
+
+data Nat =
+  | zero
+  | suc (n : Nat)
+
+def one : Nat = suc zero
+def two : Nat = suc one
+
+def + (n m : Nat) : Nat =
+  elim n with
+    | zero  => m
+    | suc (n' / n'+m) => suc n'+m
+
+def +-assoc (n m p : Nat) : Id Nat (+ (+ n m) p) (+ n (+ m p)) =
+  elim n with
+    | zero => refl
+    | suc (n / ih) => 
+      match ih with
+        | refl z => refl

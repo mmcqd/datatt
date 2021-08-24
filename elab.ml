@@ -43,14 +43,14 @@ let rec check (ctx : Ctx.t) (cs : CSyn.t) (tp : Dom.t) : Syn.t =
     | Tuple (x::xs),Sg (f,clos) -> 
       let x' = check ctx x f in
       Pair (x',check ctx (Mark.naked @@ Tuple xs) (Nbe.do_clos clos (Nbe.eval (Ctx.to_env ctx) x')))
-    | Var d,U _ when (match Ctx.find_data ctx d with Some _ -> true | _ -> false) -> Data d
-    | Var con,Data desc when (match Ctx.find_tp ctx con with Some _ -> false | _ -> true) ->
+    | Var d,U _ when (match Ctx.find_data ctx d with Some _ -> true | _ -> false) -> Data {name = d ; params = []}
+    | Var con,Data {desc ; params} when (match Ctx.find_tp ctx con with Some _ -> false | _ -> true) ->
       begin
       match List.Assoc.find ~equal:String.equal desc.cons con with
         | None -> error (sprintf "%s - %s is not a constructor for type %s" (Mark.show cs) con desc.name)
-        | Some dtele -> Intro {name = con ; args = check_intro_args ctx [] dtele desc}
+        | Some dtele -> Intro {name = con ; args = check_intro_args ctx [] dtele (Nbe.apply_params desc desc.params params,params)}
       end
-    | Spine (f,args),Data desc -> 
+    | Spine (f,args),Data {desc ; params} -> 
       begin
       match Mark.data f with
         | Var con when (match Ctx.find_tp ctx con with Some Pi _ -> false | _ -> true) ->
@@ -58,7 +58,7 @@ let rec check (ctx : Ctx.t) (cs : CSyn.t) (tp : Dom.t) : Syn.t =
           match List.Assoc.find ~equal:String.equal desc.cons con with
             | None -> error (sprintf "%s - %s is not a constructor for type %s" (Mark.show cs) con desc.name)
             | Some dtele -> 
-              try Intro {name = con ; args = check_intro_args ctx (CSyn.spine_to_list args) dtele desc} with
+              try Intro {name = con ; args = check_intro_args ctx (CSyn.spine_to_list args) dtele (Nbe.apply_params desc desc.params params,params)} with
                 | TypeError s -> error (sprintf "%s - %s" (Mark.show cs) s)
           end
         | _ -> mode_switch ctx cs tp
@@ -74,10 +74,10 @@ let rec check (ctx : Ctx.t) (cs : CSyn.t) (tp : Dom.t) : Syn.t =
           let used = Ctx.to_names ctx in
           error (sprintf "%s - %s !<= %s" (Mark.show cs) (Syn.show @@ Nbe.read_back used x a) (Syn.show @@ Nbe.read_back used y a))
       end
-    | ElimFun arms, Pi (Data desc,clos) ->
+    | ElimFun arms, Pi (Data {desc;params},clos) ->
       if not (List.equal String.equal (List.map ~f:fst desc.cons) (List.map ~f:fst arms)) then error (sprintf "%s - Elim arms don't match constructors" (Mark.show cs))else
       let x = match clos.name with "_" -> fresh () | x -> x in
-      Lam (x,Elim { mot = (x,Nbe.read_back (Ctx.to_names ctx) (Nbe.do_clos clos (Nbe.var x (Data desc))) (U Omega))
+      Lam (x,Elim { mot = (x,Nbe.read_back (Ctx.to_names ctx) (Nbe.do_clos clos (Nbe.var x (Data {desc;params}))) (U Omega))
             ; scrut = Var x
             ; arms = List.map2_exn arms desc.cons ~f:(fun (con,(args,arm)) (_,dtele) -> 
               let dom_args,ctx = collect_elim_args (Mark.show cs) clos args dtele desc ctx in
@@ -131,13 +131,12 @@ let rec check (ctx : Ctx.t) (cs : CSyn.t) (tp : Dom.t) : Syn.t =
       end 
     | _ -> mode_switch ctx cs tp
 
-and check_intro_args ctx args dtele desc =
+and check_intro_args ctx args dtele (desc,params) =
   match args,dtele with
-    | [],Dom.Nil   -> []
-    | [arg],One tp -> [check ctx arg (Nbe.resolve_arg_tp desc tp)]
-    | arg::args,Cons ((x,tp),dtele) ->
-      let arg = check ctx arg (Nbe.resolve_arg_tp desc tp) in
-      arg::check_intro_args ctx args dtele {desc with env = Dom.Env.set desc.env ~key:x ~data:(Nbe.eval (Ctx.to_env ctx) arg)}
+    | [],[]   -> []
+    | arg::args,(x,tp)::dtele ->
+      let arg = check ctx arg (Nbe.resolve_arg_tp (desc,params) tp) in
+      arg::check_intro_args ctx args dtele ({desc with env = Dom.Env.set desc.env ~key:x ~data:(Nbe.eval (Ctx.to_env ctx) arg)},params)
     | _ -> error "Incorrect number of args provided to constructor"
 
 

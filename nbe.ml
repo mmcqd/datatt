@@ -175,8 +175,8 @@ and equate_ne used ne1 ne2 =
       Elim { mot = (x,equate used (do_clos e1.mot (var x (Data {desc = e1.desc ; params = e1.params}))) (do_clos e2.mot (var x (Data {desc=e2.desc;params=e2.params}))) (U Omega))
            ; arms = List.map2_exn e1.arms e2.arms ~f:(fun (con1,clos1) (_,clos2) ->
             let dtele = List.Assoc.find_exn e1.desc.cons ~equal:String.equal con1 in
-            let args,env1 = collect_elim_args e1.mot clos1.names dtele e1.desc clos1.env in
-            let _,env2 = collect_elim_args e2.mot clos2.names dtele e2.desc clos2.env in
+            let args,env1 = collect_elim_args e1.mot clos1.names dtele (apply_params e1.desc e1.desc.params e1.params,e1.params) clos1.env in
+            let _,env2 = collect_elim_args e2.mot clos2.names dtele (apply_params e2.desc e2.desc.params e2.params,e2.params) clos2.env in
             (con1,(clos1.names,equate used (eval env1 clos1.arm) (eval env2 clos2.arm) (do_clos e1.mot (Intro {name = con1 ; args}))))
            )
            ; scrut = equate_ne used e1.scrut e2.scrut
@@ -195,7 +195,7 @@ and equate_ne used ne1 ne2 =
 
     | _ -> error "equate_ne - Inputs not convertible"
 
-and collect_elim_args mot args dtele desc env =
+and collect_elim_args mot args dtele (desc,params) env =
   let f tp = function
     | `Arg x ->  
       let arg = var x tp in
@@ -208,9 +208,9 @@ and collect_elim_args mot args dtele desc env =
   match args,dtele with
     | [],[] -> [],env
     | arg::args,(y,s)::dtele -> 
-      let tp = resolve_arg_tp desc s in
+      let tp = resolve_arg_tp (desc,params) s in
       let arg,env = f tp arg in
-      let args,env = collect_elim_args mot args dtele {desc with env = Dom.Env.set desc.env ~key:y ~data:tp} env in
+      let args,env = collect_elim_args mot args dtele ({desc with env = Dom.Env.set desc.env ~key:y ~data:tp},params) env in
       arg::args,env
     | _ -> error "collect_elim_args NBE"
 
