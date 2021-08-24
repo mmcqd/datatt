@@ -423,3 +423,11 @@ def Monad (F : Type -> Type) : Type^1 =
 
 def bind (F : Type -> Type) (M : Monad F) (A B : Type) (m : F A) (f : A -> F B) : F B =
   M.1 B (M.2.2.2 A (F B) f m)
+
+
+def Functor-id : Functor (id^1 Type) = fn A B f => f
+
+def Applicative-id : Applicative (id^1 Type) = (id,Functor-id,Functor-id)
+
+def Monad-id : Monad (id^1 Type) = (id,Applicative-id)
+

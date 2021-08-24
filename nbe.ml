@@ -24,7 +24,7 @@ let rec eval (env : Dom.env) (s : Syn.t) : Dom.t =
     | Pair (a,b) -> Pair (eval env a, eval env b)
     | Fst p -> do_fst (eval env p)
     | Snd p -> do_snd (eval env p)
-    | Data d -> Dom.Env.find_exn env d
+    | Data {name ; params} -> Data {desc = Dom.Env.find_data_exn env name ; params = List.map ~f:(eval env) params}
     | Intro {name ; args} -> Intro {name ; args = List.map ~f:(eval env) args}
     | Elim {mot = (x,m) ; arms ; scrut} -> do_elim Dom.{name = x ; tm = m ; env} arms (eval env scrut) env
     | Id (a,m,n) -> Id (eval env a,eval env m,eval env n)
@@ -67,12 +67,13 @@ and do_elim mot arms scrut env_s =
         | `Arg x -> env |> Dom.Env.set ~key:x ~data:arg
         | `Rec (x,r) -> env |> Dom.Env.set ~key:x ~data:arg |> Dom.Env.set ~key:r ~data:(do_elim mot arms arg env_s)) in
       eval env body
-    | Neutral {tp = Data d ; ne} -> 
+    | Neutral {tp = Data {desc ; params} ; ne} -> 
       Neutral { tp = do_clos mot scrut
               ; ne = Elim { mot
                           ; arms = List.map arms ~f:(fun (con,(vs,body)) -> con,Dom.{names = vs ; arm = body ; env = env_s})
                           ; scrut = ne
-                          ; desc = d
+                          ; desc
+                          ; params
                           }
               } 
     | _ -> failwith "do_elim"
@@ -106,12 +107,19 @@ let resolve_name used (f : Dom.t) (x : string) =
     | _,"_" -> fresh used "x"
     | _ -> fresh used x
 
-let resolve_arg_tp desc : Dom.spec -> Dom.t = function
-  | Rec -> Data desc
+let resolve_arg_tp (desc,params) : Dom.spec -> Dom.t = function
+  | Rec -> Data {desc ; params}
   | Tp tp -> eval desc.env tp
 
+let rec apply_params (desc : Dom.desc) param_tps ps =
+  match param_tps,ps with
+    | [],[] -> desc
+    | (x,_)::param_tps,p::ps ->
+      apply_params {desc with env = Dom.Env.set desc.env ~key:x ~data:p} param_tps ps
+    | _ -> failwith "apply_params"
 
-let rec equate (used : String.Set.t) ?(subtype = false)(e1 : Dom.t) (e2 : Dom.t) (tp : Dom.t) : Syn.t =
+
+let rec equate (used : String.Set.t) ?(subtype = false) (e1 : Dom.t) (e2 : Dom.t) (tp : Dom.t) : Syn.t =
   (* printf "-----\nEQUATING\n%s\nWITH\n%s\nAT\n%s\n-----\n" (Dom.show e1) (Dom.show e2) (Dom.show tp); *)
   match e1,e2,tp with
     | U i, U j, U _ -> 
@@ -134,10 +142,12 @@ let rec equate (used : String.Set.t) ?(subtype = false)(e1 : Dom.t) (e2 : Dom.t)
       let fst_p1 = do_fst p1 in
       Pair (equate used fst_p1 (do_fst p2) f, equate used (do_snd p1) (do_snd p2) (do_clos clos fst_p1)) 
     | Data d1, Data d2, U _ ->
-      if String.equal d1.name d2.name then Data d1.name else error (sprintf "%s != %s" d1.name d2.name)
-    | Intro i1, Intro i2, Data d ->
+      if String.equal d1.desc.name d2.desc.name
+      then Data {name = d1.desc.name ; params = List.map2_exn d1.params d2.params ~f:(fun p1 p2 -> equate used p1 p2 (U Omega))} 
+      else error (sprintf "%s != %s" d1.desc.name d2.desc.name)
+    | Intro i1, Intro i2, Data {desc ; params} ->
       if not (String.equal i1.name i2.name) then error (sprintf "%s != %s" i1.name i2.name) else
-      let args = equate_intro_args used i1.args i2.args (List.Assoc.find_exn ~equal:String.equal d.cons i1.name) d in
+      let args = equate_intro_args used i1.args i2.args (List.Assoc.find_exn ~equal:String.equal desc.cons i1.name) (apply_params desc desc.params params,params) in
       Intro {name = i1.name ; args}
     | Id (a1,m1,n1),Id (a2,m2,n2), U i ->
       Id (equate used a1 a2 (U i),equate used m1 m2 a1,equate used n1 n2 a1)
@@ -146,13 +156,12 @@ let rec equate (used : String.Set.t) ?(subtype = false)(e1 : Dom.t) (e2 : Dom.t)
     | Neutral n1,Neutral n2,_ -> equate_ne used n1.ne n2.ne
     | _ -> error (sprintf "equate - Inputs not convertible - %s != %s at %s" (Dom.show e1) (Dom.show e2) (Dom.show tp))
 
-and equate_intro_args used args1 args2 dtele desc =
+and equate_intro_args used args1 args2 dtele (desc,params) =
   match args1,args2,dtele with
-    | [],[],Nil -> []
-    | [arg1],[arg2],One s -> [equate used arg1 arg2 (resolve_arg_tp desc s)]
-    | arg1::args1,arg2::args2,Cons ((x,s),dtele) ->
-      let arg = equate used arg1 arg2 (resolve_arg_tp desc s) in
-      arg::equate_intro_args used args1 args2 dtele {desc with env = Dom.Env.set desc.env ~key:x ~data:arg1}
+    | [],[],[] -> []
+    | arg1::args1,arg2::args2,(x,s)::dtele ->
+      let arg = equate used arg1 arg2 (resolve_arg_tp (desc,params) s) in
+      arg::equate_intro_args used args1 args2 dtele ({desc with env = Dom.Env.set desc.env ~key:x ~data:arg1},params)
     | _ -> error "Intro argument mismatch"
     
 and equate_ne used ne1 ne2 =
@@ -163,7 +172,7 @@ and equate_ne used ne1 ne2 =
     | Snd ne1, Snd ne2 -> Snd (equate_ne used ne1 ne2)
     | Elim e1,Elim e2 ->
       let x,used = fresh used e1.mot.name in
-      Elim { mot = (x,equate used (do_clos e1.mot (var x (Data e1.desc))) (do_clos e2.mot (var x (Data e2.desc))) (U Omega))
+      Elim { mot = (x,equate used (do_clos e1.mot (var x (Data {desc = e1.desc ; params = e1.params}))) (do_clos e2.mot (var x (Data {desc=e2.desc;params=e2.params}))) (U Omega))
            ; arms = List.map2_exn e1.arms e2.arms ~f:(fun (con1,clos1) (_,clos2) ->
             let dtele = List.Assoc.find_exn e1.desc.cons ~equal:String.equal con1 in
             let args,env1 = collect_elim_args e1.mot clos1.names dtele e1.desc clos1.env in
@@ -197,12 +206,8 @@ and collect_elim_args mot args dtele desc env =
       arg,env |> Dom.Env.set ~key:x ~data:arg |> Dom.Env.set ~key:r ~data:arg_r
   in 
   match args,dtele with
-    | [],Dom.Nil -> [],env
-    | [arg],One s ->
-      let tp = resolve_arg_tp desc s in
-      let arg,env = f tp arg in
-      [arg],env
-    | arg::args,Cons ((y,s),dtele) -> 
+    | [],[] -> [],env
+    | arg::args,(y,s)::dtele -> 
       let tp = resolve_arg_tp desc s in
       let arg,env = f tp arg in
       let args,env = collect_elim_args mot args dtele {desc with env = Dom.Env.set desc.env ~key:y ~data:tp} env in

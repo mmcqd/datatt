@@ -14,7 +14,7 @@ type t =
   | Pair of t * t
   | Fst of t
   | Snd of t
-  | Data of string
+  | Data of {name : string ; params : t list}
   | Intro of {name : string ; args : t list}
   | Elim of {mot : t bnd ; arms : ([`Rec of string * string | `Arg of string] list * t) bnd list ; scrut : t}
   | Id of t * t * t
@@ -35,7 +35,7 @@ let rec_map (f : t -> t) = function
   | Lam (x,e) -> Lam (x,f e)
   | Ap (g,e) -> Ap (f g, f e)
   | U i -> U i
-  | Data d -> Data d
+  | Data {name ; params} -> Data {name ; params = List.map ~f params}
   | Intro {name ; args} -> Intro {name ; args = List.map ~f args}
   | Elim {mot = (x,m) ; scrut ; arms} -> Elim {mot = (x,f m) ; scrut = f scrut ; arms = List.map arms ~f:(fun (con,(vs,e)) -> (con, (vs,f e)))}
   | Id (a,x,y) -> Id (f a, f x, f y)
@@ -68,6 +68,7 @@ let rec pp_term (e : t) : string =
     | Ap (e1,(Ap _ as e2)) -> sprintf "%s (%s)" (pp_term e1) (pp_term e2)
     | Ap (e1,e2) -> sprintf "%s %s" (pp_term e1) (pp_atomic e2)
     | Intro {name ; args = arg::args} -> sprintf "%s %s" name (pp_args (arg::args))
+    | Data {name ; params = p::ps} -> sprintf "%s %s" name (pp_args (p::ps))
     | Elim {mot = _ ; arms = [] ; scrut} ->
       sprintf "elim %s with" (pp_atomic scrut)
     | Elim {mot = _ ; arms ; scrut} ->
@@ -111,7 +112,7 @@ and pp_atomic (e : t) : string =
     | Pair (e1,e2) -> sprintf "(%s,%s)" (pp_term e1) (pp_term e2)
     | Fst e -> sprintf "%s.1" (pp_atomic e)
     | Snd e -> sprintf "%s.2" (pp_atomic e)
-    | Data d -> d
+    | Data {name ; params = []} -> name
     | Intro {name ; args = []} -> name
     | _ -> sprintf "(%s)" (pp_term e)
 
@@ -148,7 +149,7 @@ let rec equal (i : int) (g1 : int String.Map.t) (e1 : t) (g2 : int String.Map.t)
       equal (i+3) (g1 ++ (x,i) ++ (y,i+1) ++ (z,i+2)) mot (g2 ++ (x',i) ++ (y',i+1) ++ (z',i+2)) mot' &&
       equal (i+1) (g1 ++ (a,i)) case (g2 ++ (a',i)) case' &&
       equal i g1 scrut g2 scrut'
-    | Data d, Data d' -> String.equal d d'
+    | Data d, Data d' -> String.equal d.name d'.name && List.equal (fun e1 e2 -> equal i g1 e1 g2 e2) d.params d'.params
     | Intro con, Intro con' -> String.equal con.name con'.name && List.equal (fun e1 e2 -> equal i g1 e1 g2 e2) con.args con'.args
     | Elim e, Elim e' ->
       let (x,m),(x',m') = e.mot,e'.mot in
@@ -181,6 +182,7 @@ let subst (sub : t) (fr : t) (e : t) : t =
       | Id (a,m,n) -> Id (go i g a,go i g m,go i g n)
       | J { mot = (x,y,p,m) ; body = (z,e) ; scrut} -> J {mot = (x,y,p,go (i+3) (g++(x,i)++(y,i+1)++(p,i+2)) m) ; body = (z,go (i+1) (g++(z,i)) e) ; scrut = go i g scrut}
       | Intro {name;args} -> Intro {name ; args = List.map ~f:(go i g) args}
+      | Data {name;params} -> Data {name ; params = List.map ~f:(go i g) params}
       | Elim {mot = (x,m) ; arms ; scrut} -> 
         Elim {mot = (x,go (i+1) (g++(x,i)) m) ; scrut = go i g scrut ; arms = List.map ~f:(fun (con,(vs,arm)) -> (con,(vs,go_arm i g (flatten_arm_args vs) arm))) arms}
       | e -> e
@@ -207,7 +209,7 @@ and to_concrete_ (e : t) : Concrete_syntax.t_ = let open Concrete_syntax in
     | Pair (x,y) -> Tuple [to_concrete x;to_concrete y]
     | Fst p -> Fst (to_concrete p)
     | Snd p -> Snd (to_concrete p)
-    | Data d -> Var d
+    | Data {name ; params} -> Spine (to_concrete (Var name),params |> List.map ~f:to_concrete |> list_to_spine)
     | Intro {name ; args} -> Spine (to_concrete (Var name),args |> List.map ~f:to_concrete |> list_to_spine)
     | Elim {mot = (x,m) ; scrut ; arms} -> Elim {mot = Some (x,to_concrete m) ; scrut = to_concrete scrut ; arms = List.map ~f:(fun (con,(vs,arm)) -> (con,(vs,to_concrete arm))) arms}
     | Id (a,m,n) -> Id (to_concrete a,to_concrete m,to_concrete n)
