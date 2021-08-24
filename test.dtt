@@ -1,6 +1,5 @@
 def id (A : Type) (x : A) : A = x
 
-
 def J (A : Type) (P : (x y : A) -> Id A x y -> Type) (f : (x : A) -> P x x refl) (x y : A) (p : Id A x y) : P x y p =
   match p with
     | refl i => f i
@@ -55,9 +54,9 @@ def curry (A B C : Type) (f : A * B -> C) : A -> B -> C = fn x y => f (x,y)
 def curryd (A : Type) (B : A -> Type) (C : (x : A) -> B x -> Type) (f : (p : (x : A) * B x) -> C p.1 p.2) : (x : A) (y : B x) -> C x y = fn x y => f (x,y)
 
 def uncurry (A B C : Type) (f : A -> B -> C) : A * B -> C = fn p => f p.1 p.2
-def uncurryd (A : Type) (B : A -> Type) (C : (x : A) -> B x -> Type) (f : (x : A) (y : B x) -> C x y) : (p : (x : A) * B x) -> C p.1 p.2 = fn p => f p.1 p.2
+def uncurryd (A : Type) (B : A -> Type) (C : ((x : A) * B x) -> Type) (f : (x : A) (y : B x) -> C (x,y)) : (p : (x : A) * B x) -> C p = fn p => f p.1 p.2
 
-data Void = |
+data Void
 
 def Void-Ind (P : Void -> Type) : (x : Void) -> P x =
   elim with
@@ -291,10 +290,10 @@ data SumNatBool =
   | in2 (b : Bool)
 
 def iso/Sum : Iso (Sum Nat Bool) (SumNatBool) = 
-  let f = uncurryd Bool (sumty Nat Bool) (fn _ _ => SumNatBool) (elim with tt => fn x => in1 x | ff => fn x => in2 x) in
+  let f = uncurryd Bool (sumty Nat Bool) (fn _ => SumNatBool) (elim with tt => fn x => in1 x | ff => fn x => in2 x) in
   let g : SumNatBool -> Sum Nat Bool = elim with in1 x => (tt,x) | in2 x => (ff,x) in
   let fg : (s : SumNatBool) -> Id SumNatBool s (f (g s)) = elim with in1 x => refl | in2 x => refl in
-  let gf = uncurryd Bool (sumty Nat Bool) (fn x1 x2 => Id (Sum Nat Bool) (x1,x2) (g (f (x1,x2)))) 
+  let gf = uncurryd Bool (sumty Nat Bool) (fn p => Id (Sum Nat Bool) p (g (f p))) 
     (elim with tt => fn n => refl | ff => fn n => refl) in
   ( f 
   , g
@@ -366,6 +365,8 @@ def HLevel : Nat -> Type -> Type = elim with
     | zero => Prop
     | suc (_ / ih) => fn A => (x y : A) -> ih (Id A x y)
 
+def Contr->Prop (A : Type) (p : Contr A) : Prop A =
+  fn x y => trans A x p.1 y (sym A p.1 x (p.2 x)) (p.2 y)
 
 
 {-
@@ -423,3 +424,4 @@ def Monad (F : Type -> Type) : Type^1 =
 
 def bind (F : Type -> Type) (M : Monad F) (A B : Type) (m : F A) (f : A -> F B) : F B =
   M.1 B (M.2.2.2 A (F B) f m)
+
