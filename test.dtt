@@ -391,17 +391,18 @@ def iso/*/ProdP (A B : Type) : Iso (A * B) (ProdP A B) =
   )
 
 
-def iso/Sum/SumS (A B : Type) : Iso (SumS A B) (Sum A B) = 
-  let f = uncurryd Bool (split A B) (fn _ _ => Sum A B) (elim with tt => fn x => inl x | ff => fn x => inr x) in
+def iso/SumS/Sum (A B : Type) : Iso (SumS A B) (Sum A B) = 
+  let f = uncurryd Bool (split A B) (fn _ => Sum A B) (elim with tt => fn x => inl x | ff => fn x => inr x) in
   let g : Sum A B -> SumS A B = elim with inl x => (tt,x) | inr x => (ff,x) in
   let fg : (s : Sum A B) -> Id (Sum A B) s (f (g s)) = elim with inl x => refl | inr x => refl in
-  let gf = uncurryd Bool (split A B) (fn x1 x2 => Id (SumS A B) (x1,x2) (g (f (x1,x2)))) 
+  let gf = uncurryd Bool (split A B) (fn p => Id (SumS A B) p (g (f p))) 
     (elim with tt => fn n => refl | ff => fn n => refl) in
   ( f 
   , g
   , gf
   , fg
   )
+
 
 
 def Monoid (M : Type) : Type =
@@ -521,6 +522,7 @@ def Monad (F : Type -> Type) : Type^1 =
 def bind (F : Type -> Type) (M : Monad F) (A B : Type) (m : F A) (f : A -> F B) : F B =
   M.1 B (M.2.2.2 A (F B) f m)
 
+def Functor-id : Functor (id^1 Type) = fn _ _ f => f
 
 def Applicative-id : Applicative (id^1 Type) = (id,Functor-id,Functor-id)
 
