@@ -72,9 +72,11 @@ let cmd :=
   | ~ = m(term); <Concrete_syntax.Eval>
 
 let data_def :=
-  Data; name = bound_name; Equal;
-  option(Bar); cons = separated_list(Bar,con);
-    { Concrete_syntax.Data {name ; cons}}
+  | Data; params = list(paren(annot_args)); name = bound_name; 
+    { Concrete_syntax.Data {name ; cons = [] ; params = args_to_tele params}}
+  | Data; params = list(paren(annot_args)); name = bound_name; Equal;
+    option(Bar); cons = separated_nonempty_list(Bar,con);
+      { Concrete_syntax.Data {name ; cons ; params = args_to_tele params}}
 
 let con :=
   name = bound_name; args = list(paren(annot_args));

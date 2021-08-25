@@ -34,7 +34,7 @@ let find_tp ctx x =
   match String.Map.find ctx x with
     | None -> None
     | Some ((Var tp) | Def {tp ; _} | Let {tp ; _}) -> Some tp
-    | Some (Data _) -> Some (U (Const 0))
+    | Some (Data _) -> None
 
 let find_def_tp ctx x = 
   match String.Map.find ctx x with

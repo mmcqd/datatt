@@ -64,6 +64,11 @@ and desc = {name : string ; cons : spec bnd list bnd list ; params : Syntax.t bn
 [@@@ocaml.warning "+30"]
 
 
+let rec params_to_pi = function
+  | [] -> Syntax.U (Const 0)
+  | (x,t)::ps -> Syntax.Pi ((x,t),params_to_pi ps)
+
+
 module Env =
   struct
     type t = env

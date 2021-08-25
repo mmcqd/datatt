@@ -44,6 +44,17 @@ let rec check (ctx : Ctx.t) (cs : CSyn.t) (tp : Dom.t) : Syn.t =
       let x' = check ctx x f in
       Pair (x',check ctx (Mark.naked @@ Tuple xs) (Nbe.do_clos clos (Nbe.eval (Ctx.to_env ctx) x')))
     | Var d,U _ when (match Ctx.find_data ctx d with Some _ -> true | _ -> false) -> Data {name = d ; params = []}
+    | Spine (f,args),U _ ->
+      begin
+      match Mark.data f with
+        | Var d -> 
+          begin
+          match Ctx.find_data ctx d with
+            | Some desc -> Data {name = d ; params = check_params ctx (CSyn.spine_to_list args) desc.params desc }
+            | _ -> mode_switch ctx cs tp
+          end 
+        | _ -> mode_switch ctx cs tp
+      end
     | Var con,Data {desc ; params} when (match Ctx.find_tp ctx con with Some _ -> false | _ -> true) ->
       begin
       match List.Assoc.find ~equal:String.equal desc.cons con with
@@ -80,26 +91,26 @@ let rec check (ctx : Ctx.t) (cs : CSyn.t) (tp : Dom.t) : Syn.t =
       Lam (x,Elim { mot = (x,Nbe.read_back (Ctx.to_names ctx) (Nbe.do_clos clos (Nbe.var x (Data {desc;params}))) (U Omega))
             ; scrut = Var x
             ; arms = List.map2_exn arms desc.cons ~f:(fun (con,(args,arm)) (_,dtele) -> 
-              let dom_args,ctx = collect_elim_args (Mark.show cs) clos args dtele desc ctx in
+              let dom_args,ctx = collect_elim_args (Mark.show cs) clos args dtele (Nbe.apply_params desc desc.params params,params) ctx in
                  (con,(args,check ctx arm (Nbe.do_clos clos (Intro {name = con ; args = dom_args})))))
             })
     | Elim {mot = None ; scrut ; arms}, tp ->
       begin
       match synth ctx scrut with
-        | Data desc,scrut ->
+        | Data {desc;params},scrut ->
           if not (List.equal String.equal (List.map ~f:fst desc.cons) (List.map ~f:fst arms)) then error (sprintf "%s - Elim arms don't match constructors" (Mark.show cs)) else
           let used = Ctx.to_names ctx in
           let tp_syn = Nbe.read_back used tp (U Omega) in
           let x = fresh () in
           let mot_body = Syn.subst (Var x) scrut tp_syn in
           (* print_endline (sprintf "GUSSED MOT: %s => %s" x (Syn.show mot_body)); *)
-          let ctx' = ctx |> Ctx.add ~var:x ~tp:(Data desc) in
+          let ctx' = ctx |> Ctx.add ~var:x ~tp:(Data {desc;params}) in
           (try const () @@ check ctx' (Syn.to_concrete mot_body) (U Omega) with TypeError s -> error (sprintf "%s - In guessed motive: %s" (Mark.show cs) s));
           let mot_clos = Dom.{name = x ; tm = mot_body ; env = Ctx.to_env ctx} in
           Elim { mot = (x,mot_body) 
                ; scrut 
                ; arms = List.map2_exn arms desc.cons ~f:(fun (con,(args,arm)) (_,dtele) -> 
-                 let dom_args,ctx = collect_elim_args (Mark.show cs) mot_clos args dtele desc ctx in
+                 let dom_args,ctx = collect_elim_args (Mark.show cs) mot_clos args dtele (Nbe.apply_params desc desc.params params,params) ctx in
                  let arm_tp = Nbe.do_clos mot_clos (Intro {name = con ; args = dom_args}) in
                  (* print_endline ("ARM_TYPE: "^Dom.show arm_tp);
                  print_endline ("ARM: "^CSyn.show arm); *)
@@ -139,6 +150,13 @@ and check_intro_args ctx args dtele (desc,params) =
       arg::check_intro_args ctx args dtele ({desc with env = Dom.Env.set desc.env ~key:x ~data:(Nbe.eval (Ctx.to_env ctx) arg)},params)
     | _ -> error "Incorrect number of args provided to constructor"
 
+and check_params ctx args dtele desc =
+  match args,dtele with
+    | [],[]   -> []
+    | arg::args,(x,tp)::dtele ->
+      let arg = check ctx arg (Nbe.eval (Ctx.to_env ctx) tp) in
+      arg::check_params ctx args dtele {desc with env = Dom.Env.set desc.env ~key:x ~data:(Nbe.eval (Ctx.to_env ctx) arg)}
+    | _ -> error "Incorrect number of args provided to data"
 
 and mode_switch ctx cs tp =
   let used = Ctx.to_names ctx in
@@ -194,16 +212,16 @@ and synth (ctx : Ctx.t) (cs : CSyn.t) : Dom.t * Syn.t =
     | Elim {mot = Some (x,mot) ; scrut ; arms} ->
       begin
       match synth ctx scrut with
-        | Data desc,scrut ->
+        | Data {desc;params},scrut ->
           if not (List.equal String.equal (List.map ~f:fst desc.cons) (List.map ~f:fst arms)) then error (sprintf "%s - Elim arms don't match constructors" (Mark.show cs)) else
           let env = Ctx.to_env ctx in
-          let mot_body = check (Ctx.add ctx ~var:x ~tp:(Data desc)) mot (U Omega) in
+          let mot_body = check (Ctx.add ctx ~var:x ~tp:(Data {desc;params})) mot (U Omega) in
           let mot_clos = Dom.{name = x ; tm = mot_body ; env} in
           Nbe.do_clos mot_clos (Nbe.eval env scrut),
           Elim { mot = (x,mot_body) 
                ; scrut 
                ; arms = List.map2_exn arms desc.cons ~f:(fun (con,(args,arm)) (_,dtele) -> 
-                 let dom_args,ctx = collect_elim_args (Mark.show cs) mot_clos args dtele desc ctx in
+                 let dom_args,ctx = collect_elim_args (Mark.show cs) mot_clos args dtele (Nbe.apply_params desc desc.params params,params) ctx in
                  (con,(args,check ctx arm (Nbe.do_clos mot_clos (Intro {name = con ; args = dom_args})))))}
         | _,scrut' -> error (sprintf "%s - %s is not a datatype, it cannot be eliminated" (Mark.show scrut) (Syn.show scrut'))
       end
@@ -222,34 +240,42 @@ and synth (ctx : Ctx.t) (cs : CSyn.t) : Dom.t * Syn.t =
 
 
 
-and collect_elim_args pos mot args dtele desc ctx =
+and collect_elim_args pos mot args dtele (desc,params) ctx =
   let f tp = function
     | `Arg x ->  
       let arg = Nbe.var x tp in
       arg,Ctx.add ctx ~var:x ~tp
     | `Rec (x,r) -> 
       match tp with
-        | Data desc' when String.equal desc'.name desc.name ->
+        | Data d' when String.equal d'.desc.name desc.name ->
           let arg = Nbe.var x tp in
           arg,ctx |> Ctx.add ~var:x ~tp |> Ctx.add ~var:r ~tp:(Nbe.do_clos mot arg)
         | _ -> error (sprintf "%s - %s does not have type %s, it cannot be recursively eliminated" pos x desc.name)
   in 
   match args,dtele with
-    | [],Dom.Nil -> [],ctx
-    | [arg],One s ->
-      let tp = Nbe.resolve_arg_tp desc s in
+    | [],[] -> [],ctx
+    | arg::args,(y,s)::dtele -> 
+      let tp = Nbe.resolve_arg_tp (desc,params) s in
       let arg,ctx = f tp arg in
-      [arg],ctx
-    | arg::args,Cons ((y,s),dtele) -> 
-      let tp = Nbe.resolve_arg_tp desc s in
-      let arg,ctx = f tp arg in
-      let args,ctx = collect_elim_args pos mot args dtele {desc with env = Dom.Env.set desc.env ~key:y ~data:tp} ctx in
+      let args,ctx = collect_elim_args pos mot args dtele ({desc with env = Dom.Env.set desc.env ~key:y ~data:arg},params) ctx in
       arg::args,ctx
     | _ -> error (sprintf "%s - Elim arm has incorrect number of args" pos)
 
 
-let rec elab_data ctx dname (cons : CSyn.t bnd list bnd list) : Dom.desc =
-  {name = dname ; env = Ctx.to_env ctx ; cons = List.map ~f:(fun (con,args) -> con,elab_con (Ctx.add ctx ~var:dname ~tp:(U (Const 0))) dname args) cons }
+let rec elab_data ctx dname (cons : CSyn.t bnd list bnd list) (params : CSyn.t bnd list) : Dom.desc =
+  let ps,pctx = elab_params ctx params in
+  { name = dname 
+  ; env = Ctx.to_env ctx 
+  ; params = ps
+  ; cons = List.map ~f:(fun (con,args) -> con,elab_con (Ctx.add pctx ~var:dname ~tp:(U (Const 0))) dname args) cons }
+
+
+and elab_params ctx = function
+  | [] -> [],ctx
+  | (x,tp)::ps ->
+    let tp = check ctx tp (U Omega) in
+    let ps,ctx = elab_params (Ctx.add_syn ctx ~var:x ~tp) ps in
+    (x,tp)::ps,ctx
 
 and resolve_spec ctx dname arg =
   match Mark.data arg with
@@ -258,10 +284,9 @@ and resolve_spec ctx dname arg =
 
 and elab_con ctx dname args =
   match args with
-    | [] -> Dom.Nil
-    | [(_,arg)] -> One (resolve_spec ctx dname arg)
+    | [] -> []
     | (x,arg)::args -> 
       let arg = resolve_spec ctx dname arg in
       let tp = match arg with Tp tp -> tp | Rec -> Var dname in
-      Cons ((x,arg),elab_con (Ctx.add_syn ctx ~var:x ~tp) dname args)
+      (x,arg)::elab_con (Ctx.add_syn ctx ~var:x ~tp) dname args
 
