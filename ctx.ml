@@ -16,7 +16,7 @@ let to_env : t -> Dom.Env.t = String.Map.mapi ~f:(fun ~key ~data ->
   match data with 
     | Var tp -> Dom.Tm (Dom.Neutral {ne = Var key ; tp})
     | Def {tm ; _} | Let {tm ; _}-> Tm tm
-    | Data d -> Data d
+    | Data d -> Desc d
   )
 
 let to_names = String.Map.key_set
@@ -34,7 +34,7 @@ let find_tp ctx x =
   match String.Map.find ctx x with
     | None -> None
     | Some ((Var tp) | Def {tp ; _} | Let {tp ; _}) -> Some tp
-    | Some (Data _) -> Some (U (Const 0))
+    | Some (Data _) -> None
 
 let find_def_tp ctx x = 
   match String.Map.find ctx x with

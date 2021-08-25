@@ -15,11 +15,10 @@ type 'a bnd = string * 'a
 type t =
   | U of Level.t
   | Lam of clos
-  (* | Fun of clos2 *)
   | Pi of t * clos
   | Sg of t * clos
   | Pair of t * t
-  | Data of desc
+  | Data of {desc : desc ; params : t list}
   | Intro of {name : string ; args : t list}
   | Id of t * t * t
   | Refl of t
@@ -33,7 +32,7 @@ and ne =
   | Ap of ne * nf
   | Fst of ne
   | Snd of ne
-  | Elim of {mot : clos ; arms : arm_clos bnd list ; scrut : ne ; desc : desc}
+  | Elim of {mot : clos ; arms : arm_clos bnd list ; scrut : ne ; desc : desc ; params : t list}
   | J of {mot : clos3 ; body : clos ; scrut : ne ; tp : t}
   [@@deriving show {with_path = false}]
 
@@ -50,7 +49,7 @@ and arm_clos = {names : [`Rec of string * string | `Arg of string] list ; arm : 
   [@@deriving show {with_path = false}]
 
 and env_entry =
-  | Data of desc
+  | Desc of desc
   | Tm of t
 
 and env = env_entry Map.t
@@ -59,14 +58,15 @@ and spec =
   | Rec
   | Tp of Syntax.t
 
-and 'a tele =
-  | Nil
-  | One of 'a
-  | Cons of 'a bnd * 'a tele
 
-and desc = {name : string ; cons : spec tele bnd list ; env : env}
+and desc = {name : string ; cons : spec bnd list bnd list ; params : Syntax.t bnd list ; env : env}
 
 [@@@ocaml.warning "+30"]
+
+
+let rec params_to_pi = function
+  | [] -> Syntax.U (Const 0)
+  | (x,t)::ps -> Syntax.Pi ((x,t),params_to_pi ps)
 
 
 module Env =
@@ -75,17 +75,17 @@ module Env =
 
     let set env ~key ~data = String.Map.set env ~key ~data:(Tm data)
   
-    let set_data env ~key ~data = String.Map.set env ~key ~data:(Data data)
+    let set_data env ~key ~(data : desc) = String.Map.set env ~key ~data:(Desc data)
 
     let find_exn (env : env) (s : string) : dom =
       match String.Map.find_exn env s with
         | Tm t -> t
-        | Data d -> Data d
+        | Desc _ -> failwith "find_exn - env"
     
     let find_data_exn (env : env) (s : string) : desc =
       match String.Map.find_exn env s with
         | Tm _ -> failwith "find_data_exn - env"
-        | Data d -> d
+        | Desc d -> d
   end
 
 
@@ -98,7 +98,7 @@ let rec lift i = function
   | U (Const j) -> U (Const (j + i))
   | Id (a,x,y) -> Id (lift i a,lift i x, lift i y)
   | Refl x -> Refl (lift i x)
-  | Data d -> Data d (* this might be wrong lol *)
+  | Data {desc ; params} -> Data {desc ; params = List.map ~f:(lift i) params}
   | Intro {name ; args} -> Intro {name ; args = List.map ~f:(lift i) args}
   | Neutral {tp ; ne} -> Neutral {tp = lift i tp ; ne = lift_ne i ne}
 
@@ -116,6 +116,7 @@ and lift_ne i = function
   | Var x -> Var x
   | Ap (ne, {tp ; tm}) -> Ap (lift_ne i ne, {tp = lift i tp; tm = lift i tm})
   | J {mot ; body ; scrut ; tp} -> J {mot = lift_clos3 i mot ; body = lift_clos i body ; scrut = lift_ne i scrut ; tp = lift i tp}
-  | Elim {mot ; arms ; scrut ; desc } -> Elim { mot = lift_clos i mot ; arms = List.map ~f:(fun (con,clos) -> (con,lift_arm_clos i clos)) arms ; scrut = lift_ne i scrut ; desc}
+  | Elim {mot ; arms ; scrut ; desc ; params} -> 
+    Elim { mot = lift_clos i mot ; arms = List.map ~f:(fun (con,clos) -> (con,lift_arm_clos i clos)) arms ; scrut = lift_ne i scrut ; desc ; params = List.map ~f:(lift i) params}
   | Fst p -> Fst (lift_ne i p)
   | Snd p -> Snd (lift_ne i p)
