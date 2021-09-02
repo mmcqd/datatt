@@ -37,6 +37,7 @@ type t_ =
   | J of {mot : (string * string * string * t) option ; scrut : t ; body : string * t}
   | Ascribe of {tm : t ; tp : t}
   | Let of t bnd * t
+  | Absurd
   [@@deriving show]
 
 and t = t_ Mark.t

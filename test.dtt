@@ -81,8 +81,14 @@ data Bool =
   | tt
   | ff
 
+
+{- The traditional proof that tt != ff -}
 def no-confusion-Bool : Not (Id Bool tt ff) = fn p =>
   subst Bool tt ff p (elim with tt => Unit | ff => Void) <>
+
+{- Some syntactic sugar, which we know is consistent because the above proof is possible -}
+def no-confusion-Bool : Not (Id Bool tt ff) = fn ()
+
 
 def Bool-Ind (P : Bool -> Type) (t : P tt) (f : P ff) : (b : Bool) -> P b = elim with
   | tt => t
@@ -114,6 +120,11 @@ def demorgan2 (a b : Bool) : Id Bool (not (or a b)) (and (not a) (not b)) = elim
   | tt => refl
   | ff => refl
 
+def lift : Bool -> Type = elim with
+  | tt => Unit
+  | ff => Void
+
+
 data Nat =
   | zero
   | suc (n : Nat)
@@ -127,8 +138,7 @@ def Nat-Ind (P : Nat -> Type) (z : P zero) (s : (m : Nat) -> P m -> P (suc m)) :
   | zero => z
   | suc (n / ih) => s n ih
 
-def no-confusion-Nat (n : Nat) : Not (Id Nat zero (suc n)) = fn p =>
-  subst Nat zero (suc n) p (elim with zero => Unit | suc _ => Void) <>
+def no-confusion-Nat (n : Nat) : Not (Id Nat zero (suc n)) = fn ()
 
 def pred : Nat -> Nat = elim with
   | zero => zero
@@ -142,6 +152,9 @@ def mult (n m : Nat) : Nat = elim n with
   | zero => zero
   | suc (_ / ih) => + m ih
 
+def exp (n m : Nat) : Nat = elim m with
+  | zero => one
+  | suc (_ / ih) => mult n ih
 
 def +-assoc : Assoc Nat + = fn n m p => elim n with
   | zero => refl
@@ -175,7 +188,12 @@ def leq : Nat -> Nat -> Type = elim with
 def leq-zero (n : Nat) : leq zero n = <>
 def leq-suc (m n : Nat) (p : leq m n) : leq (suc m) (suc n) = p
 
+def even-b : Nat -> Bool = elim with
+  | zero => tt
+  | suc (n / ih) => not ih
 
+def even (n : Nat) : Type = lift (even-b n)
+ 
 
 def id-elim : Nat -> Nat = elim with
   | zero => zero
@@ -231,6 +249,16 @@ def ++-nil (A : Type) : Id-R (List A) (++ A) nil = elim with
   | cons x (xs / ih) => match ih with
     | refl _ => refl
 
+def map (A B : Type) (f : A -> B) : List A -> List B = elim with
+  | nil => nil
+  | cons x (xs / ih) => cons (f x) ih
+
+def get (A : Type) : List A -> Nat -> Maybe A = elim with
+  | nil => fn _ => none
+  | cons x (xs / ih) => elim with
+    | zero => some x
+    | suc n => ih n 
+
 
 data (A : Type) Tree =
   | empty
@@ -242,8 +270,11 @@ def tree-rev (A : Type) : Tree A -> Tree A = elim with
 
 def PType : Type^1 = (A : Type) * A
 
-def PUnit : PType = (Unit,<>)
-def PNat : PType = (Nat,zero)
+def UnitP : PType = (Unit,<>)
+def NatP : PType = (Nat,zero)
+def TypeP : PType^1 = (Type,Unit)
+def TypePN : PType^2 = (Type^1,Type)
+
 
 def Loop (P : PType) : PType =
   (Id P.1 P.2 P.2, refl)
@@ -259,6 +290,12 @@ def pair-ext (A B : Type) (x y : A * B) (p : Id A x.1 y.1) (q : Id B x.2 y.2) : 
   match p with
     | refl w => match q with
       | refl h => refl
+
+def pair-id-l (A B : Type) (x y : A * B) (p : Id (A * B) x y) : Id A x.1 y.1 =
+  cong (A * B) A (fn x => x.1) x y p
+
+def pair-id-r (A B : Type) (x y : A * B) (p : Id (A * B) x y) : Id B x.2 y.2 =
+  cong (A * B) B (fn x => x.2) x y p
 
 def Vec (A : Type) : Nat -> Type = elim with
   | zero => Unit
@@ -283,6 +320,29 @@ def vrec (A B : Type) (b : B) (c : A -> B -> B) : (n : Nat) -> Vec A n -> B = el
 def vzip (A B : Type) : (n : Nat) -> Vec A n -> Vec B n -> Vec (A * B) n = elim with
   | zero => fn _ _ => <>
   | suc (_ / ih) => fn v1 v2 => ((v1.1,v2.1),ih v1.2 v2.2)
+
+def Fin : Nat -> Type = elim with
+  | zero => Void
+  | suc (_ / ih) => Sum Unit ih
+
+def fzero (n : Nat) : Fin (suc n) = inl <>
+def fsuc (n : Nat) (f : Fin n) : Fin (suc n) = inr f
+
+
+def Fin-Ind (P : (n : Nat) -> Fin n -> Type) (z : (n : Nat) -> P (suc n) (fzero n)) 
+            (s : (n : Nat) (f : Fin n) -> P n f -> P (suc n) (fsuc n f)) : (n : Nat) (f : Fin n) -> P n f = elim with
+  | zero => (elim with)
+  | suc (n / ih) => elim with
+    | inl x => (elim x with <> => z n)
+    | inr m => s n m (ih m)
+
+
+
+def !! (A : Type) : (n : Nat) -> Vec A n -> Fin n -> A = elim with
+  | zero => fn _ => (elim with)
+  | suc (n / ih) => fn v => elim with
+    | inl x => v.1
+    | inr m => ih v.2 m
 
 
 data (A : Type) (B : A -> Type) Sg =
@@ -317,7 +377,7 @@ def SumS (A B : Type) : Type = (b : Bool) * split A B b
 def inlS (A B : Type) (x : A) : SumS A B = (tt,x)
 def inrS (A B : Type) (x : B) : SumS A B = (ff,x)
 
-def Iso (A B : Type) : Type^1 =
+def Iso (A B : Type) : Type =
   (f : A -> B) *
   (g : B -> A) *
   ((x : A) -> Id A x (g (f x))) *
@@ -402,6 +462,31 @@ def iso/SumS/Sum (A B : Type) : Iso (SumS A B) (Sum A B) =
   , gf
   , fg
   )
+
+
+def iso/Nat/ListUnit : Iso Nat (List Unit) =
+  ( elim with zero => nil | suc (_ / ih) => cons <> ih
+  , elim with nil => zero | cons _ (_ / ih) => suc ih
+  , elim with zero => refl | suc (n / ih) => match ih with refl j => refl
+  , elim with nil => refl | cons x (xs / ih) => match ih with refl j => elim x with <> => refl
+  )
+
+
+def iso/Nat/Nat+1 : Iso Nat (Sum Unit Nat) =
+  ( elim with zero => inl <> | suc (n / ih) => inr n
+  , elim with inl x => zero | inr n => suc n
+  , elim with zero => refl | suc (n / ih) => refl
+  , elim with inl x => (elim x with <> => refl) | inr n => refl
+  )
+
+
+def iso/Bool/Fin2 : Iso Bool (Fin two) = 
+  ( elim with tt => inl <> | ff => inr (inl <>)
+  , elim with inl _ => tt | inr x => elim x with inl _ => ff | inr v => elim v with
+  , elim with tt => refl | ff => refl
+  , elim with inl x => (elim x with <> => refl) | inr x => elim x with inl x => (elim x with <> => refl) | inr v => elim v with
+  )
+
 
 
 
@@ -522,11 +607,11 @@ def Monad (F : Type -> Type) : Type^1 =
 def bind (F : Type -> Type) (M : Monad F) (A B : Type) (m : F A) (f : A -> F B) : F B =
   M.1 B (M.2.2.2 A (F B) f m)
 
-def Functor-id : Functor (id^1 Type) = fn _ _ f => f
+def Functor-id : Functor (fn A => A) = fn _ _ f => f
 
-def Applicative-id : Applicative (id^1 Type) = (id,Functor-id,Functor-id)
+def Applicative-id : Applicative (fn A => A) = (id,Functor-id,Functor-id)
 
-def Monad-id : Monad (id^1 Type) = (id,Applicative-id)
+def Monad-id : Monad (fn A => A) = (id,Applicative-id)
 
 def Functor-Maybe : Functor (fn A => Maybe A) = fn A B f => elim with
   | none => none
@@ -538,3 +623,237 @@ def Applicative-Maybe : Applicative (fn A => Maybe A) =
 def Monad-Maybe : Monad (fn A => Maybe A) =
   (fn _ => elim with none => none | some x => x,Applicative-Maybe)
 
+def Functor-List : Functor (fn A => List A) = fn A B f => elim with
+  | nil => nil
+  | cons x (xs / ih) => cons (f x) ih
+
+def Applicative-List : Applicative (fn A => List A) = 
+  ( fn _ x => cons x nil
+  , fn A B fs xs => elim fs with
+    | nil => nil
+    | cons f (fs / ih) => ++ B (map A B f xs) ih
+  , Functor-List
+  )
+
+def Monad-List : Monad (fn A => List A) =
+  ( fn A => elim with
+    | nil => nil
+    | cons x (_ / ih) => ++ A x ih
+  , Applicative-List
+  )
+
+
+data (A : Type) Dec =
+  | yes (x : A)
+  | no  (x : Not A)
+
+def lower (A : Type) : Dec A -> Bool = elim with
+  | yes _ => tt
+  | no  _ => ff
+
+def Dec-Id (A : Type) : Type = (x y : A) -> Dec (Id A x y)
+
+
+def dec-Unit : Dec-Id Unit = elim with
+  | <> => elim with <> => yes refl
+
+
+def dec-Bool : Dec-Id Bool = elim with
+  | tt => (elim with tt => yes refl | ff => no (fn ()))
+  | ff => (elim with tt => no (fn ()) | ff => yes refl)
+
+def eq-Bool (x y : Bool) : Bool = lower (Id Bool x y) (dec-Bool x y)
+
+def dec-Nat : Dec-Id Nat = elim with
+  | zero  => (elim with zero => yes refl | suc n => no (fn ()))
+  | suc (n / ih) => 
+    elim with 
+      | zero => no (fn ()) 
+      | suc m => elim ih m with
+        | yes p => (match p with refl j => yes refl)
+        | no ~p => no (fn p => ~p (cong Nat Nat pred (suc n) (suc m) p))
+
+
+def eq-Nat (x y : Nat) : Bool = lower (Id Nat x y) (dec-Nat x y)
+
+def dec-Unit : Dec-Id Unit = elim with 
+  | <> => elim with <> => yes refl
+
+
+def dec-* (A B : Type) : Dec A -> Dec B -> Dec (A * B) = elim with
+  | yes a => (elim with
+    | yes b => yes (a,b)
+    | no ~b => no (fn p => ~b p.2)
+  )
+  | no ~a => (elim with
+    | yes b => no (fn p => ~a p.1)
+    | no ~b => no (fn p => ~a p.1)
+  )
+
+def dec-id-* (A B : Type) (da : Dec-Id A) (db : Dec-Id B) : Dec-Id (A * B) = fn p q =>
+  elim da p.1 q.1 with
+    | yes a => (elim db p.2 q.2 with
+      | yes b => yes (pair-ext A B p q a b)
+      | no ~b => no (fn i => ~b (pair-id-r A B p q i))
+    )
+    | no ~a => (elim db p.2 q.2 with
+      | yes b => no (fn i => ~a (pair-id-l A B p q i))
+      | no ~b => no (fn i => ~a (pair-id-l A B p q i))
+    )
+
+def eq-* (A B : Type) (da : Dec-Id A) (db : Dec-Id B) (x y : A * B): Bool = lower (Id (A * B) x y) (dec-id-* A B da db x y)
+
+data (A B : Type) (f : A -> B) Image =
+  | img (x : A) (y : B) (p : Id B y (f x))
+
+def q : Image Nat Nat pred = img one zero refl
+
+
+data (n : Nat) leqList =
+  | nil
+  | cons (m : Nat) (p : leq m n) (xs : leqList)
+
+def xs : leqList (suc four) = cons one <> (cons two <> (cons zero <> nil))
+
+
+def constant (A B : Type) (f : A -> B) : Type = (x y : A) -> Id B (f x) (f y)
+
+def collapsible (A : Type) : Type = (f : A -> A) * constant A A f
+
+def path-collapsible (A : Type) : Type = (x y : A) -> collapsible (Id A x y)
+
+def Set->PC (A : Type) (s : Set A) : path-collapsible A = fn x y =>
+  (fn x => x,s x y)
+
+{-
+def PC->Set (A : Type) (pc : path-collapsible A) : Set A = fn x y p q =>
+  ?
+-}
+
+def EM : Type^1 = (A : Type) -> Dec A
+def DNE : Type^1 = (A : Type) -> Not (Not A) -> A
+
+def EM->DNE : EM -> DNE = fn em A =>
+  elim em A with
+    | yes a => fn _ => a
+    | no ~a => fn ~~a => elim ~~a ~a with
+
+def Stable (A : Type) : Type = Not (Not A) -> A
+
+def Not-Stable (A : Type) : Stable (Not A) = fn ~~~a a =>
+  ~~~a (fn ~a => ~a a)
+
+def *-Stable (A B : Type) (sa : Stable A) (sb : Stable B) : Stable (A * B) = fn ~~a*b =>
+  (sa (fn ~a => ~~a*b (fn p => ~a p.1)), sb (fn ~b => ~~a*b (fn p => ~b p.2)))
+
+def Dec->Stable (A : Type) : Dec A -> Stable A = elim with
+  | yes a => fn _ => a
+  | no ~a => fn ~~a => elim ~~a ~a with
+
+def Functor-NotNot : Functor (fn A => Not (Not A)) =
+  fn A B f ~~a ~b => ~~a (fn a => ~b (f a))
+
+def Applicative-NotNot : Applicative (fn A => Not (Not A)) =
+  ( fn A a ~a => ~a a
+  , fn A B ~~A->B ~~a ~b => ~~A->B (fn f => ~~a (fn a => ~b (f a)))
+  , Functor-NotNot
+  )
+
+def Monad-NotNot : Monad (fn A => Not (Not A)) =
+  ( fn A ~~~~a ~a => ~~~~a (fn ~~a => ~~a ~a)
+  , Applicative-NotNot
+  )
+
+def Injection (A B : Type) (f : A -> B) : Type = (x y : A) -> Id B (f x) (f y) -> Id A x y
+
+def Countable (A : Type) : Type = (f : A -> Nat) * Injection A Nat f
+
+def Countable-Nat : Countable Nat =
+  ( fn x => x
+  , fn x y p => p
+  )
+
+
+def Finite (A : Type) : Type^1 = (n : Nat) * Iso A (Fin n)
+
+def Finite-Bool : Finite Bool = (two , iso/Bool/Fin2)
+
+def Finite-Maybe (A : Type) (f : Finite A) : Finite (Maybe A) =
+  ( suc (f.1)
+  , elim with none => inl <> | some x => inr (f.2.1 x)
+  , elim with inl x => none | inr x => some (f.2.2.1 x)
+  , elim with none => refl | some x => match f.2.2.2.1 x with refl i => refl
+  , elim with inl x => (elim x with <> => refl) | inr x => match f.2.2.2.2 x with refl i => refl
+  )
+
+data Void' =
+  | V (x : Void')
+
+def Void'-Rec (A : Type) : Void' -> A = elim with
+  | V (_ / ih) => ih
+
+def iso/Void/Void' : Iso Void Void' =
+  let f : Void -> Void' = elim with in
+  let g : Void' -> Void = elim with V (_ / ih) => ih in
+ ( f
+ , g
+ , elim with
+ , fn y => Void'-Rec (Id Void' y (f (g y))) y
+ )
+
+
+{-
+This definitely should not be allowed lol
+
+data sus =
+  | C (x : Type^1)
+-}
+
+
+
+data Ty =
+  | ar (a b : Ty)
+  | bool
+
+def dec-Ty : Dec-Id Ty = elim with
+  | ar (a / iha) (b / ihb) => (elim with
+    | ar a' b' => (elim iha a' with
+      | yes pa => (elim ihb b' with
+        | yes pb => match pa with refl i => match pb with refl j => yes refl
+        | no ~pb => no (fn p => ~pb (cong Ty Ty (elim with ar _ b => b | bool => bool) (ar a b) (ar a' b') p))
+      )
+      | no ~pa => no (fn p => ~pa (cong Ty Ty (elim with ar a _ => a | bool => bool) (ar a b) (ar a' b') p))
+    )
+    | bool => no (fn ())
+  )
+  | bool => elim with
+    | ar a b => no (fn ())
+    | bool => yes refl
+
+def eq-Ty (t1 t2 : Ty) : Bool = lower (Id Ty t1 t2) (dec-Ty t1 t2)
+
+data Tm =
+  | var (n : Nat)
+  | tt
+  | ff
+  | if (b e1 e2 : Tm)
+  | lam (t : Ty) (e : Tm)
+
+def synth : Tm -> List Ty -> Maybe Ty = let bind = bind (fn A => Maybe A) Monad-Maybe Ty Ty in elim with
+  | var n => fn ctx => get Ty ctx n
+  | tt => fn _ => some bool
+  | ff => fn _ => some bool
+  | if (b / bty) (e1 / e1ty) (e2 / e2ty) => fn ctx => bind (bty ctx) (elim with
+    | ar _ _ => none
+    | bool => bind (e1ty ctx) (fn t1 => bind (e2ty ctx) (fn t2 =>
+      elim eq-Ty t1 t2 with
+        | tt => some t1
+        | ff => none
+    ))
+  )
+  | lam t1 (e / ih) => fn ctx =>
+    bind (ih (cons t1 ctx)) (fn t2 =>
+      some (ar t1 t2)
+    )
+
+def tm1 : Tm = lam bool (lam bool (var zero))

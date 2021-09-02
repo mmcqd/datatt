@@ -27,7 +27,7 @@ let rec_func_syntax (name,args,t,e) =
 %token Type Caret
 %token Colon
 %token Underbar
-%token Id Refl 
+%token Id Refl
 %token Match With Bar At
 %token Data Elim F_slash
 %token Def Equal Rec Axiom
@@ -102,6 +102,7 @@ let atomic :=
   | Type; Caret; i = Dec_const; { Concrete_syntax.U (Const i) }
   | Type; { Concrete_syntax.U (Const 0) }
   | Refl; { Concrete_syntax.Refl }
+  | Lambda; L_paren; R_paren; { Concrete_syntax.Absurd }
 
 let spine :=
   | { Concrete_syntax.Nil }

@@ -58,7 +58,7 @@ let rec check (ctx : Ctx.t) (cs : CSyn.t) (tp : Dom.t) : Syn.t =
     | Var con,Data {desc ; params} when (match Ctx.find_tp ctx con with Some _ -> false | _ -> true) ->
       begin
       match List.Assoc.find ~equal:String.equal desc.cons con with
-        | None -> error (sprintf "%s - %s is not a constructor for type %s" (Mark.show cs) con desc.name)
+        | None -> error (sprintf "%s - %s is not a constructor for type %s" (Mark.show cs) con (Syn.show (Nbe.read_back (Ctx.to_names ctx) tp (U Omega))))
         | Some dtele -> Intro {name = con ; args = check_intro_args ctx [] dtele (Nbe.apply_params desc desc.params params,params)}
       end
     | Spine (f,args),Data {desc ; params} -> 
@@ -125,7 +125,7 @@ let rec check (ctx : Ctx.t) (cs : CSyn.t) (tp : Dom.t) : Syn.t =
           let tp_syn = Nbe.read_back used tp (U Omega) in
           let p,y,x = fresh (), fresh (), fresh () in
           let e1',e2' = Nbe.read_back used e1 a,Nbe.read_back used e2 a in
-          (* mot_body needs to be typechecked in case we guessed a type-incorrect motive... *)
+          (* mot_body needs to be typechecked in case we guessed a type-incorrect motive *)
           let mot_body = tp_syn 
                         |> Syn.subst (Var x) e1'
                         (* e2' might contain e1', so we have to perform the same substitution inside of e2'. This seems sus *)
@@ -140,6 +140,10 @@ let rec check (ctx : Ctx.t) (cs : CSyn.t) (tp : Dom.t) : Syn.t =
 
         | _,scrut -> error (sprintf "%s - %s is not an equality proof, it cannot be matched on" (Mark.show cs) (Syn.show scrut))
       end 
+    | Absurd, Pi (Id (Data _,Intro i1, Intro i2) as id,r) ->
+      let used = Ctx.to_names ctx in
+      if String.equal i1.name i2.name then error (sprintf "%s - fn () can only derive absurdity from non-equal outermost constructors, %s is not an absurd equality" (Mark.show cs) (Syn.show (Nbe.read_back used id (U Omega)))) 
+      else Lam (r.name,Var r.name)
     | _ -> mode_switch ctx cs tp
 
 and check_intro_args ctx args dtele (desc,params) =
@@ -154,7 +158,8 @@ and check_params ctx args dtele desc =
   match args,dtele with
     | [],[]   -> []
     | arg::args,(x,tp)::dtele ->
-      let arg = check ctx arg (Nbe.eval (Ctx.to_env ctx) tp) in
+      let tp = Nbe.eval desc.env tp in
+      let arg = check ctx arg tp in
       arg::check_params ctx args dtele {desc with env = Dom.Env.set desc.env ~key:x ~data:(Nbe.eval (Ctx.to_env ctx) arg)}
     | _ -> error "Incorrect number of args provided to data"
 

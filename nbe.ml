@@ -143,7 +143,7 @@ let rec equate (used : String.Set.t) ?(subtype = false) (e1 : Dom.t) (e2 : Dom.t
       Pair (equate used fst_p1 (do_fst p2) f, equate used (do_snd p1) (do_snd p2) (do_clos clos fst_p1)) 
     | Data d1, Data d2, U _ ->
       if String.equal d1.desc.name d2.desc.name
-      then Data {name = d1.desc.name ; params = List.map2_exn d1.params d2.params ~f:(fun p1 p2 -> equate used p1 p2 (U Omega))} 
+      then Data {name = d1.desc.name ; params = equate_params used d1.params d2.params d1.desc.params d1.desc.env} 
       else error (sprintf "%s != %s" d1.desc.name d2.desc.name)
     | Intro i1, Intro i2, Data {desc ; params} ->
       if not (String.equal i1.name i2.name) then error (sprintf "%s != %s" i1.name i2.name) else
@@ -164,6 +164,14 @@ and equate_intro_args used args1 args2 dtele (desc,params) =
       arg::equate_intro_args used args1 args2 dtele ({desc with env = Dom.Env.set desc.env ~key:x ~data:arg1},params)
     | _ -> error "Intro argument mismatch"
     
+and equate_params used args1 args2 dtele env =
+  match args1,args2,dtele with
+    | [],[],[] -> []
+    | arg1::args1,arg2::args2,(x,tp)::dtele ->
+      let arg = equate used arg1 arg2 (eval env tp) in
+      arg::equate_params used args1 args2 dtele (Dom.Env.set env ~key:x ~data:arg1)
+    | _ -> error "Intro argument mismatch"
+
 and equate_ne used ne1 ne2 =
   match ne1,ne2 with
     | Var x,Var y -> if String.equal x y then Var x else error (sprintf "%s != %s" x y)
@@ -219,7 +227,7 @@ and read_back used e tp = equate used e e tp
 
 and convertible used e1 e2 tp = (fun _ -> ()) (equate ~subtype:true used e1 e2 tp)
 
-let equal used e1 e2 tp = 
+let convertible_b used e1 e2 tp = 
   try convertible used e1 e2 tp; true with
     | _ -> false
 
