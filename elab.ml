@@ -13,6 +13,9 @@ let error s = raise (TypeError s)
 let r = ref 0
 let fresh () = r := !r + 1 ; "@"^Int.to_string !r 
 
+
+let sort_cons = List.sort ~compare: (fun (c1,_) (c2,_) -> String.compare c1 c2)
+
 let rec check (ctx : Ctx.t) (cs : CSyn.t) (tp : Dom.t) : Syn.t =
   (* printf "CHECK %s AT %s\n" (CSyn.show cs) (Syn.show @@ Nbe.read_back (Ctx.to_names ctx) tp (U Omega)); *)
   match Mark.data cs,tp with
@@ -86,6 +89,7 @@ let rec check (ctx : Ctx.t) (cs : CSyn.t) (tp : Dom.t) : Syn.t =
           error (sprintf "%s - %s !<= %s" (Mark.show cs) (Syn.show @@ Nbe.read_back used x a) (Syn.show @@ Nbe.read_back used y a))
       end
     | ElimFun arms, Pi (Data {desc;params},clos) ->
+      let arms = sort_cons arms in
       if not (List.equal String.equal (List.map ~f:fst desc.cons) (List.map ~f:fst arms)) then error (sprintf "%s - Elim arms don't match constructors" (Mark.show cs))else
       let x = match clos.name with "_" -> fresh () | x -> x in
       Lam (x,Elim { mot = (x,Nbe.read_back (Ctx.to_names ctx) (Nbe.do_clos clos (Nbe.var x (Data {desc;params}))) (U Omega))
@@ -95,6 +99,7 @@ let rec check (ctx : Ctx.t) (cs : CSyn.t) (tp : Dom.t) : Syn.t =
                  (con,(args,check ctx arm (Nbe.do_clos clos (Intro {name = con ; args = dom_args})))))
             })
     | Elim {mot = None ; scrut ; arms}, tp ->
+      let arms = sort_cons arms in
       begin
       match synth ctx scrut with
         | Data {desc;params},scrut ->
@@ -215,6 +220,7 @@ and synth (ctx : Ctx.t) (cs : CSyn.t) : Dom.t * Syn.t =
         | _,p -> error (sprintf "%s - %s is not a pair, it cannot be projected from" (Mark.show cs) (Syn.show p))
       end
     | Elim {mot = Some (x,mot) ; scrut ; arms} ->
+      let arms = sort_cons arms in
       begin
       match synth ctx scrut with
         | Data {desc;params},scrut ->
@@ -272,7 +278,8 @@ let rec elab_data ctx dname (cons : CSyn.t bnd list bnd list) (params : CSyn.t b
   { name = dname 
   ; env = Ctx.to_env ctx 
   ; params = ps
-  ; cons = List.map ~f:(fun (con,args) -> con,elab_con (Ctx.add pctx ~var:dname ~tp:(U (Const 0))) dname args) cons }
+  ; cons = sort_cons @@ 
+           List.map ~f:(fun (con,args) -> con,elab_con (Ctx.add pctx ~var:dname ~tp:(U (Const 0))) dname args) cons }
 
 
 and elab_params ctx = function
