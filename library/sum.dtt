@@ -1,0 +1,7 @@
+data (A B : Type) Sum =
+  | inl (x : A)
+  | inr (y : B)
+
+def Sum-Ind (A B : Type) (P : Sum A B -> Type) (l : (x : A) -> P (inl x)) (r : (x : B) -> P (inr x)) : (x : Sum A B) -> P x = elim with
+  | inl x => l x
+  | inr y => r y

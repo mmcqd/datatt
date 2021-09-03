@@ -1,0 +1,52 @@
+import library/id
+import library/unit
+import library/void
+
+data Bool =
+  | tt
+  | ff
+
+
+{- The traditional proof that tt != ff -}
+def no-confusion-Bool : Not (Id Bool tt ff) = fn p =>
+  subst Bool tt ff p (elim with tt => Unit | ff => Void) <>
+
+{- Some syntactic sugar, which we know is consistent because the above proof is possible -}
+def no-confusion-Bool : Not (Id Bool tt ff) = fn ()
+
+
+def Bool-Ind (P : Bool -> Type) (t : P tt) (f : P ff) : (b : Bool) -> P b = elim with
+  | tt => t
+  | ff => f
+
+def not : Bool -> Bool = elim with
+  | tt => ff
+  | ff => tt
+
+
+def and (a b : Bool) : Bool = elim a with
+  | tt => b
+  | ff => ff
+
+def or (a b : Bool) : Bool = elim a with
+  | tt => tt
+  | ff => b
+
+
+def not-not : (b : Bool) -> Id Bool b (not (not b)) = elim with
+  | tt => refl
+  | ff => refl
+
+def demorgan1 (a b : Bool) : Id Bool (not (and a b)) (or (not a) (not b)) = elim a with
+  | tt => refl
+  | ff => refl
+
+def demorgan2 (a b : Bool) : Id Bool (not (or a b)) (and (not a) (not b)) = elim a with
+  | tt => refl
+  | ff => refl
+
+def lift : Bool -> Type = elim with
+  | tt => Unit
+  | ff => Void
+
+def split (A B : Type) : Bool -> Type = elim with tt => A | ff => B

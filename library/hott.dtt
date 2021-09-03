@@ -1,0 +1,73 @@
+
+import library/id
+import library/unit
+import library/void
+import library/nat
+
+def Contr (A : Type) : Type = (x : A) * (y : A) -> Id A x y
+
+def Prop (A : Type) : Type = (x y : A) -> Id A x y
+
+def Set (A : Type) : Type = (x y : A) -> Prop (Id A x y)
+
+def HLevel : Nat -> Type -> Type = elim with
+  | zero  => Contr
+  | suc n => elim n with
+    | zero => Prop
+    | suc (_ / ih) => fn A => (x y : A) -> ih (Id A x y)
+
+def Contr->Prop (A : Type) (p : Contr A) : Prop A =
+  fn x y => trans A x p.1 y (sym A p.1 x (p.2 x)) (p.2 y)
+
+
+{-
+def HLevel-suc (A : Type) : (n : Nat) -> HLevel n A -> HLevel (suc n) A = elim with
+  | zero => fn p x y => trans A x p.1 y (sym A p.1 x (p.2 x)) (p.2 y)
+  | suc n => elim n with
+    | zero => fn f x y p q => 
+      let id-point = f x in
+      ?
+    | suc (_ / ih) => ?
+-}
+
+def Contr-Unit : Contr Unit = (<>,Unit-Eta)
+
+def Prop-Unit : Prop Unit = elim with 
+  | <> => elim with <> => refl
+
+def Set-Unit : Set Unit = elim with <> => elim with <> => fn p =>
+  let P1 : (x y : Unit) -> Id Unit x y -> Type = elim with <> => elim with <> => fn p => (q : Id Unit <> <>) -> Id (Id Unit <> <>) p q in
+  let P2 : (x y : Unit) -> Id Unit x y -> Type = elim with <> => elim with <> => fn q => Id (Id Unit <> <>) refl q in
+  match p at x y p => P1 x y p with
+    | refl i => elim i with <> => fn q => 
+      match q at x y q => P2 x y q with
+        | refl j => elim j with <> => refl
+
+def Prop-Void : Prop Void = elim with
+
+def Set-Void : Set Void = elim with
+
+def HLevel-suc-Void : (n : Nat) -> HLevel (suc n) Void = elim with
+  | zero  => (elim with)
+  | suc n => (elim with)
+
+
+def Singl (A : Type) (x : A) : Type = (y : A) * Id A x y
+
+def Contr-Singl (A : Type) (x : A) : Contr (Singl A x) = 
+  ((x,refl),fn p => match p.2 with refl w => refl)
+
+
+def constant (A B : Type) (f : A -> B) : Type = (x y : A) -> Id B (f x) (f y)
+
+def collapsible (A : Type) : Type = (f : A -> A) * constant A A f
+
+def path-collapsible (A : Type) : Type = (x y : A) -> collapsible (Id A x y)
+
+def Set->PC (A : Type) (s : Set A) : path-collapsible A = fn x y =>
+  (fn x => x,s x y)
+
+{-
+def PC->Set (A : Type) (pc : path-collapsible A) : Set A = fn x y p q =>
+  ?
+-}

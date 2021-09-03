@@ -1,0 +1,63 @@
+import library/bool
+import library/nat
+
+
+data (A : Type) Dec =
+  | yes (x : A)
+  | no  (x : Not A)
+
+def lower (A : Type) : Dec A -> Bool = elim with
+  | yes _ => tt
+  | no  _ => ff
+
+def Dec-Id (A : Type) : Type = (x y : A) -> Dec (Id A x y)
+
+
+def dec-Unit : Dec-Id Unit = elim with
+  | <> => elim with <> => yes refl
+
+
+def dec-Bool : Dec-Id Bool = elim with
+  | tt => (elim with tt => yes refl | ff => no (fn ()))
+  | ff => (elim with tt => no (fn ()) | ff => yes refl)
+
+def eq-Bool (x y : Bool) : Bool = lower (Id Bool x y) (dec-Bool x y)
+
+def dec-Nat : Dec-Id Nat = elim with
+  | zero  => (elim with zero => yes refl | suc n => no (fn ()))
+  | suc (n / ih) => 
+    elim with 
+      | zero => no (fn ()) 
+      | suc m => elim ih m with
+        | yes p => (match p with refl j => yes refl)
+        | no ~p => no (fn p => ~p (cong Nat Nat pred (suc n) (suc m) p))
+
+
+def eq-Nat (x y : Nat) : Bool = lower (Id Nat x y) (dec-Nat x y)
+
+def dec-Unit : Dec-Id Unit = elim with 
+  | <> => elim with <> => yes refl
+
+
+def dec-* (A B : Type) : Dec A -> Dec B -> Dec (A * B) = elim with
+  | yes a => (elim with
+    | yes b => yes (a,b)
+    | no ~b => no (fn p => ~b p.2)
+  )
+  | no ~a => (elim with
+    | yes b => no (fn p => ~a p.1)
+    | no ~b => no (fn p => ~a p.1)
+  )
+
+def dec-id-* (A B : Type) (da : Dec-Id A) (db : Dec-Id B) : Dec-Id (A * B) = fn p q =>
+  elim da p.1 q.1 with
+    | yes a => (elim db p.2 q.2 with
+      | yes b => yes (pair-ext A B p q a b)
+      | no ~b => no (fn i => ~b (pair-id-r A B p q i))
+    )
+    | no ~a => (elim db p.2 q.2 with
+      | yes b => no (fn i => ~a (pair-id-l A B p q i))
+      | no ~b => no (fn i => ~a (pair-id-l A B p q i))
+    )
+
+def eq-* (A B : Type) (da : Dec-Id A) (db : Dec-Id B) (x y : A * B): Bool = lower (Id (A * B) x y) (dec-id-* A B da db x y)

@@ -1,0 +1,23 @@
+import library/id
+import library/unit
+import library/nat
+import library/bool
+
+def PType : Type^1 = (A : Type) * A
+
+def UnitP : PType = (Unit,<>)
+def BoolP : PType = (Bool,tt)
+def NatP : PType = (Nat,zero)
+def TypeP : PType^1 = (Type,Unit)
+def TypePN : PType^2 = (Type^1,Type)
+
+
+def Loop (P : PType) : PType =
+  (Id P.1 P.2 P.2, refl)
+
+def LoopN (P : PType) : Nat -> PType = elim with
+  | zero => P
+  | suc (_ / ih) => Loop ih
+
+def PType-not-Void (P : PType) : Not^1 (Id Type P.1 Void) = fn p =>
+  coe P.1 Void p P.2

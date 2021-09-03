@@ -1,0 +1,8 @@
+data Unit =
+  | <>
+
+def Unit-Ind (P : Unit -> Type) (p : P <>) : (x : Unit) -> P x = elim with
+  | <> => p
+
+def Unit-Eta : (x : Unit) -> Id Unit <> x = elim with
+  | <> => refl

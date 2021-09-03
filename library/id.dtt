@@ -1,0 +1,52 @@
+
+def J (A : Type) (P : (x y : A) -> Id A x y -> Type) (f : (x : A) -> P x x refl) (x y : A) (p : Id A x y) : P x y p =
+  match p with
+    | refl i => f i
+
+axiom K : (A : Type) (x : A) (P : Id A x x -> Type) (r : P refl) (p : Id A x x) -> P p
+
+def sym (A : Type) (x y : A) (p : Id A x y) : Id A y x =
+  match p with
+    | refl _ => refl
+
+def trans (A : Type) (x y z : A) (p : Id A x y) : Id A y z -> Id A x z =
+  match p with
+    | refl _ => fn x => x
+
+def cong (A B : Type) (f : A -> B) (x y : A) (p : Id A x y) : Id B (f x) (f y) =
+  match p with
+    | refl _ => refl
+
+def subst (A : Type) (x y : A) (p : Id A x y) (P : A -> Type) : P x -> P y =
+  match p with
+    | refl _ => fn z => z
+
+def coe (A B : Type) (p : Id Type A B) : A -> B =
+  match p with
+    | refl _ => λ x => x
+
+def trans-refl (A : Type) (x y : A) (p : Id A x y) : Id (Id A x y) p (trans A x y y p refl) =
+  match p with
+    | refl _ => refl
+
+def refl-trans (A : Type) (x y : A) (p : Id A x y) : Id (Id A x y) p (trans A x x y refl p) =
+  match p with
+    | refl _ => refl
+
+def sym-sym (A : Type) (x y : A) (p : Id A x y) : Id (Id A x y) p (sym A y x (sym A x y p)) =
+  match p with
+    | refl _ => refl
+
+def coe-refl (A : Type) (x : A) : Id A (coe A A refl x) x = refl
+
+
+def pair-ext (A B : Type) (x y : A * B) (p : Id A x.1 y.1) (q : Id B x.2 y.2) : Id (A * B) x y =
+  match p with
+    | refl w => match q with
+      | refl h => refl
+
+def pair-id-l (A B : Type) (x y : A * B) (p : Id (A * B) x y) : Id A x.1 y.1 =
+  cong (A * B) A (fn x => x.1) x y p
+
+def pair-id-r (A B : Type) (x y : A * B) (p : Id (A * B) x y) : Id B x.2 y.2 =
+  cong (A * B) B (fn x => x.2) x y p

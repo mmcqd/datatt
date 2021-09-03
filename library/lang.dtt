@@ -1,0 +1,99 @@
+
+import library/nat
+import library/bool
+import library/dec
+import library/list
+import library/maybe
+import library/typeclass
+
+
+
+data Ty =
+  | ar (a b : Ty)
+  | bool
+  | nat
+
+def dec-Ty : Dec-Id Ty = elim with
+  | ar (a / iha) (b / ihb) => (elim with
+    | ar a' b' => (elim iha a' with
+      | yes pa => (elim ihb b' with
+        | yes pb => match pa with refl i => match pb with refl j => yes refl
+        | no ~pb => no (fn p => ~pb (cong Ty Ty (elim with ar _ b => b | bool => bool | nat => nat) (ar a b) (ar a' b') p))
+      )
+      | no ~pa => no (fn p => ~pa (cong Ty Ty (elim with ar a _ => a | bool => bool | nat => nat) (ar a b) (ar a' b') p))
+    )
+    | bool => no (fn ())
+    | nat => no (fn ())
+  )
+  | bool => (elim with
+    | bool => yes refl
+    | ar a b => no (fn ())
+    | nat => no (fn ())
+  )
+  | nat => (elim with
+    | nat => yes refl
+    | ar _ _ => no (fn ())
+    | bool => no (fn ())
+  )
+
+def eq-Ty (t1 t2 : Ty) : Bool = lower (Id Ty t1 t2) (dec-Ty t1 t2)
+
+data Tm =
+  | var (n : Nat)
+  | tt
+  | ff
+  | if (b e1 e2 : Tm)
+  | zero
+  | suc (n : Tm)
+  | rec (e z s : Tm)
+  | lam (t : Ty) (e : Tm)
+  | ap (f e : Tm)
+
+def synth : Tm -> List Ty -> Maybe Ty = let bind = bind (fn A => Maybe A) Monad-Maybe Ty Ty in elim with
+  | var n => fn ctx => get Ty ctx n
+  | tt => fn _ => some bool
+  | ff => fn _ => some bool
+  | if (b / bty) (e1 / e1ty) (e2 / e2ty) => fn ctx => bind (bty ctx) (elim with
+    | ar _ _ => none
+    | nat => none
+    | bool => bind (e1ty ctx) (fn t1 => bind (e2ty ctx) (fn t2 =>
+      elim eq-Ty t1 t2 with
+        | tt => some t1
+        | ff => none
+    ))
+  )
+  | lam t1 (e / ih) => fn ctx =>
+    bind (ih (cons t1 ctx)) (fn t2 =>
+      some (ar t1 t2)
+    )
+  | ap (f / fty) (e / ety) => fn ctx => bind (fty ctx) (elim with
+    | bool => none
+    | nat => none
+    | ar a b => bind (ety ctx) (fn t =>
+      elim eq-Ty a t with
+        | tt => some b
+        | ff => none
+    )
+  )
+  | zero => fn _ => some nat
+  | suc (n / nty) => fn ctx => bind (nty ctx) (elim with
+    | nat => some nat
+    | bool => none
+    | ar _ _ => none
+  ) 
+  | rec (n / nty) (z / zty) (s / sty) => fn ctx => bind (nty ctx) (elim with
+    | bool => none
+    | ar _ _ => none
+    | nat => 
+      bind (zty ctx) (fn t =>
+      bind (sty (cons t ctx)) (fn t' =>
+        elim eq-Ty t t' with
+          | tt => some t
+          | ff => none 
+      )
+    )
+  )
+  
+
+def tm1 : Tm = lam bool (lam bool (var zero))
+def tm2 : Tm = lam nat (lam nat (rec (var one) (var zero) (suc (var zero))))

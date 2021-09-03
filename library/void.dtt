@@ -1,0 +1,7 @@
+
+data Void
+
+def Void-Ind (P : Void -> Type) : (x : Void) -> P x =
+  elim with
+
+def Not (A : Type) : Type = A -> Void

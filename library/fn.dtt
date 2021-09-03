@@ -1,0 +1,12 @@
+
+def id (A : Type) (x : A) : A = x
+
+def const (A B : Type) (x : A) : B -> A = fn _ => x
+
+def curry (A B C : Type) (f : A * B -> C) : A -> B -> C = fn x y => f (x,y)
+def curryd (A : Type) (B : A -> Type) (C : (x : A) -> B x -> Type) (f : (p : (x : A) * B x) -> C p.1 p.2) : (x : A) (y : B x) -> C x y = fn x y => f (x,y)
+
+def uncurry (A B C : Type) (f : A -> B -> C) : A * B -> C = fn p => f p.1 p.2
+def uncurryd (A : Type) (B : A -> Type) (C : ((x : A) * B x) -> Type) (f : (x : A) (y : B x) -> C (x,y)) : (p : (x : A) * B x) -> C p = fn p => f p.1 p.2
+
+axiom funextd : (A : Type) (B : A -> Type) (f g : (x : A) -> B x) -> ((x : A) -> Id (B x) (f x) (g x)) -> Id ((x : A) -> B x) f g

@@ -1,0 +1,94 @@
+import library/fn
+import library/unit
+import library/void
+import library/bool
+import library/alg
+
+data Nat =
+  | zero
+  | suc (n : Nat)
+
+def one : Nat = suc zero
+def two : Nat = suc one
+def three : Nat = suc two
+def four : Nat = suc three
+
+def Nat-Ind (P : Nat -> Type) (z : P zero) (s : (m : Nat) -> P m -> P (suc m)) : (n : Nat) -> P n = elim with
+  | zero => z
+  | suc (n / ih) => s n ih
+
+def no-confusion-Nat (n : Nat) : Not (Id Nat zero (suc n)) = fn ()
+
+def pred : Nat -> Nat = elim with
+  | zero => zero
+  | suc n => n
+
+def + (n m : Nat) : Nat = elim n with
+  | zero => m
+  | suc (_ / ih) => suc ih
+
+def mult (n m : Nat) : Nat = elim n with
+  | zero => zero
+  | suc (_ / ih) => + m ih
+
+def exp (n m : Nat) : Nat = elim m with
+  | zero => one
+  | suc (_ / ih) => mult n ih
+
+def +-assoc : Assoc Nat + = fn n m p => elim n with
+  | zero => refl
+  | suc (_ / ih) => match ih with
+    | refl _ => refl
+
+def +-zero : Id-R Nat + zero = elim with
+  | zero => refl
+  | suc (_ / ih) => match ih with
+      | refl _ => refl
+
+def +-suc (n m : Nat) : Id Nat (suc (+ n m)) (+ n (suc m)) = elim n with
+  | zero => refl
+  | suc (n' / ih) => 
+    match ih with
+      | refl z => refl
+
+def +-comm : Comm Nat + = fn n m => elim n with
+  | zero => +-zero m
+  | suc (n / ih) => trans Nat (suc (+ n m)) (suc (+ m n)) (+ m (suc n)) 
+    (cong Nat Nat (fn x => suc x) (+ n m) (+ m n) ih) 
+    (+-suc m n)
+
+
+def leq : Nat -> Nat -> Type = elim with
+  | zero => fn _ => Unit
+  | suc (_ / ih) => elim with
+    | zero => Void
+    | suc n => ih n
+
+def leq-zero (n : Nat) : leq zero n = <>
+def leq-suc (m n : Nat) (p : leq m n) : leq (suc m) (suc n) = p
+
+def even-b : Nat -> Bool = elim with
+  | zero => tt
+  | suc (n / ih) => not ih
+
+def even (n : Nat) : Type = lift (even-b n)
+ 
+
+def id-elim : Nat -> Nat = elim with
+  | zero => zero
+  | suc n => suc n
+
+def id-elim-id : (n : Nat) -> Id Nat (id Nat n) (id-elim n) = elim with
+  | zero => refl
+  | suc _ => refl
+
+def suc-Inj (n m : Nat) : Id Nat (suc n) (suc m) -> Id Nat n m =
+  cong Nat Nat pred (suc n) (suc m)
+
+def Monoid-Nat-+ : Monoid Nat =
+  ( zero
+  , +
+  , fn _ => refl
+  , +-zero
+  , +-assoc
+  )

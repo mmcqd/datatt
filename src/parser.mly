@@ -19,6 +19,7 @@ let rec_func_syntax (name,args,t,e) =
 %}
 
 %token Eof
+%token Import
 %token Question_mark
 %token L_paren R_paren
 %token Lambda Thick_arrow Arrow
@@ -33,6 +34,7 @@ let rec_func_syntax (name,args,t,e) =
 %token Def Equal Axiom
 %token <string> Ident
 %token <int> Dec_const
+
 
 %right Arrow
 %right Star
@@ -69,6 +71,7 @@ let cmd :=
     }  
 *)
   | data_def
+  | Import; f = Ident; { Concrete_syntax.Import f }
   | ~ = m(term); <Concrete_syntax.Eval>
 
 let data_def :=

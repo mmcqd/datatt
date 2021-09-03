@@ -5,7 +5,7 @@ open Parser
 
 }
 
-let ident = [^ '(' ')' '[' ']' '\\' ':' ',' '=' ' ' '\t' '\n' '.' '^' '_' ';' '|' '?']+
+let ident = [^ '(' ')' '\\' ':' ',' '=' ' ' '\t' '\n' '^' ';' '|' '?' '.']+
 let dec_num = ("0" | ['1'-'9'](['0'-'9']*))
 
 let whitespace = [' ' '\t' '\r']
@@ -26,6 +26,7 @@ rule initial = parse
   | "in" { In }
   | "data" { Data }
   | "elim" { Elim }
+  | "import" { Import }
   | '^' { Caret }
   | ':' { Colon }
   | '_' { Underbar }

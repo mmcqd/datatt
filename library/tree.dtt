@@ -1,0 +1,7 @@
+data (A : Type) Tree =
+  | empty
+  | node (l : Tree) (x : A) (r : Tree)
+
+def tree-rev (A : Type) : Tree A -> Tree A = elim with
+  | empty => empty
+  | node (l / ihl) x (r / ihr) => node ihr x ihl

@@ -1,0 +1,16 @@
+
+import library/nat
+
+data Exp =
+  | num (n : Nat)
+  | add (m n : Exp) 
+
+def eval : Exp -> Nat = elim with
+  | num n => n
+  | add (_ / ih1) (_ / ih2) => + ih1 ih2
+
+def eval-tail' : Exp -> Nat -> Nat = elim with
+  | num n => fn acc => + n acc
+  | add (n / ih1) (m / ih2) => fn acc => ih1 (ih2 acc) 
+
+def eval-tail : Exp -> Nat = fn e => eval-tail' e zero

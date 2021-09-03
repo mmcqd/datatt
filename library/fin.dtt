@@ -1,0 +1,20 @@
+import library/nat
+import library/sum
+import library/unit
+import library/void
+
+def Fin : Nat -> Type = elim with
+  | zero => Void
+  | suc (_ / ih) => Sum Unit ih
+
+def fzero (n : Nat) : Fin (suc n) = inl <>
+def fsuc (n : Nat) (f : Fin n) : Fin (suc n) = inr f
+
+
+def Fin-Ind (P : (n : Nat) -> Fin n -> Type) (z : (n : Nat) -> P (suc n) (fzero n)) 
+            (s : (n : Nat) (f : Fin n) -> P n f -> P (suc n) (fsuc n f)) : (n : Nat) (f : Fin n) -> P n f = elim with
+  | zero => (elim with)
+  | suc (n / ih) => elim with
+    | inl x => (elim x with <> => z n)
+    | inr m => s n m (ih m)
+

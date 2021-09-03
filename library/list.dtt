@@ -1,0 +1,51 @@
+import library/maybe
+import library/alg
+import library/nat
+
+data (A : Type) List =
+  | nil
+  | cons (x : A) (xs : List)
+
+def List-Ind (A : Type) (P : List A -> Type) (n : P nil) (c : (x : A) (xs : List A) -> P xs -> P (cons x xs)) : (xs : List A) -> P xs = elim with
+  | nil => n
+  | cons x (xs / ih) => c x xs ih
+
+def ++ (A : Type) (xs ys : List A) : List A = elim xs with
+  | nil => ys
+  | cons x (_ / ih) => cons x ih
+
+def hd (A : Type) : List A -> Maybe A = elim with
+  | nil => none
+  | cons x _ => some x
+
+def tl (A : Type) : List A -> List A = elim with
+  | nil => nil
+  | cons _ xs => xs
+
+def ++-assoc (A : Type) : Assoc (List A) (++ A) = fn xs ys zs => elim xs with
+  | nil => refl
+  | cons x (xs / ih) => match ih with
+    | refl _ => refl
+
+def ++-nil (A : Type) : Id-R (List A) (++ A) nil = elim with
+  | nil => refl
+  | cons x (xs / ih) => match ih with
+    | refl _ => refl
+
+def map (A B : Type) (f : A -> B) : List A -> List B = elim with
+  | nil => nil
+  | cons x (xs / ih) => cons (f x) ih
+
+def get (A : Type) : List A -> Nat -> Maybe A = elim with
+  | nil => fn _ => none
+  | cons x (xs / ih) => elim with
+    | zero => some x
+    | suc n => ih n 
+
+def Monoid-List-++ (A : Type) : Monoid (List A) =
+  ( nil
+  , ++ A
+  , fn _ => refl
+  , ++-nil A
+  , ++-assoc A
+  )
