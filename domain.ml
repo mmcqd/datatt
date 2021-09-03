@@ -34,6 +34,7 @@ and ne =
   | Snd of ne
   | Elim of {mot : clos ; arms : arm_clos bnd list ; scrut : ne ; desc : desc ; params : t list}
   | J of {mot : clos3 ; body : clos ; scrut : ne ; tp : t}
+  | Hole of {name : string ; tp : t}
   [@@deriving show {with_path = false}]
 
 and nf = {tm : t ; tp : t}
@@ -120,3 +121,4 @@ and lift_ne i = function
     Elim { mot = lift_clos i mot ; arms = List.map ~f:(fun (con,clos) -> (con,lift_arm_clos i clos)) arms ; scrut = lift_ne i scrut ; desc ; params = List.map ~f:(lift i) params}
   | Fst p -> Fst (lift_ne i p)
   | Snd p -> Snd (lift_ne i p)
+  | Hole {name ; tp} -> Hole {name ; tp = lift i tp}

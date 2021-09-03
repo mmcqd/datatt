@@ -19,7 +19,7 @@ type 'a bnd = (string * 'a)
   [@@deriving show]
 
 type t_ =
-  | Hole
+  | Hole of string
   | Var of string
   | Lift of {name : string ; lvl : int}
   | U of Level.t

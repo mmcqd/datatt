@@ -19,7 +19,12 @@ let sort_cons = List.sort ~compare: (fun (c1,_) (c2,_) -> String.compare c1 c2)
 let rec check (ctx : Ctx.t) (cs : CSyn.t) (tp : Dom.t) : Syn.t =
   (* printf "CHECK %s AT %s\n" (CSyn.show cs) (Syn.show @@ Nbe.read_back (Ctx.to_names ctx) tp (U Omega)); *)
   match Mark.data cs,tp with
-    | Hole,tp -> raise (Hole {goal = Syn.show (Nbe.read_back (Ctx.to_names ctx) tp (U Omega)) ; ctx = Ctx.to_string ctx ; pos = Mark.show cs})
+    | Hole name,tp -> 
+    (* raise (Hole {goal = Syn.show (Nbe.read_back (Ctx.to_names ctx) tp (U Omega)) ; ctx = Ctx.to_string ctx ; pos = Mark.show cs}) *)
+    let goal = Nbe.read_back (Ctx.to_names ctx) tp (U Omega) in
+    printf "Hole %s at %s:%s\n\n⊢ %s\n\n" name (Mark.show cs) (Ctx.to_string ctx) (Syn.show goal);
+    Hole {name ; tp = goal}
+
     | U Omega,U Omega -> U Omega (* VERY SUS but technically ok because user can't create terms of type U Omega *)
     | U i,U j when Level.(<) i j -> U i
     | U i, U j -> error (sprintf "%s - %s too large to be contained in %s" (Mark.show cs) (Syn.show (U i)) (Syn.show (U j)))

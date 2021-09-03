@@ -61,9 +61,6 @@ let rec repl ctx =
   try repl @@ List.fold (parse txt) ~init:ctx ~f:run_stm with 
     | Elab.TypeError e -> printf "Type Error: %s\n" e;repl ctx
     | ParseError e -> printf "Parse Error: %s\n" e; repl ctx
-    | Elab.Hole {goal ; ctx ; pos} ->
-      printf "\nHole at %s:%s\n\n%s\n  %s\n" pos ctx (String.init ~f:(const '-') 45) goal;
-      () 
 
 
 
@@ -73,8 +70,5 @@ let _ : unit =
   if Array.length args = 1 then repl Ctx.empty;
   let s = parse_file args.(1) in
   try repl @@ List.fold s ~init:Ctx.empty ~f:run_stm with 
-      | Elab.TypeError e -> printf "Type Error: %s\n" e
-      | ParseError e -> printf "Parse Error: %s\n" e
-      | Elab.Hole {goal ; ctx ; pos} ->
-        printf "\nHole at %s:%s\n\n%s\n  %s\n" pos ctx (String.init ~f:(const '-') 45) goal;
-        ()
+    | Elab.TypeError e -> printf "Type Error: %s\n" e
+    | ParseError e -> printf "Parse Error: %s\n" e

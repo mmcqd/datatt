@@ -21,6 +21,7 @@ type t =
   | Refl of t
   | J of {mot : string * string * string * t ; scrut : t ; body : string * t}
   | Let of t bnd * t
+  | Hole of {name : string ; tp : t}
   [@@deriving show]
 
 let rec flatten_arm_args = function
@@ -46,6 +47,7 @@ let rec_map (f : t -> t) = function
   | Fst p -> Fst (f p)
   | Snd p -> Snd (f p)
   | Let ((x,e1),e2) -> Let ((x,f e1),f e2)
+  | Hole {name ; tp} -> Hole {name ; tp = f tp}
 
 
 
@@ -106,6 +108,7 @@ and pp_arm_args = function
 and pp_atomic (e : t) : string =
   match e with
     | Var x -> x
+    | Hole {name;_} -> name
     | U Omega -> "Type^ω"
     | U (Const 0) -> "Type"
     | U (Const i) -> sprintf "Type^%i" i
@@ -161,7 +164,9 @@ let rec equal (i : int) (g1 : int String.Map.t) (e1 : t) (g2 : int String.Map.t)
         | Ok b -> b
         | _ -> false
       end
+    | Hole h1, Hole h2 -> String.equal h1.name h2.name && equal i g1 h1.tp g2 h2.tp
     | _ -> false
+
 and equal_arm i g1 (args1,arm1) g2 (args2,arm2) =
   match args1,args2 with
     | [],[] -> equal i g1 arm1 g2 arm2
@@ -179,6 +184,7 @@ let subst (sub : t) (fr : t) (e : t) : t =
       | Let ((x,d),r) -> Let ((x,go i g d),go (i+1) (g++(x,i)) r)
       | Pair (e1,e2) -> Pair (go i g e1,go i g e2)
       | Refl e -> Refl (go i g e)
+      | Hole {name ; tp} -> Hole {name ; tp = go i g tp}
       | Id (a,m,n) -> Id (go i g a,go i g m,go i g n)
       | J { mot = (x,y,p,m) ; body = (z,e) ; scrut} -> J {mot = (x,y,p,go (i+3) (g++(x,i)++(y,i+1)++(p,i+2)) m) ; body = (z,go (i+1) (g++(z,i)) e) ; scrut = go i g scrut}
       | Intro {name;args} -> Intro {name ; args = List.map ~f:(go i g) args}
@@ -216,3 +222,4 @@ and to_concrete_ (e : t) : Concrete_syntax.t_ = let open Concrete_syntax in
     | Refl _ -> Refl
     | J {mot = (x,y,p,m) ; body = (z,e) ; scrut} -> J {mot = Some (x,y,p,to_concrete m) ; body = (z,to_concrete e) ; scrut = to_concrete scrut} 
     | Let ((x,d),r) -> Let ((x,to_concrete d),to_concrete r)
+    | Hole {name;_} -> Hole name

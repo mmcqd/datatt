@@ -30,7 +30,7 @@ let rec_func_syntax (name,args,t,e) =
 %token Id Refl
 %token Match With Bar At
 %token Data Elim F_slash
-%token Def Equal Rec Axiom
+%token Def Equal Axiom
 %token <string> Ident
 %token <int> Dec_const
 
@@ -86,14 +86,18 @@ let bound_name :=
   | Ident
   | Underbar; { "_" }
 
+let hole :=
+  | Ident
+  | { "" }
+
 let annot_args :=
-  | ~ = nonempty_list(bound_name) ; Colon ; ~ = m(term) ; <>
+  | ~ = nonempty_list(bound_name); Colon ; ~ = m(term) ; <>
 
 
 
 let atomic :=
   | paren(term)
-  | Question_mark; { Concrete_syntax.Hole }
+  | Question_mark; x = hole; { Concrete_syntax.Hole ("?" ^ x) }
   | x = Ident; { Concrete_syntax.Var x }
   | name = Ident; Caret; lvl = Dec_const; { Concrete_syntax.Lift {name ; lvl} }
   | ~ = paren(separated_list(Comma,m(term))); <Concrete_syntax.Tuple>

@@ -29,12 +29,11 @@ rule initial = parse
   | '^' { Caret }
   | ':' { Colon }
   | '_' { Underbar }
-  | '?' { Question_mark }
+  | "?" { Question_mark }
   | '/' { F_slash }
   | "Type" { Type }
   | "def" { Def }
   | "axiom" { Axiom }
-  | "rec" { Rec }
   | "=" { Equal }
   | "refl" { Refl }
   | "Id" { Id }

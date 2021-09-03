@@ -31,6 +31,7 @@ let rec eval (env : Dom.env) (s : Syn.t) : Dom.t =
     | Refl x -> Refl (eval env x)
     | J {mot = (x,y,p,m); body = (z,e) ; scrut} -> do_j Dom.{names = (x,y,p) ; tm = m ; env} Dom.{name = z ; tm = e ; env} (eval env scrut)
     | Let ((x,e1),e2) -> eval (Dom.Env.set env ~key:x ~data:(eval env e1)) e2 
+    | Hole {name ; tp} -> let tp = eval env tp in Neutral {ne = Hole {name ; tp} ; tp}
 
 and do_clos ({name ; tm ; env } : Dom.clos) (arg : Dom.t) : Dom.t =
   eval (Dom.Env.set env ~key:name ~data:arg) tm
@@ -200,7 +201,7 @@ and equate_ne used ne1 ne2 =
         ; body = (z,equate usedB (do_clos j1.body (var z tp)) (do_clos j2.body (var z tp)) (do_clos3 j1.mot (var z tp) (var z tp) (Id (tp, var z tp, var z tp)))) 
         ; scrut = equate_ne used j1.scrut j2.scrut
         }
-
+    | Hole h1, Hole h2 when String.equal h1.name h2.name -> Hole {name = h1.name ; tp = equate used h1.tp h2.tp (U Omega)}
     | _ -> error "equate_ne - Inputs not convertible"
 
 and collect_elim_args mot args dtele (desc,params) env =
