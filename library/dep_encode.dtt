@@ -1,3 +1,4 @@
+import library/fn
 import library/bool
 
 def ProdP (A B : Type) : Type = (b : Bool) -> split A B b
