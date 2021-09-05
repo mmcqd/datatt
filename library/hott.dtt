@@ -44,7 +44,7 @@ def Set->Id-Collapsible (A : Type) (s : Set A) : Id-Collapsible A = fn x y =>
 def Id-Collapsible->Set (A : Type) (c : Id-Collapsible A) : Set A = fn x y p q => 
   let f : (x y : A) -> Id A x y -> Id A x y = fn x y => (c (x) y).1 in
   let g : (x y : A) (p q : Id A x y) -> Id (Id A x y) (f x y p) (f x y q) = fn x y => (c (x) y).2 in
-  let claim0 : (x y : A) (r : Id A x y) -> Id (Id A x y) r (trans A x x y (sym A x x (f x x refl)) (f x y r)) = fn x y r =>
+  let claim0 (x y : A) (r : Id A x y) : Id (Id A x y) r (trans A x x y (sym A x x (f x x refl)) (f x y r)) = 
     match r with
       | refl x => sym-inverse A x x (f x x refl)
   in

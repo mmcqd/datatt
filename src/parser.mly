@@ -133,8 +133,14 @@ let term :=
   
   | Let; x = bound_name; Equal; e1 = m(term); In; e2 = m(term);
      {Concrete_syntax.Let ((x,e1),e2) }
+
   | Let; x = bound_name; Colon; t = m(term); Equal; e1 = m(term); In; e2 = m(term); 
     { Concrete_syntax.Let ((x,Mark.naked @@ Concrete_syntax.Ascribe {tm = e1 ; tp = t}),e2) } 
+
+  | Let; x = bound_name; args = nonempty_list(paren(annot_args)); Colon; t = m(term); Equal; e = m(term); In; e2 = m(term);
+    { let tm,tp = func_syntax (args,t,e) in
+      Concrete_syntax.Let ((x,Mark.naked @@ Concrete_syntax.Ascribe {tm ; tp}),e2) 
+    }
 
   | Elim; With;
     option(Bar); arms = separated_list(Bar,arm);
