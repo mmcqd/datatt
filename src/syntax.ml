@@ -181,6 +181,8 @@ let subst (sub : t) (fr : t) (e : t) : t =
       | Lam (x,e) -> Lam (x,go (i+1) (g++(x,i)) e)
       | Pi ((x,d),r) -> Pi ((x,go i g d),go (i+1) (g++(x,i)) r)
       | Sg ((x,d),r) -> Sg ((x,go i g d),go (i+1) (g++(x,i)) r)
+      | Fst e -> Fst (go i g e)
+      | Snd e -> Snd (go i g e)
       | Let ((x,d),r) -> Let ((x,go i g d),go (i+1) (g++(x,i)) r)
       | Pair (e1,e2) -> Pair (go i g e1,go i g e2)
       | Refl e -> Refl (go i g e)
@@ -191,7 +193,9 @@ let subst (sub : t) (fr : t) (e : t) : t =
       | Data {name;params} -> Data {name ; params = List.map ~f:(go i g) params}
       | Elim {mot = (x,m) ; arms ; scrut} -> 
         Elim {mot = (x,go (i+1) (g++(x,i)) m) ; scrut = go i g scrut ; arms = List.map ~f:(fun (con,(vs,arm)) -> (con,(vs,go_arm i g (flatten_arm_args vs) arm))) arms}
-      | e -> e
+      | Var x -> Var x
+      | Lift x -> Lift x
+      | U l -> U l
 
   and go_arm i g args arm = 
     match args with

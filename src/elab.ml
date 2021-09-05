@@ -143,7 +143,7 @@ let rec check (ctx : Ctx.t) (cs : CSyn.t) (tp : Dom.t) : Syn.t =
                         |> Syn.subst (Var p) scrut in
           (* print_endline (sprintf "GUSSED MOT: %s" (Syn.show mot_body)); *)
           let ctx' = ctx |> Ctx.add ~var:x ~tp:a |> Ctx.add ~var:y ~tp:a |> Ctx.add ~var:p ~tp:(Id (a,Nbe.var x a,Nbe.var y a)) in
-          (try const () @@ check ctx' (Syn.to_concrete mot_body) (U Omega) with TypeError s -> error (sprintf "%s - In guessed motive: %s" (Mark.show cs) s));
+          (try const () @@ check ctx' (Syn.to_concrete mot_body) (U Omega) with TypeError s -> error (sprintf "%s - In guessed motive %s: %s" (Mark.show cs) (Syn.show mot_body) s));
           let body_tp = Nbe.do_clos3 Dom.{names = (x,y,p) ; tm = mot_body ; env = Ctx.to_env ctx} (Nbe.var z a) (Nbe.var z a) (Refl (Nbe.var z a)) in
           let body = (z,check (Ctx.add ctx ~var:z ~tp:a) e body_tp ) in
           J {mot = (x,y,p,mot_body) ; body ; scrut}
