@@ -7,7 +7,7 @@ axiom K : (A : Type) (x : A) (P : Id A x x -> Type) (r : P refl) (p : Id A x x) 
 
 def sym (A : Type) (x y : A) (p : Id A x y) : Id A y x =
   match p with
-    | refl _ => refl
+    | refl x => refl
 
 def trans (A : Type) (x y z : A) (p : Id A x y) : Id A y z -> Id A x z =
   match p with
@@ -50,3 +50,7 @@ def pair-id-l (A B : Type) (x y : A * B) (p : Id (A * B) x y) : Id A x.1 y.1 =
 
 def pair-id-r (A B : Type) (x y : A * B) (p : Id (A * B) x y) : Id B x.2 y.2 =
   cong (A * B) B (fn x => x.2) x y p
+
+def sym-inverse (A : Type) (x y : A) (p : Id A x y) : Id (Id A y y) refl (trans A y x y (sym A x y p) p) =
+  match p at a b q => Id (Id A b b) refl (trans A b a b (sym A a b q) q) with
+    | refl i => refl

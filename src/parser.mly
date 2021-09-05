@@ -16,6 +16,9 @@ let rec_func_syntax (name,args,t,e) =
   (Mark.naked @@ Concrete_syntax.Fun {name ; args = map ~f:fst tele ; body = e},Mark.naked @@ Concrete_syntax.Pi (tele,t))
 *)
 
+let hole_count = ref (-1)
+let new_hole () = hole_count := (!hole_count) + 1; Int.to_string (!hole_count)
+
 %}
 
 %token Eof
@@ -91,7 +94,7 @@ let bound_name :=
 
 let hole :=
   | Ident
-  | { "" }
+  | { new_hole () }
 
 let annot_args :=
   | ~ = nonempty_list(bound_name); Colon ; ~ = m(term) ; <>

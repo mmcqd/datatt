@@ -145,7 +145,7 @@ let rec check (ctx : Ctx.t) (cs : CSyn.t) (tp : Dom.t) : Syn.t =
           let ctx' = ctx |> Ctx.add ~var:x ~tp:a |> Ctx.add ~var:y ~tp:a |> Ctx.add ~var:p ~tp:(Id (a,Nbe.var x a,Nbe.var y a)) in
           (try const () @@ check ctx' (Syn.to_concrete mot_body) (U Omega) with TypeError s -> error (sprintf "%s - In guessed motive: %s" (Mark.show cs) s));
           let body_tp = Nbe.do_clos3 Dom.{names = (x,y,p) ; tm = mot_body ; env = Ctx.to_env ctx} (Nbe.var z a) (Nbe.var z a) (Refl (Nbe.var z a)) in
-          let body = (z,check(Ctx.add ctx ~var:z ~tp:a) e body_tp ) in
+          let body = (z,check (Ctx.add ctx ~var:z ~tp:a) e body_tp ) in
           J {mot = (x,y,p,mot_body) ; body ; scrut}
 
         | _,scrut -> error (sprintf "%s - %s is not an equality proof, it cannot be matched on" (Mark.show cs) (Syn.show scrut))

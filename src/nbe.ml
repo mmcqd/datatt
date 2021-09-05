@@ -18,7 +18,6 @@ let rec eval (env : Dom.env) (s : Syn.t) : Dom.t =
     | U i -> U i
     | Pi ((x,d),r) -> Pi (eval env d,{name = x ; tm = r ; env})
     | Lam (x,s) -> Lam {name = x ; tm = s ; env}
-    (* | Fun (f,x,e) -> Fun {names = (f,x) ; tm = e ; env} *)
     | Ap (f,s) -> do_ap (eval env f) (eval env s)
     | Sg ((x,f),s) -> Sg (eval env f,{name = x ; tm = s ; env})
     | Pair (a,b) -> Pair (eval env a, eval env b)
@@ -87,7 +86,7 @@ and do_j (mot : Dom.clos3) (body : Dom.clos) (scrut : Dom.t) : Dom.t =
       Neutral {tp = do_clos3 mot e1 e2 scrut; 
                ne = J {mot ; body ; tp = a ; scrut = ne}
               }
-    | _ -> failwith "do_j"
+    | d -> failwith (sprintf "do_j - %s" (Dom.show d))
 
 let fresh used x = if String.equal x "_" then x,used else
   let rec go x = 
@@ -194,11 +193,11 @@ and equate_ne used ne1 ne2 =
       let tp = j1.tp in
       let x,y,p,usedM = fresh3 used (j1.mot.names) in
       let z,usedB = fresh used (j1.body.name) in
-      let mot = equate usedM (do_clos3 j1.mot (var x tp) (var y tp) (var z (Id (tp,var x tp, var y tp)))) 
-                             (do_clos3 j2.mot (var x tp) (var y tp) (var z (Id (tp,var x tp, var y tp))))
+      let mot = equate usedM (do_clos3 j1.mot (var x tp) (var y tp) (var p (Id (tp,var x tp, var y tp)))) 
+                             (do_clos3 j2.mot (var x tp) (var y tp) (var p (Id (tp,var x tp, var y tp))))
                              (U Omega) in
       J { mot = (x,y,p,mot) 
-        ; body = (z,equate usedB (do_clos j1.body (var z tp)) (do_clos j2.body (var z tp)) (do_clos3 j1.mot (var z tp) (var z tp) (Id (tp, var z tp, var z tp)))) 
+        ; body = (z,equate usedB (do_clos j1.body (var z tp)) (do_clos j2.body (var z tp)) (do_clos3 j1.mot (var z tp) (var z tp) (Refl (var z tp)))) 
         ; scrut = equate_ne used j1.scrut j2.scrut
         }
     | Hole h1, Hole h2 when String.equal h1.name h2.name -> Hole {name = h1.name ; tp = equate used h1.tp h2.tp (U Omega)}

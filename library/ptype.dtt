@@ -21,3 +21,4 @@ def LoopN (P : PType) : Nat -> PType = elim with
 
 def PType-not-Void (P : PType) : Not^1 (Id Type P.1 Void) = fn p =>
   coe P.1 Void p P.2
+

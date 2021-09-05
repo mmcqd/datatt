@@ -58,14 +58,21 @@ def +-comm : Comm Nat + = fn n m => elim n with
     (+-suc m n)
 
 
-def leq : Nat -> Nat -> Type = elim with
-  | zero => fn _ => Unit
+def leq-b : Nat -> Nat -> Bool = elim with
+  | zero => fn _ => tt
   | suc (_ / ih) => elim with
-    | zero => Void
+    | zero => ff
     | suc n => ih n
+
+def leq (n m : Nat) : Type = lift (leq-b n m)
 
 def leq-zero (n : Nat) : leq zero n = <>
 def leq-suc (m n : Nat) (p : leq m n) : leq (suc m) (suc n) = p
+
+
+def lt-b (m n : Nat) : Bool = leq-b (suc m) n 
+
+def lt (m n : Nat) : Type = lift (lt-b m n)
 
 def even-b : Nat -> Bool = elim with
   | zero => tt

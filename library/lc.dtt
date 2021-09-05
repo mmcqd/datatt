@@ -1,0 +1,33 @@
+import library/nat
+import library/bool
+import library/dec
+
+data Tm =
+  | var (n : Nat)
+  | lam (e : Tm)
+  | ap (f e : Tm)
+
+def well-scoped : Tm -> Nat -> Bool = elim with
+  | var x => fn n => lt-b x n
+  | lam (e / ih) => fn n => ih (suc n)
+  | ap (f / ihf) (e / ihe) => fn n => and (ihf n) (ihe n)
+
+
+def subst : Tm -> Tm -> Nat -> Tm = elim with
+  | var y => fn q x => (elim eq-Nat x y with tt => q | ff => var y)
+  | lam (e / ih) => fn q x => lam (ih q (suc x))
+  | ap (f / ihf) (e / ihe) => fn q x => ap (ihf q x) (ihe q x)
+
+def reduce : Tm -> Tm = elim with
+  | var x => var x
+  | lam e => lam e
+  | ap (f / f') e => elim f' with
+    | lam e' => subst e' e zero
+    | var x  => ap f' e
+    | ap _ _ => ap f' e
+
+def id : Tm = lam (var zero)
+def const : Tm = lam (lam (var one))
+def z : Tm = lam (lam (var zero))
+def s : Tm = lam (lam (lam (ap (var one) (ap (ap (var two) (var one)) (var zero)))))
+def plus : Tm = lam (lam (lam (lam (ap (ap (var three) (var one)) (ap (ap (var two) (var one)) (var zero))))))

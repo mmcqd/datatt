@@ -1,0 +1,10 @@
+import library/iso
+
+data (A : Type) Wrap = wrap (x : A)
+
+def iso/A/WrapA (A : Type) : Iso A (Wrap A) =
+  ( fn x => wrap x
+  , elim with wrap x => x
+  , fn _ => refl
+  , elim with wrap x => refl
+  )

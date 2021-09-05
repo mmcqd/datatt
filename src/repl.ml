@@ -55,10 +55,12 @@ let rec run_cmds imported ctx = function
       let desc = Elab.elab_data ctx name cons params in
       printf "data %s\n\n" name;
       run_cmds imported (Ctx.add_data ctx desc) cmds
-    | Import file -> 
+    | Import file ->
+      let file = file^".dtt" in 
       if String.Set.mem imported file then run_cmds imported ctx cmds else
-      let imported,ctx = run_cmds (String.Set.add imported file) ctx (parse_file (file^".dtt")) in
-      run_cmds imported ctx cmds
+      (printf "import %s\n" file;
+      let imported,ctx = run_cmds (String.Set.add imported file) ctx (parse_file file) in
+      run_cmds imported ctx cmds)
 
 
 let rec repl (imported,ctx) = 

@@ -50,3 +50,4 @@ def lift : Bool -> Type = elim with
   | ff => Void
 
 def split (A B : Type) : Bool -> Type = elim with tt => A | ff => B
+
