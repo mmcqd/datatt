@@ -19,7 +19,7 @@ rule initial = parse
   | ".1" { DotOne }
   | ".2" { DotTwo }
   | '*' | "×" { Star }
-  | "fn" | "λ" { Lambda }
+  | '\\' | "λ" { Lambda }
   | "->" | "→" { Arrow }
   | "=>" { Thick_arrow }
   | "let" { Let }

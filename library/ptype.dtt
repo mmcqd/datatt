@@ -15,10 +15,10 @@ def TypePN : PType^2 = (Type^1,Type)
 def Loop (P : PType) : PType =
   (Id P.1 P.2 P.2, refl)
 
-def LoopN (P : PType) : Nat -> PType = elim with
+def LoopN (P : PType) : Nat -> PType = \elim
   | zero => P
   | suc (_ / ih) => Loop ih
 
-def PType-not-Void (P : PType) : Not^1 (Id Type P.1 Void) = fn p =>
+def PType-not-Void (P : PType) : Not^1 (Id Type P.1 Void) = \ p =>
   coe P.1 Void p P.2
 

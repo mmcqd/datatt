@@ -13,27 +13,27 @@ data Ty =
   | bool
   | nat
 
-def dec-Ty : Dec-Id Ty = elim with
-  | ar (a / iha) (b / ihb) => (elim with
+def dec-Ty : Dec-Id Ty = \elim
+  | ar (a / iha) (b / ihb) => (\elim
     | ar a' b' => (elim iha a' with
       | yes pa => (elim ihb b' with
         | yes pb => match pa with refl i => match pb with refl j => yes refl
-        | no ~pb => no (fn p => ~pb (cong Ty Ty (elim with ar _ b => b | bool => bool | nat => nat) (ar a b) (ar a' b') p))
+        | no ~pb => no (\ p => ~pb (cong Ty Ty (\elim ar _ b => b | bool => bool | nat => nat) (ar a b) (ar a' b') p))
       )
-      | no ~pa => no (fn p => ~pa (cong Ty Ty (elim with ar a _ => a | bool => bool | nat => nat) (ar a b) (ar a' b') p))
+      | no ~pa => no (\ p => ~pa (cong Ty Ty (\elim ar a _ => a | bool => bool | nat => nat) (ar a b) (ar a' b') p))
     )
-    | bool => no (fn ())
-    | nat => no (fn ())
+    | bool => no (\ ())
+    | nat => no (\ ())
   )
-  | bool => (elim with
+  | bool => (\elim
     | bool => yes refl
-    | ar a b => no (fn ())
-    | nat => no (fn ())
+    | ar a b => no (\ ())
+    | nat => no (\ ())
   )
-  | nat => (elim with
+  | nat => (\elim
     | nat => yes refl
-    | ar _ _ => no (fn ())
-    | bool => no (fn ())
+    | ar _ _ => no (\ ())
+    | bool => no (\ ())
   )
 
 def eq-Ty (t1 t2 : Ty) : Bool = lower (Id Ty t1 t2) (dec-Ty t1 t2)
@@ -49,44 +49,44 @@ data Tm =
   | lam (t : Ty) (e : Tm)
   | ap (f e : Tm)
 
-def synth : Tm -> List Ty -> Maybe Ty = let bind = bind (fn A => Maybe A) Monad-Maybe Ty Ty in elim with
-  | var n => fn ctx => get Ty ctx n
-  | tt => fn _ => some bool
-  | ff => fn _ => some bool
-  | if (b / bty) (e1 / e1ty) (e2 / e2ty) => fn ctx => bind (bty ctx) (elim with
+def synth : Tm -> List Ty -> Maybe Ty = let bind = bind (\ A => Maybe A) Monad-Maybe Ty Ty in \elim
+  | var n => \ ctx => get Ty ctx n
+  | tt => \ _ => some bool
+  | ff => \ _ => some bool
+  | if (b / bty) (e1 / e1ty) (e2 / e2ty) => \ ctx => bind (bty ctx) (\elim
     | ar _ _ => none
     | nat => none
-    | bool => bind (e1ty ctx) (fn t1 => bind (e2ty ctx) (fn t2 =>
+    | bool => bind (e1ty ctx) (\ t1 => bind (e2ty ctx) (\ t2 =>
       elim eq-Ty t1 t2 with
         | tt => some t1
         | ff => none
     ))
   )
-  | lam t1 (e / ih) => fn ctx =>
-    bind (ih (cons t1 ctx)) (fn t2 =>
+  | lam t1 (e / ih) => \ ctx =>
+    bind (ih (cons t1 ctx)) (\ t2 =>
       some (ar t1 t2)
     )
-  | ap (f / fty) (e / ety) => fn ctx => bind (fty ctx) (elim with
+  | ap (f / fty) (e / ety) => \ ctx => bind (fty ctx) (\elim
     | bool => none
     | nat => none
-    | ar a b => bind (ety ctx) (fn t =>
+    | ar a b => bind (ety ctx) (\ t =>
       elim eq-Ty a t with
         | tt => some b
         | ff => none
     )
   )
-  | zero => fn _ => some nat
-  | suc (n / nty) => fn ctx => bind (nty ctx) (elim with
+  | zero => \ _ => some nat
+  | suc (n / nty) => \ ctx => bind (nty ctx) (\elim
     | nat => some nat
     | bool => none
     | ar _ _ => none
   ) 
-  | rec (n / nty) (z / zty) (s / sty) => fn ctx => bind (nty ctx) (elim with
+  | rec (n / nty) (z / zty) (s / sty) => \ ctx => bind (nty ctx) (\elim
     | bool => none
     | ar _ _ => none
     | nat => 
-      bind (zty ctx) (fn t =>
-      bind (sty (cons t ctx)) (fn t' =>
+      bind (zty ctx) (\ t =>
+      bind (sty (cons t ctx)) (\ t' =>
         elim eq-Ty t t' with
           | tt => some t
           | ff => none 

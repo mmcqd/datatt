@@ -7,18 +7,18 @@ data Tm =
   | lam (e : Tm)
   | ap (f e : Tm)
 
-def well-scoped : Tm -> Nat -> Bool = elim with
-  | var x => fn n => lt-b x n
-  | lam (e / ih) => fn n => ih (suc n)
-  | ap (f / ihf) (e / ihe) => fn n => and (ihf n) (ihe n)
+def well-scoped : Tm -> Nat -> Bool = \elim
+  | var x => \ n => lt-b x n
+  | lam (e / ih) => \ n => ih (suc n)
+  | ap (f / ihf) (e / ihe) => \ n => and (ihf n) (ihe n)
 
 
-def subst : Tm -> Tm -> Nat -> Tm = elim with
-  | var y => fn q x => (elim eq-Nat x y with tt => q | ff => var y)
-  | lam (e / ih) => fn q x => lam (ih q (suc x))
-  | ap (f / ihf) (e / ihe) => fn q x => ap (ihf q x) (ihe q x)
+def subst : Tm -> Tm -> Nat -> Tm = \elim
+  | var y => \ q x => (elim eq-Nat x y with tt => q | ff => var y)
+  | lam (e / ih) => \ q x => lam (ih q (suc x))
+  | ap (f / ihf) (e / ihe) => \ q x => ap (ihf q x) (ihe q x)
 
-def reduce : Tm -> Tm = elim with
+def reduce : Tm -> Tm = \elim
   | var x => var x
   | lam e => lam e
   | ap (f / f') e => elim f' with

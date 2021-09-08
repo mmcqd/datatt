@@ -4,14 +4,14 @@ import library/iso
 data Void2 =
   | V (x : Void2)
 
-def Void2-Rec (A : Type) : Void2 -> A = elim with
+def Void2-Rec (A : Type) : Void2 -> A = \elim
   | V (_ / ih) => ih
 
 def iso/Void/Void2 : Iso Void Void2 =
-  let f : Void -> Void2 = elim with in
-  let g : Void2 -> Void = elim with V (_ / ih) => ih in
+  let f : Void -> Void2 = \elim in
+  let g : Void2 -> Void = \elim V (_ / ih) => ih in
  ( f
  , g
- , elim with
- , fn y => Void2-Rec (Id Void2 y (f (g y))) y
+ , \elim
+ , \ y => Void2-Rec (Id Void2 y (f (g y))) y
  )

@@ -13,13 +13,13 @@ def two : Nat = suc one
 def three : Nat = suc two
 def four : Nat = suc three
 
-def Nat-Ind (P : Nat -> Type) (z : P zero) (s : (m : Nat) -> P m -> P (suc m)) : (n : Nat) -> P n = elim with
+def Nat-Ind (P : Nat -> Type) (z : P zero) (s : (m : Nat) -> P m -> P (suc m)) : (n : Nat) -> P n = \elim
   | zero => z
   | suc (n / ih) => s n ih
 
-def no-confusion-Nat (n : Nat) : Not (Id Nat zero (suc n)) = fn ()
+def no-confusion-Nat (n : Nat) : Not (Id Nat zero (suc n)) = \ ()
 
-def pred : Nat -> Nat = elim with
+def pred : Nat -> Nat = \elim
   | zero => zero
   | suc n => n
 
@@ -35,12 +35,12 @@ def exp (n m : Nat) : Nat = elim m with
   | zero => one
   | suc (_ / ih) => mult n ih
 
-def +-assoc : Assoc Nat + = fn n m p => elim n with
+def +-assoc : Assoc Nat + = \ n m p => elim n with
   | zero => refl
   | suc (_ / ih) => match ih with
     | refl _ => refl
 
-def +-zero : Id-R Nat + zero = elim with
+def +-zero : Id-R Nat + zero = \elim
   | zero => refl
   | suc (_ / ih) => match ih with
       | refl _ => refl
@@ -51,16 +51,16 @@ def +-suc (n m : Nat) : Id Nat (suc (+ n m)) (+ n (suc m)) = elim n with
     match ih with
       | refl z => refl
 
-def +-comm : Comm Nat + = fn n m => elim n with
+def +-comm : Comm Nat + = \ n m => elim n with
   | zero => +-zero m
   | suc (n / ih) => trans Nat (suc (+ n m)) (suc (+ m n)) (+ m (suc n)) 
-    (cong Nat Nat (fn x => suc x) (+ n m) (+ m n) ih) 
+    (cong Nat Nat (\ x => suc x) (+ n m) (+ m n) ih) 
     (+-suc m n)
 
 
-def leq-b : Nat -> Nat -> Bool = elim with
-  | zero => fn _ => tt
-  | suc (_ / ih) => elim with
+def leq-b : Nat -> Nat -> Bool = \elim
+  | zero => \ _ => tt
+  | suc (_ / ih) => \elim
     | zero => ff
     | suc n => ih n
 
@@ -74,18 +74,18 @@ def lt-b (m n : Nat) : Bool = leq-b (suc m) n
 
 def lt (m n : Nat) : Type = lift (lt-b m n)
 
-def even-b : Nat -> Bool = elim with
+def even-b : Nat -> Bool = \elim
   | zero => tt
   | suc (n / ih) => not ih
 
 def even (n : Nat) : Type = lift (even-b n)
  
 
-def id-elim : Nat -> Nat = elim with
+def id-elim : Nat -> Nat = \elim
   | zero => zero
   | suc n => suc n
 
-def id-elim-id : (n : Nat) -> Id Nat (id Nat n) (id-elim n) = elim with
+def id-elim-id : (n : Nat) -> Id Nat (id Nat n) (id-elim n) = \elim
   | zero => refl
   | suc _ => refl
 
@@ -95,7 +95,7 @@ def suc-Inj (n m : Nat) : Id Nat (suc n) (suc m) -> Id Nat n m =
 def Monoid-Nat-+ : Monoid Nat =
   ( zero
   , +
-  , fn _ => refl
+  , \ _ => refl
   , +-zero
   , +-assoc
   )

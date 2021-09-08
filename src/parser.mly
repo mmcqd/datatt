@@ -142,7 +142,7 @@ let term :=
       Concrete_syntax.Let ((x,Mark.naked @@ Concrete_syntax.Ascribe {tm ; tp}),e2) 
     }
 
-  | Elim; With;
+  | Lambda; Elim;
     option(Bar); arms = separated_list(Bar,arm);
     { Concrete_syntax.ElimFun arms}
   

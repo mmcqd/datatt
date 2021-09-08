@@ -2,7 +2,7 @@ import library/fn
 import library/bool
 
 def ProdP (A B : Type) : Type = (b : Bool) -> split A B b
-def pairP (A B : Type) (x : A) (y : B) : ProdP A B = elim with
+def pairP (A B : Type) (x : A) (y : B) : ProdP A B = \elim
   | tt => x
   | ff => y
 
@@ -11,7 +11,7 @@ def sndP (A B : Type) (p : ProdP A B) : B = p ff
 
 def ProdP-Eta (A B : Type) (p : ProdP A B) : Id (ProdP A B) p (pairP A B (fstP A B p) (sndP A B p)) =
   funextd Bool (split A B) p (pairP A B (fstP A B p) (sndP A B p)) (
-    elim with tt => refl | ff => refl
+    \elim tt => refl | ff => refl
   )
 
 def SumS (A B : Type) : Type = (b : Bool) * split A B b

@@ -2,11 +2,11 @@
 data (A : Type) (B : A -> Type) Sg =
   | pair (x : A) (y : B x)
 
-def fst (A : Type) (B : A -> Type) : Sg A B -> A = elim with
+def fst (A : Type) (B : A -> Type) : Sg A B -> A = \elim
   | pair x y => x
 
-def snd (A : Type) (B : A -> Type) : (p : Sg A B) -> B (fst A B p) = elim with
+def snd (A : Type) (B : A -> Type) : (p : Sg A B) -> B (fst A B p) = \elim
   | pair x y => y
 
-def Sg-Eta (A : Type) (B : A -> Type) : (p : Sg A B) -> Id (Sg A B) p (pair (fst A B p) (snd A B p)) = elim with
+def Sg-Eta (A : Type) (B : A -> Type) : (p : Sg A B) -> Id (Sg A B) p (pair (fst A B p) (snd A B p)) = \elim
   | pair x y => refl

@@ -18,51 +18,51 @@ def Monad (F : Type -> Type) : Type^1 =
 def bind (F : Type -> Type) (M : Monad F) (A B : Type) (m : F A) (f : A -> F B) : F B =
   M.1 B (M.2.2.2 A (F B) f m)
 
-def Functor-id : Functor (fn A => A) = fn _ _ f => f
+def Functor-id : Functor (\ A => A) = \ _ _ f => f
 
-def Applicative-id : Applicative (fn A => A) = (id,Functor-id,Functor-id)
+def Applicative-id : Applicative (\ A => A) = (id,Functor-id,Functor-id)
 
-def Monad-id : Monad (fn A => A) = (id,Applicative-id)
+def Monad-id : Monad (\ A => A) = (id,Applicative-id)
 
-def Functor-Maybe : Functor (fn A => Maybe A) = fn A B f => elim with
+def Functor-Maybe : Functor (\ A => Maybe A) = \ A B f => \elim
   | none => none
   | some x => some (f x)
 
-def Applicative-Maybe : Applicative (fn A => Maybe A) =
-  (fn _ x => some x,fn _ _ => elim with none => fn _ => none | some f => elim with none => none | some x => some (f x),Functor-Maybe)
+def Applicative-Maybe : Applicative (\ A => Maybe A) =
+  (\ _ x => some x,\ _ _ => \elim none => \ _ => none | some f => \elim none => none | some x => some (f x),Functor-Maybe)
 
-def Monad-Maybe : Monad (fn A => Maybe A) =
-  (fn _ => elim with none => none | some x => x,Applicative-Maybe)
+def Monad-Maybe : Monad (\ A => Maybe A) =
+  (\ _ => \elim none => none | some x => x,Applicative-Maybe)
 
-def Functor-List : Functor (fn A => List A) = fn A B f => elim with
+def Functor-List : Functor (\ A => List A) = \ A B f => \elim
   | nil => nil
   | cons x (xs / ih) => cons (f x) ih
 
-def Applicative-List : Applicative (fn A => List A) = 
-  ( fn _ x => cons x nil
-  , fn A B fs xs => elim fs with
+def Applicative-List : Applicative (\ A => List A) = 
+  ( \ _ x => cons x nil
+  , \ A B fs xs => elim fs with
     | nil => nil
     | cons f (fs / ih) => ++ B (map A B f xs) ih
   , Functor-List
   )
 
-def Monad-List : Monad (fn A => List A) =
-  ( fn A => elim with
+def Monad-List : Monad (\ A => List A) =
+  ( \ A => \elim
     | nil => nil
     | cons x (_ / ih) => ++ A x ih
   , Applicative-List
   )
 
-def Functor-NotNot : Functor (fn A => Not (Not A)) =
-  fn A B f ~~a ~b => ~~a (fn a => ~b (f a))
+def Functor-NotNot : Functor (\ A => Not (Not A)) =
+  \ A B f ~~a ~b => ~~a (\ a => ~b (f a))
 
-def Applicative-NotNot : Applicative (fn A => Not (Not A)) =
-  ( fn A a ~a => ~a a
-  , fn A B ~~A->B ~~a ~b => ~~A->B (fn f => ~~a (fn a => ~b (f a)))
+def Applicative-NotNot : Applicative (\ A => Not (Not A)) =
+  ( \ A a ~a => ~a a
+  , \ A B ~~A->B ~~a ~b => ~~A->B (\ f => ~~a (\ a => ~b (f a)))
   , Functor-NotNot
   )
 
-def Monad-NotNot : Monad (fn A => Not (Not A)) =
-  ( fn A ~~~~a ~a => ~~~~a (fn ~~a => ~~a ~a)
+def Monad-NotNot : Monad (\ A => Not (Not A)) =
+  ( \ A ~~~~a ~a => ~~~~a (\ ~~a => ~~a ~a)
   , Applicative-NotNot
   )

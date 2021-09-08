@@ -257,24 +257,26 @@ and synth (ctx : Ctx.t) (cs : CSyn.t) : Dom.t * Syn.t =
 
 
 and collect_elim_args pos mot args dtele (desc,params) ctx =
-  let f tp = function
-    | `Arg x ->  
-      let arg = Nbe.var x tp in
-      arg,Ctx.add ctx ~var:x ~tp
-    | `Rec (x,r) -> 
-      match tp with
-        | Data d' when String.equal d'.desc.name desc.name ->
-          let arg = Nbe.var x tp in
-          arg,ctx |> Ctx.add ~var:x ~tp |> Ctx.add ~var:r ~tp:(Nbe.do_clos mot arg)
-        | _ -> error (sprintf "%s - %s does not have type %s, it cannot be recursively eliminated" pos x desc.name)
-  in 
   match args,dtele with
     | [],[] -> [],ctx
     | arg::args,(y,s)::dtele -> 
-      let tp = Nbe.resolve_arg_tp (desc,params) s in
-      let arg,ctx = f tp arg in
-      let args,ctx = collect_elim_args pos mot args dtele ({desc with env = Dom.Env.set desc.env ~key:y ~data:arg},params) ctx in
-      arg::args,ctx
+      begin
+      match arg with
+        | `Arg x ->
+          let tp = Nbe.resolve_arg_tp (desc,params) s in
+          let arg,ctx = Nbe.var x tp,Ctx.add ctx ~var:x ~tp in
+          let args,ctx = collect_elim_args pos mot args dtele ({desc with env = Dom.Env.set desc.env ~key:y ~data:arg},params) ctx in
+          arg::args,ctx
+        | `Rec (x,ih) -> 
+          match s with
+            | Rec ->
+              let tp = Nbe.resolve_arg_tp (desc,params) s in
+              let arg = Nbe.var x tp in
+              let ctx = ctx |> Ctx.add ~var:x ~tp |> Ctx.add ~var:ih ~tp:(Nbe.do_clos mot arg) in
+              let args,ctx = collect_elim_args pos mot args dtele ({desc with env = Dom.Env.set desc.env ~key:y ~data:arg},params) ctx in
+              arg::args,ctx
+            | _ -> error (sprintf "%s - %s does not have type %s, it cannot be recursively eliminated" pos x desc.name)
+      end
     | _ -> error (sprintf "%s - Elim arm has incorrect number of args" pos)
 
 

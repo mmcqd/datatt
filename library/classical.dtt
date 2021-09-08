@@ -3,19 +3,19 @@ import library/dec
 def EM : Type^1 = (A : Type) -> Dec A
 def DNE : Type^1 = (A : Type) -> Not (Not A) -> A
 
-def EM->DNE : EM -> DNE = fn em A =>
+def EM->DNE : EM -> DNE = \ em A =>
   elim em A with
-    | yes a => fn _ => a
-    | no ~a => fn ~~a => elim ~~a ~a with
+    | yes a => \ _ => a
+    | no ~a => \ ~~a => elim ~~a ~a with
 
 def Stable (A : Type) : Type = Not (Not A) -> A
 
-def Not-Stable (A : Type) : Stable (Not A) = fn ~~~a a =>
-  ~~~a (fn ~a => ~a a)
+def Not-Stable (A : Type) : Stable (Not A) = \ ~~~a a =>
+  ~~~a (\ ~a => ~a a)
 
-def *-Stable (A B : Type) (sa : Stable A) (sb : Stable B) : Stable (A * B) = fn ~~a*b =>
-  (sa (fn ~a => ~~a*b (fn p => ~a p.1)), sb (fn ~b => ~~a*b (fn p => ~b p.2)))
+def *-Stable (A B : Type) (sa : Stable A) (sb : Stable B) : Stable (A * B) = \ ~~a*b =>
+  (sa (\ ~a => ~~a*b (\ p => ~a p.1)), sb (\ ~b => ~~a*b (\ p => ~b p.2)))
 
-def Dec->Stable (A : Type) : Dec A -> Stable A = elim with
-  | yes a => fn _ => a
-  | no ~a => fn ~~a => elim ~~a ~a with
+def Dec->Stable (A : Type) : Dec A -> Stable A = \elim
+  | yes a => \ _ => a
+  | no ~a => \ ~~a => elim ~~a ~a with

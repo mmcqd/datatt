@@ -5,12 +5,12 @@ data Exp =
   | num (n : Nat)
   | add (m n : Exp) 
 
-def eval : Exp -> Nat = elim with
+def eval : Exp -> Nat = \elim
   | num n => n
   | add (_ / ih1) (_ / ih2) => + ih1 ih2
 
-def eval-tail' : Exp -> Nat -> Nat = elim with
-  | num n => fn acc => + n acc
-  | add (n / ih1) (m / ih2) => fn acc => ih1 (ih2 acc) 
+def eval-tail' : Exp -> Nat -> Nat = \elim
+  | num n => \ acc => + n acc
+  | add (n / ih1) (m / ih2) => \ acc => ih1 (ih2 acc) 
 
-def eval-tail : Exp -> Nat = fn e => eval-tail' e zero
+def eval-tail : Exp -> Nat = \ e => eval-tail' e zero

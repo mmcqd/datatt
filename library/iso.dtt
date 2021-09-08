@@ -19,91 +19,91 @@ def Iso (A B : Type) : Type =
   ((y : B) -> Id B y (f (g y)))
 
 def iso-refl (A : Type) : Iso A A = 
-  ( fn x => x
-  , fn x => x
-  , fn _ => refl
-  , fn _ => refl
+  ( \ x => x
+  , \ x => x
+  , \ _ => refl
+  , \ _ => refl
   )
 
 def iso-comm (A B : Type) : Iso (Iso A B) (Iso B A) = 
-  ( fn i => (i.2.1,i.1,i.2.2.2,i.2.2.1)
-  , fn i => (i.2.1,i.1,i.2.2.2,i.2.2.1)
-  , fn _ => refl
-  , fn _ => refl
+  ( \ i => (i.2.1,i.1,i.2.2.2,i.2.2.1)
+  , \ i => (i.2.1,i.1,i.2.2.2,i.2.2.1)
+  , \ _ => refl
+  , \ _ => refl
   )
 
 
 def iso/*-comm (A B : Type) : Iso (A * B) (B * A) = 
-  ( fn p => (p.2,p.1)
-  , fn p => (p.2,p.1)
-  , fn _ => refl
-  , fn _ => refl
+  ( \ p => (p.2,p.1)
+  , \ p => (p.2,p.1)
+  , \ _ => refl
+  , \ _ => refl
   )
 
 def iso/Sum-comm (A B : Type) : Iso (Sum A B) (Sum B A) = 
-  ( elim with inl x => inr x | inr y => inl y
-  , elim with inl x => inr x | inr y => inl y
-  , elim with inl _ => refl | inr _ => refl
-  , elim with inl _ => refl | inr _ => refl
+  ( \elim inl x => inr x | inr y => inl y
+  , \elim inl x => inr x | inr y => inl y
+  , \elim inl _ => refl | inr _ => refl
+  , \elim inl _ => refl | inr _ => refl
   )
 
 def iso/*-ident-r (A : Type) : Iso A (A * Unit) =
-  ( fn x => (x , <>) 
-  , fn p => p.1 
-  , fn _ => refl 
-  , fn p => elim p.2 with <> => refl
+  ( \ x => (x , <>) 
+  , \ p => p.1 
+  , \ _ => refl 
+  , \ p => elim p.2 with <> => refl
   )
 
 def iso/Sum-ident-r (A : Type) : Iso A (Sum A Void) =
-  ( fn a => inl a
-  , elim with inl a => a | inr v => elim v with
-  , fn _ => refl
-  , elim with inl a => refl | inr v => elim v with
+  ( \ a => inl a
+  , \elim inl a => a | inr v => elim v with
+  , \ _ => refl
+  , \elim inl a => refl | inr v => elim v with
   )
 
 def iso/Iso-comm (A B : Type) : Iso^1 (Iso A B) (Iso B A) =
-  ( fn p => (p.2.1, p.1, p.2.2.2, p.2.2.1) 
-  , fn p => (p.2.1, p.1, p.2.2.2, p.2.2.1) 
-  , fn _ => refl 
-  , fn _ => refl
+  ( \ p => (p.2.1, p.1, p.2.2.2, p.2.2.1) 
+  , \ p => (p.2.1, p.1, p.2.2.2, p.2.2.1) 
+  , \ _ => refl 
+  , \ _ => refl
   )
 
 def iso/*-destroy-r (A : Type) : Iso (A * Void) Void =
-  ( fn p => p.2
-  , elim with
-  , fn p => elim p.2 with
-  , elim with
+  ( \ p => p.2
+  , \elim
+  , \ p => elim p.2 with
+  , \elim
   )
 
 def iso/Bool/Unit+Unit : Iso Bool (Sum Unit Unit) =
-  ( elim with tt => inl <> | ff => inr <>
-  , elim with inl _ => tt | inr _ => ff
-  , elim with tt => refl | ff => refl
-  , elim with inl x => (elim x with <> => refl) | inr x => (elim x with <> => refl) 
+  ( \elim tt => inl <> | ff => inr <>
+  , \elim inl _ => tt | inr _ => ff
+  , \elim tt => refl | ff => refl
+  , \elim inl x => (elim x with <> => refl) | inr x => (elim x with <> => refl) 
   )
 
 def iso/*/Sg (A : Type) (B : A -> Type) : Iso ((x : A) * B x) (Sg A B) = 
-  ( fn p => pair p.1 p.2
-  , elim with pair x y => (x,y)
-  , fn _ => refl
-  , elim with pair x y => refl
+  ( \ p => pair p.1 p.2
+  , \elim pair x y => (x,y)
+  , \ _ => refl
+  , \elim pair x y => refl
   )
 
 
 def iso/*/ProdP (A B : Type) : Iso (A * B) (ProdP A B) =
-  ( fn p => pairP A B p.1 p.2
-  , fn p => (fstP (A) B p, sndP A B p) 
-  , fn _ => refl
+  ( \ p => pairP A B p.1 p.2
+  , \ p => (fstP (A) B p, sndP A B p) 
+  , \ _ => refl
   , ProdP-Eta A B
   )
 
 
 def iso/SumS/Sum (A B : Type) : Iso (SumS A B) (Sum A B) = 
-  let f = uncurryd Bool (split A B) (fn _ => Sum A B) (elim with tt => fn x => inl x | ff => fn x => inr x) in
-  let g : Sum A B -> SumS A B = elim with inl x => (tt,x) | inr x => (ff,x) in
-  let fg : (s : Sum A B) -> Id (Sum A B) s (f (g s)) = elim with inl x => refl | inr x => refl in
-  let gf = uncurryd Bool (split A B) (fn p => Id (SumS A B) p (g (f p))) 
-    (elim with tt => fn n => refl | ff => fn n => refl) in
+  let f = uncurryd Bool (split A B) (\ _ => Sum A B) (\elim tt => \ x => inl x | ff => \ x => inr x) in
+  let g : Sum A B -> SumS A B = \elim inl x => (tt,x) | inr x => (ff,x) in
+  let fg : (s : Sum A B) -> Id (Sum A B) s (f (g s)) = \elim inl x => refl | inr x => refl in
+  let gf = uncurryd Bool (split A B) (\ p => Id (SumS A B) p (g (f p))) 
+    (\elim tt => \ n => refl | ff => \ n => refl) in
   ( f 
   , g
   , gf
@@ -112,39 +112,39 @@ def iso/SumS/Sum (A B : Type) : Iso (SumS A B) (Sum A B) =
 
 
 def iso/Nat/ListUnit : Iso Nat (List Unit) =
-  ( elim with zero => nil | suc (_ / ih) => cons <> ih
-  , elim with nil => zero | cons _ (_ / ih) => suc ih
-  , elim with zero => refl | suc (n / ih) => match ih with refl j => refl
-  , elim with nil => refl | cons x (xs / ih) => match ih with refl j => elim x with <> => refl
+  ( \elim zero => nil | suc (_ / ih) => cons <> ih
+  , \elim nil => zero | cons _ (_ / ih) => suc ih
+  , \elim zero => refl | suc (n / ih) => match ih with refl j => refl
+  , \elim nil => refl | cons x (xs / ih) => match ih with refl j => elim x with <> => refl
   )
 
 
 def iso/Nat/Nat+1 : Iso Nat (Sum Unit Nat) =
-  ( elim with zero => inl <> | suc (n / ih) => inr n
-  , elim with inl x => zero | inr n => suc n
-  , elim with zero => refl | suc (n / ih) => refl
-  , elim with inl x => (elim x with <> => refl) | inr n => refl
+  ( \elim zero => inl <> | suc (n / ih) => inr n
+  , \elim inl x => zero | inr n => suc n
+  , \elim zero => refl | suc (n / ih) => refl
+  , \elim inl x => (elim x with <> => refl) | inr n => refl
   )
 
 
 def iso/Bool/Fin2 : Iso Bool (Fin two) = 
-  ( elim with tt => inl <> | ff => inr (inl <>)
-  , elim with inl _ => tt | inr x => elim x with inl _ => ff | inr v => elim v with
-  , elim with tt => refl | ff => refl
-  , elim with inl x => (elim x with <> => refl) | inr x => elim x with inl x => (elim x with <> => refl) | inr v => elim v with
+  ( \elim tt => inl <> | ff => inr (inl <>)
+  , \elim inl _ => tt | inr x => elim x with inl _ => ff | inr v => elim v with
+  , \elim tt => refl | ff => refl
+  , \elim inl x => (elim x with <> => refl) | inr x => elim x with inl x => (elim x with <> => refl) | inr v => elim v with
   )
 
 def iso/Contr/Unit (A : Type) (c : Contr A) : Iso A Unit = 
-  ( fn _ => <>
-  , fn _ => c.1
-  , fn x => sym A c.1 x (c.2 x) 
-  , elim with <> => refl
+  ( \ _ => <>
+  , \ _ => c.1
+  , \ x => sym A c.1 x (c.2 x) 
+  , \elim <> => refl
   )
 
 def iso/curry (A B C : Type) : Iso (A -> B -> C) (A * B -> C) =
   ( uncurry (A) B C
   , curry (A) B C
-  , fn f => refl
-  , fn f => refl
+  , \ f => refl
+  , \ f => refl
   )
 

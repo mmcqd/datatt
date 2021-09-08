@@ -1,3 +1,12 @@
 data (A : Type) Maybe =
   | none
   | some (x : A)
+
+def Maybe-Ind (A : Type) (P : Maybe A -> Type) (n : P none) (s : (x : A) -> P (some x)) : (x : Maybe A) -> P x = \elim
+  | none => n
+  | some x => s x
+
+def Maybe-Rec (A B : Type) (n : B) (s : A -> B) : Maybe A -> B = \elim
+  | none => n
+  | some x => s x
+

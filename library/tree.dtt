@@ -2,10 +2,10 @@ data (A : Type) Tree =
   | empty
   | node (l : Tree) (x : A) (r : Tree)
 
-def Tree-Ind (A : Type) (P : Tree A -> Type) (e : P empty) (n : (x : A) (l r : Tree A) -> P l -> P r -> P (node l x r)) : (t : Tree A) -> P t = elim with
+def Tree-Ind (A : Type) (P : Tree A -> Type) (e : P empty) (n : (x : A) (l r : Tree A) -> P l -> P r -> P (node l x r)) : (t : Tree A) -> P t = \elim
   | empty => e
   | node (l / ihl) x (r / ihr) => n x l r ihl ihr
 
-def Tree-rev (A : Type) : Tree A -> Tree A = elim with
+def Tree-rev (A : Type) : Tree A -> Tree A = \elim
   | empty => empty
   | node (l / ihl) x (r / ihr) => node ihr x ihl

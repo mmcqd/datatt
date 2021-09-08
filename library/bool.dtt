@@ -8,18 +8,18 @@ data Bool =
 
 
 {- The traditional proof that tt != ff -}
-def no-confusion-Bool : Not (Id Bool tt ff) = fn p =>
-  subst Bool tt ff p (elim with tt => Unit | ff => Void) <>
+def no-confusion-Bool : Not (Id Bool tt ff) = \ p =>
+  subst Bool tt ff p (\elim tt => Unit | ff => Void) <>
 
 {- Some syntactic sugar, which we know is consistent because the above proof is possible -}
-def no-confusion-Bool : Not (Id Bool tt ff) = fn ()
+def no-confusion-Bool : Not (Id Bool tt ff) = \ ()
 
 
-def Bool-Ind (P : Bool -> Type) (t : P tt) (f : P ff) : (b : Bool) -> P b = elim with
+def Bool-Ind (P : Bool -> Type) (t : P tt) (f : P ff) : (b : Bool) -> P b = \elim
   | tt => t
   | ff => f
 
-def not : Bool -> Bool = elim with
+def not : Bool -> Bool = \elim
   | tt => ff
   | ff => tt
 
@@ -33,7 +33,7 @@ def or (a b : Bool) : Bool = elim a with
   | ff => b
 
 
-def not-not : (b : Bool) -> Id Bool b (not (not b)) = elim with
+def not-not : (b : Bool) -> Id Bool b (not (not b)) = \elim
   | tt => refl
   | ff => refl
 
@@ -45,9 +45,9 @@ def demorgan2 (a b : Bool) : Id Bool (not (or a b)) (and (not a) (not b)) = elim
   | tt => refl
   | ff => refl
 
-def lift : Bool -> Type = elim with
+def lift : Bool -> Type = \elim
   | tt => Unit
   | ff => Void
 
-def split (A B : Type) : Bool -> Type = elim with tt => A | ff => B
+def split (A B : Type) : Bool -> Type = \elim tt => A | ff => B
 

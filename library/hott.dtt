@@ -12,22 +12,22 @@ def Prop (A : Type) : Type = (x y : A) -> Id A x y
 def Set (A : Type) : Type = (x y : A) -> Prop (Id A x y)
 
 def Contr->Prop (A : Type) (p : Contr A) : Prop A =
-  fn x y => trans A x p.1 y (sym A p.1 x (p.2 x)) (p.2 y)
+  \ x y => trans A x p.1 y (sym A p.1 x (p.2 x)) (p.2 y)
 
 def Singl (A : Type) (x : A) : Type = (y : A) * Id A x y
 
 def Contr-Singl (A : Type) (x : A) : Contr (Singl A x) = 
-  ((x,refl),fn p => match p.2 with refl w => refl)
+  ((x,refl),\ p => match p.2 with refl w => refl)
 
 
 -- Contractibility of singletons gets us an uncurried version of alternative J
 def H (A : Type) (x : A) (P : ((y : A) * Id A x y) -> Type) (p : (y : A) * Id A x y) : P (x,refl) -> P p = 
   match (Contr-Singl (A) x).2 p with
-    | refl i => fn x => x
+    | refl i => \ x => x
 
 -- Alternative version of J where x is treated as a parameter instead of an index
 def J' (A : Type) (x : A) (P : (y : A) -> Id A x y -> Type) (d : P x refl) (y : A) (p : Id A x y) : P y p =
-  H A x (fn p => P p.1 p.2) (y,p) d   
+  H A x (\ p => P p.1 p.2) (y,p) d   
 
 
 def Constant (A B : Type) (f : A -> B) : Type = (x y : A) -> Id B (f x) (f y)
@@ -36,12 +36,12 @@ def Collapsible (A : Type) : Type = (f : A -> A) * Constant A A f
 
 def Id-Collapsible (A : Type) : Type = (x y : A) -> Collapsible (Id A x y)
 
-def Set->Id-Collapsible (A : Type) (s : Set A) : Id-Collapsible A = fn x y =>
-  (fn x => x,s x y)
+def Set->Id-Collapsible (A : Type) (s : Set A) : Id-Collapsible A = \ x y =>
+  (\ x => x,s x y)
 
 -- Black Magic I stole from https://www.cs.bham.ac.uk/~mhe/GeneralizedHedberg/html/GeneralizedHedberg.html
 
-def Id-Collapsible->Set (A : Type) (c : Id-Collapsible A) : Set A = fn x y p q => 
+def Id-Collapsible->Set (A : Type) (c : Id-Collapsible A) : Set A = \ x y p q => 
   let f (x y : A) : Id A x y -> Id A x y = (c (x) y).1 in
   let g (x y : A) : (p q : Id A x y) -> Id (Id A x y) (f x y p) (f x y q) = (c (x) y).2 in
   let claim0 (x y : A) (r : Id A x y) : Id (Id A x y) r (trans A x x y (sym A x x (f x x refl)) (f x y r)) = 
@@ -49,32 +49,32 @@ def Id-Collapsible->Set (A : Type) (c : Id-Collapsible A) : Set A = fn x y p q =
       | refl x => sym-inverse A x x (f x x refl)
   in
   let claim1 : Id (Id A x y) (trans A x x y (sym A x x (f x x refl)) (f x y p)) (trans A x x y (sym A x x (f x x refl)) (f x y q)) =
-    cong (Id A x y) (Id A x y) (fn h => trans A x x y (sym A x x (f x x refl)) h) (f x y p) (f x y q) (g x y p q)
+    cong (Id A x y) (Id A x y) (\ h => trans A x x y (sym A x x (f x x refl)) h) (f x y p) (f x y q) (g x y p q)
   in
   let w = trans (Id A x y) p (trans A x x y (sym A x x (f x x refl)) (f x y p)) (trans A x x y (sym A x x (f x x refl)) (f x y q)) (claim0 x y p) claim1 in
   trans (Id A x y) p (trans A x x y (sym A x x (f x x refl)) (f x y q)) q w (sym (Id A x y) q (trans A x x y (sym A x x (f x x refl)) (f x y q)) (claim0 x y q))
 
 
-def Prop->Id-Collapsible (A : Type) (h : Prop A) : Id-Collapsible A = fn x y =>
-  (fn _ => h x y,fn _ _ => refl)
+def Prop->Id-Collapsible (A : Type) (h : Prop A) : Id-Collapsible A = \ x y =>
+  (\ _ => h x y,\ _ _ => refl)
 
 def Prop->Set (A : Type) (h : Prop A) : Set A = Id-Collapsible->Set A (Prop->Id-Collapsible A h)
 
 def Void-Collapsible : Collapsible Void = 
-  (fn x => x, elim with)
+  (\ x => x, \elim)
 
 def Inhabited->Collapsible (A : Type) (pt : A) : Collapsible A =
-  (fn _ => pt, fn _ _ => refl)
+  (\ _ => pt, \ _ _ => refl)
 
 def Empty->Collapsible (A : Type) (e : A -> Void) : Collapsible A =
-  (fn x => x,fn x => elim e x with)
+  (\ x => x,\ x => elim e x with)
 
 
-def Dec->Collapsible (A : Type) : Dec A -> Collapsible A = elim with
+def Dec->Collapsible (A : Type) : Dec A -> Collapsible A = \elim
   | yes pt => Inhabited->Collapsible A pt
   | no ~pt => Empty->Collapsible A ~pt
 
-def Dec-Id->Id-Collapsible (A : Type) (d : Dec-Id A) : Id-Collapsible A = fn x y => Dec->Collapsible (Id A x y) (d x y)
+def Dec-Id->Id-Collapsible (A : Type) (d : Dec-Id A) : Id-Collapsible A = \ x y => Dec->Collapsible (Id A x y) (d x y)
 
 
 -- Hedberg's Theorem
@@ -83,34 +83,34 @@ def Hedberg = Dec-Id->Set
 
 def Contr-Unit : Contr Unit = (<>,Unit-Eta)
 
-def Prop-Unit : Prop Unit = elim with 
-  | <> => elim with <> => refl
+def Prop-Unit : Prop Unit = \elim 
+  | <> => \elim <> => refl
 
 -- Direct proof that Unit is a Set
-def Set-Unit' : Set Unit = elim with <> => elim with <> => fn p =>
-  let P1 : (x y : Unit) -> Id Unit x y -> Type = elim with <> => elim with <> => fn p => (q : Id Unit <> <>) -> Id (Id Unit <> <>) p q in
-  let P2 : (x y : Unit) -> Id Unit x y -> Type = elim with <> => elim with <> => fn q => Id (Id Unit <> <>) refl q in
+def Set-Unit' : Set Unit = \elim <> => \elim <> => \ p =>
+  let P1 : (x y : Unit) -> Id Unit x y -> Type = \elim <> => \elim <> => \ p => (q : Id Unit <> <>) -> Id (Id Unit <> <>) p q in
+  let P2 : (x y : Unit) -> Id Unit x y -> Type = \elim <> => \elim <> => \ q => Id (Id Unit <> <>) refl q in
   match p at x y p => P1 x y p with
-    | refl i => elim i with <> => fn q => 
+    | refl i => elim i with <> => \ q => 
       match q at x y q => P2 x y q with
         | refl j => elim j with <> => refl
 
 def Set-Unit : Set Unit = Prop->Set Unit Prop-Unit
 
-def Prop-Void : Prop Void = elim with
+def Prop-Void : Prop Void = \elim
 
-def Set-Void : Set Void = elim with
+def Set-Void : Set Void = \elim
 
 
-def HLevel : Nat -> Type -> Type = elim with
+def HLevel : Nat -> Type -> Type = \elim
   | zero  => Contr
   | suc n => elim n with
     | zero => Prop
-    | suc (_ / ih) => fn A => (x y : A) -> ih (Id A x y)
+    | suc (_ / ih) => \ A => (x y : A) -> ih (Id A x y)
 
 
-def HLevel-suc : (n : Nat) (A : Type) -> HLevel n A -> HLevel (suc n) A = elim with
+def HLevel-suc : (n : Nat) (A : Type) -> HLevel n A -> HLevel (suc n) A = \elim
   | zero => Contr->Prop
   | suc n => elim n with
     | zero => Prop->Set
-    | suc (n' / ih) => fn A h a b => ih (Id A a b) (h a b)
+    | suc (n' / ih) => \ A h a b => ih (Id A a b) (h a b)
