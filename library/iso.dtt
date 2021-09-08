@@ -8,6 +8,7 @@ import library/list
 import library/sg
 import library/dep_encode
 import library/fn
+import library/hott
 
 
 
@@ -16,6 +17,21 @@ def Iso (A B : Type) : Type =
   (g : B -> A) *
   ((x : A) -> Id A x (g (f x))) *
   ((y : B) -> Id B y (f (g y)))
+
+def iso-refl (A : Type) : Iso A A = 
+  ( fn x => x
+  , fn x => x
+  , fn _ => refl
+  , fn _ => refl
+  )
+
+def iso-comm (A B : Type) : Iso (Iso A B) (Iso B A) = 
+  ( fn i => (i.2.1,i.1,i.2.2.2,i.2.2.1)
+  , fn i => (i.2.1,i.1,i.2.2.2,i.2.2.1)
+  , fn _ => refl
+  , fn _ => refl
+  )
+
 
 def iso/*-comm (A B : Type) : Iso (A * B) (B * A) = 
   ( fn p => (p.2,p.1)
@@ -118,4 +134,17 @@ def iso/Bool/Fin2 : Iso Bool (Fin two) =
   , elim with inl x => (elim x with <> => refl) | inr x => elim x with inl x => (elim x with <> => refl) | inr v => elim v with
   )
 
+def iso/Contr/Unit (A : Type) (c : Contr A) : Iso A Unit = 
+  ( fn _ => <>
+  , fn _ => c.1
+  , fn x => sym A c.1 x (c.2 x) 
+  , elim with <> => refl
+  )
+
+def iso/curry (A B C : Type) : Iso (A -> B -> C) (A * B -> C) =
+  ( uncurry (A) B C
+  , curry (A) B C
+  , fn f => refl
+  , fn f => refl
+  )
 

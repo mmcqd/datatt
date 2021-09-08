@@ -1,6 +1,6 @@
 import library/bool
 import library/nat
-
+import library/sum
 
 data (A : Type) Dec =
   | yes (x : A)
@@ -61,3 +61,27 @@ def dec-id-* (A B : Type) (da : Dec-Id A) (db : Dec-Id B) : Dec-Id (A * B) = fn 
     )
 
 def eq-* (A B : Type) (da : Dec-Id A) (db : Dec-Id B) (x y : A * B): Bool = lower (Id (A * B) x y) (dec-id-* A B da db x y)
+
+def dec-Sum (A B : Type) : Dec A -> Dec B -> Dec (Sum A B) = elim with
+  | yes a => fn _ => yes (inl a)
+  | no ~a => elim with
+    | yes b => yes (inr b)
+    | no ~b => no (elim with inl a => ~a a | inr b => ~b b)
+
+def dec-id-Sum (A B : Type) (da : Dec-Id A) (db : Dec-Id B) : Dec-Id (Sum A B) = elim with
+  | inl a => (elim with
+    | inl a' => (elim da a a' with
+      | yes p => match p with refl x => yes refl
+      | no ~p => no (fn q => ~p (inl-inj A B a a' q))
+    )
+    | inr b => no (fn ())
+  )
+  | inr b => (elim with
+    | inr b' => (elim db b b' with
+      | yes p => match p with refl x => yes refl
+      | no ~p => no (fn q => ~p (inr-inj A B b b' q))
+    )
+    | inl a => no (fn ()) 
+  )
+
+def eq-Sum (A B : Type) (da : Dec-Id A) (db : Dec-Id B) (s1 s2 : Sum A B) : Bool = lower (Id (Sum A B) s1 s2) (dec-id-Sum A B da db s1 s2)

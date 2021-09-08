@@ -42,8 +42,8 @@ def Set->Id-Collapsible (A : Type) (s : Set A) : Id-Collapsible A = fn x y =>
 -- Black Magic I stole from https://www.cs.bham.ac.uk/~mhe/GeneralizedHedberg/html/GeneralizedHedberg.html
 
 def Id-Collapsible->Set (A : Type) (c : Id-Collapsible A) : Set A = fn x y p q => 
-  let f : (x y : A) -> Id A x y -> Id A x y = fn x y => (c (x) y).1 in
-  let g : (x y : A) (p q : Id A x y) -> Id (Id A x y) (f x y p) (f x y q) = fn x y => (c (x) y).2 in
+  let f (x y : A) : Id A x y -> Id A x y = (c (x) y).1 in
+  let g (x y : A) : (p q : Id A x y) -> Id (Id A x y) (f x y p) (f x y q) = (c (x) y).2 in
   let claim0 (x y : A) (r : Id A x y) : Id (Id A x y) r (trans A x x y (sym A x x (f x x refl)) (f x y r)) = 
     match r with
       | refl x => sym-inverse A x x (f x x refl)
@@ -108,10 +108,9 @@ def HLevel : Nat -> Type -> Type = elim with
     | zero => Prop
     | suc (_ / ih) => fn A => (x y : A) -> ih (Id A x y)
 
-{-
-def HLevel-suc (A : Type) : (n : Nat) -> HLevel n A -> HLevel (suc n) A = elim with
-  | zero => Contr->Prop A
+
+def HLevel-suc : (n : Nat) (A : Type) -> HLevel n A -> HLevel (suc n) A = elim with
+  | zero => Contr->Prop
   | suc n => elim n with
-    | zero => Prop->Set A
-    | suc (n' / ih) => fn h a b => ih
--}
+    | zero => Prop->Set
+    | suc (n' / ih) => fn A h a b => ih (Id A a b) (h a b)

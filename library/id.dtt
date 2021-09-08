@@ -37,8 +37,23 @@ def sym-sym (A : Type) (x y : A) (p : Id A x y) : Id (Id A x y) p (sym A y x (sy
   match p with
     | refl _ => refl
 
+def sym-inverse (A : Type) (x y : A) (p : Id A x y) : Id (Id A y y) refl (trans A y x y (sym A x y p) p) =
+  match p with
+    | refl i => refl
+
+def sym-refl (A : Type) (x : A) : Id (Id A x x) refl (sym A x x refl) =
+  refl
+
+def trans-assoc (A : Type) (a b c d : A) (p : Id A a b) : (q : Id A b c) (h : Id A c d) -> Id (Id A a d) (trans A a c d (trans A a b c p q) h) (trans A a b d p (trans A b c d q h)) =
+  match p with
+    | refl i => fn q => match q with
+      | refl j => fn h => refl
+
 def coe-refl (A : Type) (x : A) : Id A (coe A A refl x) x = refl
 
+def coe-trans (A B C : Type) (p : Id Type A B) : (q : Id Type B C) (x : A) -> Id C (coe B C q (coe A B p x)) (coe A C (trans^1 Type A B C p q) x) =
+  match p with
+    | refl I => fn _ _ => refl
 
 def pair-ext (A B : Type) (x y : A * B) (p : Id A x.1 y.1) (q : Id B x.2 y.2) : Id (A * B) x y =
   match p with
@@ -51,6 +66,3 @@ def pair-id-l (A B : Type) (x y : A * B) (p : Id (A * B) x y) : Id A x.1 y.1 =
 def pair-id-r (A B : Type) (x y : A * B) (p : Id (A * B) x y) : Id B x.2 y.2 =
   cong (A * B) B (fn x => x.2) x y p
 
-def sym-inverse (A : Type) (x y : A) (p : Id A x y) : Id (Id A y y) refl (trans A y x y (sym A x y p) p) =
-  match p at a b q => Id (Id A b b) refl (trans A b a b (sym A a b q) q) with
-    | refl i => refl

@@ -18,3 +18,12 @@ def Fin-Ind (P : (n : Nat) -> Fin n -> Type) (z : (n : Nat) -> P (suc n) (fzero 
     | inl x => (elim x with <> => z n)
     | inr m => s n m (ih m)
 
+{-
+def f+ : (n m : Nat) (x : Fin n) (y : Fin m) -> Fin (+ n m) = elim with
+  | zero => fn _ => (elim with)
+  | suc n => elim with
+    | zero => fn _ => (elim with)
+    | suc m => elim with
+      | inl x => (elim with inl x => inl <> | inr x => ?)
+      | inr x => ?
+-}
