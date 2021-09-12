@@ -34,11 +34,12 @@ let find_tp ctx x =
   match String.Map.find ctx x with
     | None -> None
     | Some ((Var tp) | Def {tp ; _} | Let {tp ; _}) -> Some tp
-    | Some (Data _) -> None
+    | Some (Data d) -> Some (Nbe.eval d.env (Dom.params_to_pi d.lvl d.params))
 
 let find_def_tp ctx x = 
   match String.Map.find ctx x with
     | Some (Def {tp ; _}) -> Some tp
+    | Some (Data d) -> Some (Nbe.eval d.env (Dom.params_to_pi d.lvl d.params))
     | _ -> None
 
 let find_data ctx d =

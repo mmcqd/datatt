@@ -28,6 +28,6 @@ def vzip (A B : Type) : (n : Nat) -> Vec A n -> Vec B n -> Vec (A * B) n = \elim
 
 def !! (A : Type) : (n : Nat) -> Vec A n -> Fin n -> A = \elim
   | zero => \ _ => (\elim)
-  | suc (n / ih) => \ v => \elim
+  | suc (n / ih) => \v => \elim
     | inl x => v.1
     | inr m => ih v.2 m

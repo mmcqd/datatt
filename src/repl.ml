@@ -51,8 +51,8 @@ let rec run_cmds imported ctx = function
       let tp = Nbe.eval (Ctx.to_env ctx) @@ Elab.check ctx tp (U Omega) in
       printf "axiom %s\n\n" x;
       run_cmds imported (Ctx.add_def ctx ~var:x ~def:(Nbe.var x tp) ~tp) cmds
-    | Data {name ; cons ; params} -> 
-      let desc = Elab.elab_data ctx name cons params in
+    | Data {name ; cons ; params ; lvl} -> 
+      let desc = Elab.elab_data ctx name cons params lvl in
       printf "data %s\n\n" name;
       run_cmds imported (Ctx.add_data ctx desc) cmds
     | Import file ->

@@ -60,14 +60,23 @@ and spec =
   | Tp of Syntax.t
 
 
-and desc = {name : string ; cons : spec bnd list bnd list ; params : Syntax.t bnd list ; env : env}
+and desc = {name : string ; cons : spec bnd list bnd list ; params : Syntax.t bnd list ; env : env ; lvl : Level.t}
 
 [@@@ocaml.warning "+30"]
 
 
-let rec params_to_pi = function
-  | [] -> Syntax.U (Const 0)
-  | (x,t)::ps -> Syntax.Pi ((x,t),params_to_pi ps)
+let rec params_to_pi lvl = function
+  | [] -> Syntax.U lvl
+  | (x,t)::ps -> Syntax.Pi ((x,t),params_to_pi lvl ps)
+
+
+let rec params_to_lam name acc = function
+  | [] -> Syntax.Data {name ; params = List.rev acc}
+  | (x,_)::ps -> Syntax.Lam (x,params_to_lam name (Var x::acc) ps )
+
+let params_to_dlam env (desc : desc) = function
+  | [] -> Data {desc ; params = []}
+  | (x,_)::ps -> Lam {name = x ; env = env ; tm = params_to_lam desc.name [Var x] ps}
 
 
 module Env =
@@ -81,7 +90,7 @@ module Env =
     let find_exn (env : env) (s : string) : dom =
       match String.Map.find_exn env s with
         | Tm t -> t
-        | Desc _ -> failwith "find_exn - env"
+        | Desc d -> params_to_dlam env d d.params
     
     let find_data_exn (env : env) (s : string) : desc =
       match String.Map.find_exn env s with

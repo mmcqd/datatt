@@ -36,6 +36,20 @@ def map (A B : Type) (f : A -> B) : List A -> List B = \elim
   | nil => nil
   | cons x (xs / ih) => cons (f x) ih
 
+def map-comm-comp (A B C : Type) (f : A -> B) (g : B -> C) : (xs : List A) -> Id (List C) (map B C g (map A B f xs)) (map A C (\ x => g (f x)) xs) = \elim
+  | nil => refl
+  | cons x (xs / ih) => match ih with
+    | refl i => refl
+
+def rev (A : Type) : List A -> List A = \elim
+  | nil => nil
+  | cons x (xs / rev-xs) => ++ A rev-xs (cons x nil)
+
+def rev-tail (A : Type) : List A -> List A -> List A = \elim
+  | nil => \ acc => acc
+  | cons x (xs / ih) => \ acc => ih (cons x acc)
+
+
 def get (A : Type) : List A -> Nat -> Maybe A = \elim
   | nil => \ _ => none
   | cons x (xs / ih) => \elim

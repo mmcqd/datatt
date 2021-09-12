@@ -51,18 +51,6 @@ let rec check (ctx : Ctx.t) (cs : CSyn.t) (tp : Dom.t) : Syn.t =
     | Tuple (x::xs),Sg (f,clos) -> 
       let x' = check ctx x f in
       Pair (x',check ctx (Mark.naked @@ Tuple xs) (Nbe.do_clos clos (Nbe.eval (Ctx.to_env ctx) x')))
-    | Var d,U _ when (match Ctx.find_data ctx d with Some _ -> true | _ -> false) -> Data {name = d ; params = []}
-    | Spine (f,args),U _ ->
-      begin
-      match Mark.data f with
-        | Var d -> 
-          begin
-          match Ctx.find_data ctx d with
-            | Some desc -> Data {name = d ; params = check_params ctx (CSyn.spine_to_list args) desc.params desc }
-            | _ -> mode_switch ctx cs tp
-          end 
-        | _ -> mode_switch ctx cs tp
-      end
     | Var con,Data {desc ; params} when (match Ctx.find_tp ctx con with Some _ -> false | _ -> true) ->
       begin
       match List.Assoc.find ~equal:String.equal desc.cons con with
@@ -164,15 +152,6 @@ and check_intro_args ctx args dtele (desc,params) =
       arg::check_intro_args ctx args dtele ({desc with env = Dom.Env.set desc.env ~key:x ~data:(Nbe.eval (Ctx.to_env ctx) arg)},params)
     | _ -> error "Incorrect number of args provided to constructor"
 
-and check_params ctx args dtele desc =
-  match args,dtele with
-    | [],[]   -> []
-    | arg::args,(x,tp)::dtele ->
-      let tp = Nbe.eval desc.env tp in
-      let arg = check ctx arg tp in
-      arg::check_params ctx args dtele {desc with env = Dom.Env.set desc.env ~key:x ~data:(Nbe.eval (Ctx.to_env ctx) arg)}
-    | _ -> error "Incorrect number of args provided to data"
-
 and mode_switch ctx cs tp =
   let used = Ctx.to_names ctx in
   let tp',s = synth ctx cs in
@@ -187,8 +166,8 @@ and synth (ctx : Ctx.t) (cs : CSyn.t) : Dom.t * Syn.t =
     | Var x ->
       begin
       match Ctx.find_tp ctx x with
-        | None -> error (sprintf "%s - Unbound var `%s`" (Mark.show cs) x)
         | Some tp -> tp, Var x
+        | None -> error (sprintf "%s - Unbound var `%s`" (Mark.show cs) x)
       end
     | Lift {name ; lvl} ->
       begin
@@ -280,13 +259,15 @@ and collect_elim_args pos mot args dtele (desc,params) ctx =
     | _ -> error (sprintf "%s - Elim arm has incorrect number of args" pos)
 
 
-let rec elab_data ctx dname (cons : CSyn.t bnd list bnd list) (params : CSyn.t bnd list) : Dom.desc =
+let rec elab_data ctx dname (cons : CSyn.t bnd list bnd list) (params : CSyn.t bnd list) lvl : Dom.desc =
   let ps,pctx = elab_params ctx params in
   { name = dname 
   ; env = Ctx.to_env ctx 
   ; params = ps
   ; cons = sort_cons @@ 
-           List.map ~f:(fun (con,args) -> con,elab_con (Ctx.add pctx ~var:dname ~tp:(U (Const 0))) dname args) cons }
+           List.map ~f:(fun (con,args) -> con,elab_con (Ctx.add pctx ~var:dname ~tp:(U (Const 0))) dname args) cons 
+  ; lvl
+  }
 
 
 and elab_params ctx = function

@@ -48,5 +48,5 @@ type cmd =
   | Eval of t
   | Def of string * t
   | Axiom of string * t
-  | Data of {name : string ; cons : (t bnd list) bnd list ; params : t bnd list}
+  | Data of {name : string ; cons : (t bnd list) bnd list ; params : t bnd list ; lvl : Level.t}
   | Import of string

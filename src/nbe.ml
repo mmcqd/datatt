@@ -162,7 +162,7 @@ and equate_intro_args used args1 args2 dtele (desc,params) =
     | arg1::args1,arg2::args2,(x,s)::dtele ->
       let arg = equate used arg1 arg2 (resolve_arg_tp (desc,params) s) in
       arg::equate_intro_args used args1 args2 dtele ({desc with env = Dom.Env.set desc.env ~key:x ~data:arg1},params)
-    | _ -> error "Intro argument mismatch"
+    | _ -> error (sprintf "Intro argument mismatch - %s %s" (List.to_string ~f:Dom.show args1) (List.to_string ~f:Dom.show args2))
     
 and equate_params used args1 args2 dtele env =
   match args1,args2,dtele with
@@ -170,7 +170,7 @@ and equate_params used args1 args2 dtele env =
     | arg1::args1,arg2::args2,(x,tp)::dtele ->
       let arg = equate used arg1 arg2 (eval env tp) in
       arg::equate_params used args1 args2 dtele (Dom.Env.set env ~key:x ~data:arg1)
-    | _ -> error "Intro argument mismatch"
+    | _ -> error (sprintf "Param argument mismatch - %s %s" (List.to_string ~f:Dom.show args1) (List.to_string ~f:Dom.show args2))
 
 and equate_ne used ne1 ne2 =
   match ne1,ne2 with

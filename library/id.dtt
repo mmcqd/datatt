@@ -5,6 +5,12 @@ def J (A : Type) (P : (x y : A) -> Id A x y -> Type) (f : (x : A) -> P x x refl)
 
 axiom K : (A : Type) (x : A) (P : Id A x x -> Type) (r : P refl) (p : Id A x x) -> P p
 
+
+-- K implies UIP
+def UIP (A : Type) (x y : A) : (p q : Id A x y) -> Id (Id A x y) p q = \p =>
+  match p with
+    | refl i => K A i (\q => Id (Id A i i) refl q) refl
+
 def sym (A : Type) (x y : A) (p : Id A x y) : Id A y x =
   match p with
     | refl x => refl
