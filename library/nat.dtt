@@ -57,7 +57,6 @@ def +-comm : Comm Nat + = \ n m => elim n with
     (cong Nat Nat (\ x => suc x) (+ n m) (+ m n) ih) 
     (+-suc m n)
 
-
 def leq-b : Nat -> Nat -> Bool = \elim
   | zero => \ _ => tt
   | suc (_ / ih) => \elim

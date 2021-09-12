@@ -24,21 +24,21 @@ def Applicative-id : Applicative (\ A => A) = (id,Functor-id,Functor-id)
 
 def Monad-id : Monad (\ A => A) = (id,Applicative-id)
 
-def Functor-Maybe : Functor (\ A => Maybe A) = \ A B f => \elim
+def Functor-Maybe : Functor Maybe = \ A B f => \elim
   | none => none
   | some x => some (f x)
 
-def Applicative-Maybe : Applicative (\ A => Maybe A) =
+def Applicative-Maybe : Applicative Maybe =
   (\ _ x => some x,\ _ _ => \elim none => \ _ => none | some f => \elim none => none | some x => some (f x),Functor-Maybe)
 
-def Monad-Maybe : Monad (\ A => Maybe A) =
+def Monad-Maybe : Monad Maybe =
   (\ _ => \elim none => none | some x => x,Applicative-Maybe)
 
-def Functor-List : Functor (\ A => List A) = \ A B f => \elim
+def Functor-List : Functor List = \ A B f => \elim
   | nil => nil
   | cons x (xs / ih) => cons (f x) ih
 
-def Applicative-List : Applicative (\ A => List A) = 
+def Applicative-List : Applicative List = 
   ( \ _ x => cons x nil
   , \ A B fs xs => elim fs with
     | nil => nil
@@ -46,7 +46,7 @@ def Applicative-List : Applicative (\ A => List A) =
   , Functor-List
   )
 
-def Monad-List : Monad (\ A => List A) =
+def Monad-List : Monad List =
   ( \ A => \elim
     | nil => nil
     | cons x (_ / ih) => ++ A x ih

@@ -45,8 +45,6 @@ let rec check (ctx : Ctx.t) (cs : CSyn.t) (tp : Dom.t) : Syn.t =
     | Lam ([],e),tp -> check ctx e tp
     | Lam (x::xs,e),Pi (d,clos) -> 
       Lam (x,check (Ctx.add ctx ~var:x ~tp:d) (Mark.naked @@ Lam (xs,e)) (Nbe.do_clos clos (Nbe.var x d)))
-    (* | Fun {name ; args = x::xs ; body},Pi (d,clos) ->
-      Fun (name,x,check (ctx |> Ctx.add ~var:name ~tp |> Ctx.add ~var:x ~tp:d) (Mark.naked @@ Lam (xs,body)) (Nbe.do_clos clos (Nbe.var x d))) *)
     | Tuple [x],tp -> check ctx x tp
     | Tuple (x::xs),Sg (f,clos) -> 
       let x' = check ctx x f in
