@@ -25,7 +25,7 @@ let to_string c =
   let used = to_names c in
   String.Map.fold c ~init:"" ~f:(fun ~key ~data s -> 
     match data with 
-      | Var tp | Let {tp ; _}-> sprintf "%s\n  %s : %s" s key (Syntax.show (Nbe.read_back used tp (U Omega))) 
+      | Var tp | Let {tp ; _}-> sprintf "%s\n  %s : %s" s key (Syntax.show (Nbe.read_back ~unf:false used tp (U Omega))) 
       | _ -> s
   )
 
@@ -41,6 +41,13 @@ let find_def_tp ctx x =
     | Some (Def {tp ; _}) -> Some tp
     | Some (Data d) -> Some (Nbe.eval d.env (Dom.params_to_pi d.lvl d.params))
     | _ -> None
+
+let find_top_tp ctx x =
+  match String.Map.find ctx x with
+    | Some (Def {tp ; _}) -> Some tp
+    | Some (Data _) -> None
+    | _ -> None
+
 
 let find_data ctx d =
   match String.Map.find ctx d with

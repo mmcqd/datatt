@@ -1,0 +1,62 @@
+data Nat =
+  | zero
+  | suc (n : Nat)
+
+def id-elim : Nat -> Nat = \elim
+  | zero => zero
+  | suc n => suc n
+
+def + (n m : Nat) : Nat = elim n with
+  | zero => m
+  | suc (_ / ih) => suc ih
+
+def +-zero : (n : Nat) -> Id Nat (+ n zero) n = \elim
+  | zero => refl
+  | suc (n / ih) => match ih with refl i => refl
+
+def J (A : Type) (P : (x y : A) -> Id A x y -> Type) (f : (x : A) -> P x x refl) (x y : A) (p : Id A x y) : P x y p =
+  match p with
+    | refl i => f i
+
+axiom K : (A : Type) (x : A) (P : Id A x x -> Type) (r : P refl) (p : Id A x x) -> P p
+
+-- K implies UIP
+def UIP (A : Type) (x y : A) : (p q : Id A x y) -> Id (Id A x y) p q = \p =>
+  match p with
+    | refl i => K A i (\q => Id (Id A i i) refl q) refl
+
+def sym (A : Type) (x y : A) (p : Id A x y) : Id A y x =
+  match p with
+    | refl x => refl
+
+def trans (A : Type) (x y z : A) (p : Id A x y) : Id A y z -> Id A x z =
+  match p with
+    | refl _ => \ x => x
+
+def cong (A B : Type) (f : A -> B) (x y : A) (p : Id A x y) : Id B (f x) (f y) =
+  match p with
+    | refl _ => refl
+
+def subst (A : Type) (x y : A) (p : Id A x y) (P : A -> Type) : P x -> P y =
+  match p with
+    | refl _ => \ z => z
+
+def coe (A B : Type) (p : Id Type A B) : A -> B =
+  match p with
+    | refl _ => λ x => x
+
+def trans-refl (A : Type) (x y : A) (p : Id A x y) : Id (Id A x y) p (trans A x y y p refl) =
+  match p with
+    | refl _ => refl
+
+def refl-trans (A : Type) (x y : A) (p : Id A x y) : Id (Id A x y) p (trans A x x y refl p) =
+  match p with
+    | refl _ => refl
+
+def sym-sym (A : Type) (x y : A) (p : Id A x y) : Id (Id A x y) p (sym A y x (sym A x y p)) =
+  match p with
+    | refl _ => refl
+
+def sym-inverse (A : Type) (x y : A) (p : Id A x y) : Id (Id A y y) refl (trans A y x y (sym A x y p) p) =
+  match p with
+    | refl i => refl

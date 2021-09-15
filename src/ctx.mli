@@ -10,6 +10,7 @@ val to_names : t -> String.Set.t
 val to_string : t -> string
 val find_tp : t -> string -> Domain.t option
 val find_def_tp : t -> string -> Domain.t option
+val find_top_tp : t -> string -> Domain.t option
 val find_data : t -> string -> Domain.desc option
 val find_data_exn : t -> string -> Domain.desc
 val is_data : t -> string -> bool

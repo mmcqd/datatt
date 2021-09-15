@@ -17,13 +17,13 @@ let fresh () = r := !r + 1 ; "@"^Int.to_string !r
 let sort_cons = List.sort ~compare: (fun (c1,_) (c2,_) -> String.compare c1 c2)
 
 let rec check (ctx : Ctx.t) (cs : CSyn.t) (tp : Dom.t) : Syn.t =
-  (* printf "CHECK %s AT %s\n" (CSyn.show cs) (Syn.show @@ Nbe.read_back (Ctx.to_names ctx) tp (U Omega)); *)
+  printf "CHECK %s AT %s\n" (CSyn.show cs) (Syn.show @@ Nbe.read_back ~unf:false (Ctx.to_names ctx) tp (U Omega));
   match Mark.data cs,tp with
     | Hole name,tp -> 
-    (* raise (Hole {goal = Syn.show (Nbe.read_back (Ctx.to_names ctx) tp (U Omega)) ; ctx = Ctx.to_string ctx ; pos = Mark.show cs}) *)
-    let goal = Nbe.read_back (Ctx.to_names ctx) tp (U Omega) in
-    printf "Hole %s at %s:%s\n\n⊢ %s\n\n" name (Mark.show cs) (Ctx.to_string ctx) (Syn.show goal);
-    Hole {name ; tp = goal}
+      let goal = Nbe.read_back ~unf:false (Ctx.to_names ctx) tp (U Omega) in
+      printf "Hole %s at %s:%s\n\n⊢ %s\n\n" name (Mark.show cs) (Ctx.to_string ctx) (Syn.show goal);
+      Hole {name ; tp = goal}
+    | _,Top {tm ; _} -> check ctx cs tm
 
     | U Omega,U Omega -> U Omega (* VERY SUS but technically ok because user can't create terms of type U Omega *)
     | U i,U j when Level.(<) i j -> U i
@@ -52,7 +52,7 @@ let rec check (ctx : Ctx.t) (cs : CSyn.t) (tp : Dom.t) : Syn.t =
     | Var con,Data {desc ; params} when (match Ctx.find_tp ctx con with Some _ -> false | _ -> true) ->
       begin
       match List.Assoc.find ~equal:String.equal desc.cons con with
-        | None -> error (sprintf "%s - %s is not a constructor for type %s" (Mark.show cs) con (Syn.show (Nbe.read_back (Ctx.to_names ctx) tp (U Omega))))
+        | None -> error (sprintf "%s - %s is not a constructor for type %s" (Mark.show cs) con (Syn.show (Nbe.read_back ~unf:false (Ctx.to_names ctx) tp (U Omega))))
         | Some dtele -> Intro {name = con ; args = check_intro_args ctx [] dtele (Nbe.apply_params desc desc.params params,params)}
       end
     | Spine (f,args),Data {desc ; params} -> 
@@ -74,16 +74,16 @@ let rec check (ctx : Ctx.t) (cs : CSyn.t) (tp : Dom.t) : Syn.t =
       Id (a,check ctx x a',check ctx y a')
     | Refl, Id (a,x,y) ->
       begin
-      try Refl (Nbe.equate (Ctx.to_names ctx) x y a) with
+      try Refl (Nbe.equate ~unf:true (Ctx.to_names ctx) x y a) with
         | Nbe.EquateError _ -> 
           let used = Ctx.to_names ctx in
-          error (sprintf "%s - %s !<= %s" (Mark.show cs) (Syn.show @@ Nbe.read_back used x a) (Syn.show @@ Nbe.read_back used y a))
+          error (sprintf "%s - %s !<= %s" (Mark.show cs) (Syn.show @@ Nbe.read_back ~unf:false used x a) (Syn.show @@ Nbe.read_back ~unf:false used y a))
       end
     | ElimFun arms, Pi (Data {desc;params},clos) ->
       let arms = sort_cons arms in
       if not (List.equal String.equal (List.map ~f:fst desc.cons) (List.map ~f:fst arms)) then error (sprintf "%s - Elim arms don't match constructors" (Mark.show cs))else
       let x = match clos.name with "_" -> fresh () | x -> x in
-      Lam (x,Elim { mot = (x,Nbe.read_back (Ctx.to_names ctx) (Nbe.do_clos clos (Nbe.var x (Data {desc;params}))) (U Omega))
+      Lam (x,Elim { mot = (x,Nbe.read_back ~unf:true (Ctx.to_names ctx) (Nbe.do_clos clos (Nbe.var x (Data {desc;params}))) (U Omega))
             ; scrut = Var x
             ; arms = List.map2_exn arms desc.cons ~f:(fun (con,(args,arm)) (_,dtele) -> 
               let dom_args,ctx = collect_elim_args (Mark.show cs) clos args dtele (Nbe.apply_params desc desc.params params,params) ctx in
@@ -96,12 +96,12 @@ let rec check (ctx : Ctx.t) (cs : CSyn.t) (tp : Dom.t) : Syn.t =
         | Data {desc;params},scrut ->
           if not (List.equal String.equal (List.map ~f:fst desc.cons) (List.map ~f:fst arms)) then error (sprintf "%s - Elim arms don't match constructors" (Mark.show cs)) else
           let used = Ctx.to_names ctx in
-          let tp_syn = Nbe.read_back used tp (U Omega) in
+          let tp_syn = Nbe.read_back ~unf:true used tp (U Omega) in
           let x = fresh () in
           let mot_body = Syn.subst (Var x) scrut tp_syn in
           (* print_endline (sprintf "GUSSED MOT: %s => %s" x (Syn.show mot_body)); *)
           let ctx' = ctx |> Ctx.add ~var:x ~tp:(Data {desc;params}) in
-          (try const () @@ check ctx' (Syn.to_concrete mot_body) (U Omega) with TypeError s -> error (sprintf "%s - In guessed motive: %s" (Mark.show cs) s));
+          (try const () @@ check ctx' (Syn.to_concrete mot_body) (U Omega) with TypeError s -> error (sprintf "%s - In guessed motive %s: %s" (Mark.show cs) (Syn.show mot_body) s));
           let mot_clos = Dom.{name = x ; tm = mot_body ; env = Ctx.to_env ctx} in
           Elim { mot = (x,mot_body) 
                ; scrut 
@@ -118,9 +118,9 @@ let rec check (ctx : Ctx.t) (cs : CSyn.t) (tp : Dom.t) : Syn.t =
       match synth ctx scrut with
         | Id (a,e1,e2),scrut ->
           let used = Ctx.to_names ctx in
-          let tp_syn = Nbe.read_back used tp (U Omega) in
+          let tp_syn = Nbe.read_back ~unf:true used tp (U Omega) in
           let p,y,x = fresh (), fresh (), fresh () in
-          let e1',e2' = Nbe.read_back used e1 a,Nbe.read_back used e2 a in
+          let e1',e2' = Nbe.read_back ~unf:true used e1 a,Nbe.read_back ~unf:true used e2 a in
           (* mot_body needs to be typechecked in case we guessed a type-incorrect motive *)
           let mot_body = tp_syn 
                         |> Syn.subst (Var x) e1'
@@ -138,7 +138,8 @@ let rec check (ctx : Ctx.t) (cs : CSyn.t) (tp : Dom.t) : Syn.t =
       end 
     | Absurd, Pi (Id (Data _,Intro i1, Intro i2) as id,r) ->
       let used = Ctx.to_names ctx in
-      if String.equal i1.name i2.name then error (sprintf "%s - fn () can only derive absurdity from non-equal outermost constructors, %s is not an absurd equality" (Mark.show cs) (Syn.show (Nbe.read_back used id (U Omega)))) 
+      if String.equal i1.name i2.name then 
+      error (sprintf "%s - fn () can only derive absurdity from non-equal outermost constructors, %s is not an absurd equality" (Mark.show cs) (Syn.show (Nbe.read_back ~unf:false used id (U Omega)))) 
       else Lam (r.name,Var r.name)
     | _ -> mode_switch ctx cs tp
 
@@ -154,15 +155,25 @@ and mode_switch ctx cs tp =
   let used = Ctx.to_names ctx in
   let tp',s = synth ctx cs in
   (try Nbe.convertible used tp' tp (U Omega) with
-    | Nbe.EquateError _ -> error (sprintf "%s - %s !<= %s" (Mark.show cs) (Syn.show @@ Nbe.read_back used tp' (U Omega)) (Syn.show @@ Nbe.read_back used tp (U Omega))));
+    | Nbe.EquateError _ -> error (sprintf "%s - %s !<= %s" (Mark.show cs) (Syn.show @@ Nbe.read_back ~unf:false used tp' (U Omega)) (Syn.show @@ Nbe.read_back ~unf:false used tp (U Omega))));
   s
 
+and synth ctx cs =
+  let force = function
+    | Dom.Top {tm; _} -> tm
+    | x -> x in
+  let tp,syn = synth_ ctx cs in
+  force tp,syn
 
-and synth (ctx : Ctx.t) (cs : CSyn.t) : Dom.t * Syn.t =
-  (* printf "SYNTH %s\n" (CSyn.show cs); *)
+and synth_ (ctx : Ctx.t) (cs : CSyn.t) : Dom.t * Syn.t =
+  printf "SYNTH %s\n" (CSyn.show cs);
   match Mark.data cs with
     | Var x ->
       begin
+      match Ctx.find_top_tp ctx x with
+        | Some tp -> tp,Top  (* raise (Hole {goal = Syn.show (Nbe.read_back (Ctx.to_names ctx) tp (U Omega)) ; ctx = Ctx.to_string ctx ; pos = Mark.show cs}) *)
+     {name = x ; tp = Nbe.read_back ~unf:true (Ctx.to_names ctx) tp (U Omega)}
+        | None ->
       match Ctx.find_tp ctx x with
         | Some tp -> tp, Var x
         | None -> error (sprintf "%s - Unbound var `%s`" (Mark.show cs) x)

@@ -20,6 +20,7 @@ type 'a bnd = (string * 'a)
 
 type t_ =
   | Hole of string
+  | Meta
   | Var of string
   | Lift of {name : string ; lvl : int}
   | U of Level.t

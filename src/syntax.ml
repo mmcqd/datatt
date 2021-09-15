@@ -5,6 +5,7 @@ type 'a bnd = string * 'a
 
 type t =
   | Var of string
+  | Top of {name : string ; tp : t}
   | Lift of {name : string ; lvl : int}
   | U of Level.t
   | Pi of t bnd * t
@@ -31,6 +32,7 @@ let rec flatten_arm_args = function
 
 let rec_map (f : t -> t) = function
   | Var x -> Var x
+  | Top x -> Top x
   | Lift x -> Lift x
   | Pi ((x,d),r) -> Pi ((x,f d), f r)
   | Lam (x,e) -> Lam (x,f e)
@@ -108,6 +110,7 @@ and pp_arm_args = function
 and pp_atomic (e : t) : string =
   match e with
     | Var x -> x
+    | Top {name;_} -> name
     | Hole {name;_} -> name
     | U Omega -> "Type^ω"
     | U (Const 0) -> "Type"
@@ -133,6 +136,7 @@ let rec equal (i : int) (g1 : int String.Map.t) (e1 : t) (g2 : int String.Map.t)
         | None,None -> String.equal x y
         | _ -> false
       end
+    | Top x, Top y -> String.equal x.name y.name
     | Lift l1,Lift l2 -> l1.lvl = l2.lvl && String.equal l1.name l2.name
     | Ap (e1,e2),Ap (e1',e2') ->
       equal i g1 e1 g2 e1' && equal i g1 e2 g2 e2'
@@ -196,6 +200,7 @@ let subst (sub : t) (fr : t) (e : t) : t =
       | Var x -> Var x
       | Lift x -> Lift x
       | U l -> U l
+      | Top x -> Top x
 
   and go_arm i g args arm = 
     match args with
@@ -210,6 +215,7 @@ let rec to_concrete (e : t) : Concrete_syntax.t = Mark.naked @@ to_concrete_ e
 and to_concrete_ (e : t) : Concrete_syntax.t_ = let open Concrete_syntax in
   match e with
     | Var x -> Var x
+    | Top x -> Var x.name
     | Lift {name ; lvl} -> Lift {name ; lvl}
     | U i -> U i
     | Pi ((x,d),r) -> Pi ([(x,to_concrete d)],to_concrete r)

@@ -61,14 +61,29 @@ def coe-trans (A B C : Type) (p : Id Type A B) : (q : Id Type B C) (x : A) -> Id
   match p with
     | refl I => \ _ _ => refl
 
+
 def pair-ext (A B : Type) (x y : A * B) (p : Id A x.1 y.1) (q : Id B x.2 y.2) : Id (A * B) x y =
   match p with
-    | refl w => match q with
-      | refl h => refl
+    | refl i => match q with
+      | refl j => refl
+
+
+def fam-coe (A : Type) (B : A -> Type) (a b : A) (p : Id A a b) (y : B b) : B a =
+  coe (B b) (B a) (cong^1 A Type B b a (sym A a b p)) y
+
+def pair-extd-uncurried (A : Type) (B : A -> Type) (x1 y1 : A) (p : Id A x1 y1) : 
+                        (x2 : B x1) (y2 : B y1) (q : Id (B x1) x2 (fam-coe A B x1 y1 p y2)) -> Id ((a : A) * B a) (x1,x2) (y1,y2) =
+  match p with
+    | refl i => \x2 y2 q => match q with refl j => refl
+
+def pair-extd (A : Type) (B : A -> Type) (x y : (a : A) * B a) (p : Id A x.1 y.1) (q : Id (B x.1) x.2 (fam-coe A B x.1 y.1 p y.2)) : Id ((a : A) * B a) x y =
+  pair-extd-uncurried A B x.1 y.1 p x.2 y.2 q
 
 def pair-id-l (A B : Type) (x y : A * B) (p : Id (A * B) x y) : Id A x.1 y.1 =
   cong (A * B) A (\ x => x.1) x y p
 
 def pair-id-r (A B : Type) (x y : A * B) (p : Id (A * B) x y) : Id B x.2 y.2 =
   cong (A * B) B (\ x => x.2) x y p
+
+
 

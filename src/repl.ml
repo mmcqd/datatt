@@ -29,8 +29,8 @@ let parse_file s =
       raise @@ ParseError (sprintf "%s:%s" (show_loc s) (show_loc e))
 
 
-let normalize ~tm ~tp ~ctx =
-  Nbe.read_back (Ctx.to_names ctx) (Nbe.eval (Ctx.to_env ctx) tm) tp
+let normalize ~tm ~tp ~ctx ~unf =
+  Nbe.read_back ~unf (Ctx.to_names ctx) (Nbe.eval (Ctx.to_env ctx) tm) tp
 
 let rec show_module_deps = function
   | [] -> ""
@@ -43,8 +43,8 @@ let rec run_cmds importing imported ctx = function
     match cmd with
     | Eval e ->
       let tp,tm = Elab.synth ctx e in 
-      printf "_ : %s\n" (Syn.show (Nbe.read_back (Ctx.to_names ctx) tp (U Omega)));
-      printf "_ = %s\n\n" (Syn.show (normalize ~tm ~tp ~ctx));
+      printf "_ : %s\n" (Syn.show (Nbe.read_back ~unf:false (Ctx.to_names ctx) tp (U Omega)));
+      printf "_ = %s\n\n" (Syn.show (normalize ~unf:true ~tm ~tp ~ctx));
       run_cmds importing imported ctx cmds
     | Def (x,e) -> 
       let tp,e = Elab.synth ctx e in

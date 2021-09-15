@@ -22,6 +22,7 @@ type t =
   | Intro of {name : string ; args : t list}
   | Id of t * t * t
   | Refl of t
+  | Top of {name : string ; ne : ne ; tm : t ; tp : t}
   | Neutral of {tp : t ; ne : ne}
   [@@deriving show {with_path = false}]
 
@@ -110,6 +111,7 @@ let rec lift i = function
   | Refl x -> Refl (lift i x)
   | Data {desc ; params} -> Data {desc ; params = List.map ~f:(lift i) params}
   | Intro {name ; args} -> Intro {name ; args = List.map ~f:(lift i) args}
+  | Top {name ; ne ; tm ; tp} -> Top {name ; ne = lift_ne i ne ; tm = lift i tm; tp = lift i tp}
   | Neutral {tp ; ne} -> Neutral {tp = lift i tp ; ne = lift_ne i ne}
 
 and lift_clos i clos =
