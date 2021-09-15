@@ -49,7 +49,7 @@ data Tm =
   | lam (t : Ty) (e : Tm)
   | ap (f e : Tm)
 
-def synth : Tm -> List Ty -> Maybe Ty = let bind = bind (\ A => Maybe A) Monad-Maybe Ty Ty in \elim
+def synth : Tm -> List Ty -> Maybe Ty = let bind = bind Maybe Monad-Maybe Ty Ty in \elim
   | var n => \ ctx => get Ty ctx n
   | tt => \ _ => some bool
   | ff => \ _ => some bool
