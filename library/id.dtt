@@ -66,6 +66,18 @@ def pair-ext (A B : Type) (x y : A * B) (p : Id A x.1 y.1) (q : Id B x.2 y.2) : 
     | refl w => match q with
       | refl h => refl
 
+def fam-coe (A : Type) (B : A -> Type) (a b : A) (p : Id A a b) (y : B b) : B a =
+  coe (B b) (B a) (cong^1 A Type B b a (sym A a b p)) y
+
+def pair-extd-uncurried (A : Type) (B : A -> Type) (x1 y1 : A) (p : Id A x1 y1) : 
+                        (x2 : B x1) (y2 : B y1) (q : Id (B x1) x2 (fam-coe A B x1 y1 p y2)) -> Id ((a : A) * B a) (x1,x2) (y1,y2) =
+  match p with
+    | refl i => \x2 y2 q => match q with refl j => refl
+
+def pair-extd (A : Type) (B : A -> Type) (x y : (a : A) * B a) (p : Id A x.1 y.1) (q : Id (B x.1) x.2 (fam-coe A B x.1 y.1 p y.2)) : Id ((a : A) * B a) x y =
+  pair-extd-uncurried A B x.1 y.1 p x.2 y.2 q
+
+
 def pair-id-l (A B : Type) (x y : A * B) (p : Id (A * B) x y) : Id A x.1 y.1 =
   cong (A * B) A (\ x => x.1) x y p
 
