@@ -119,7 +119,7 @@ let rec apply_params (desc : Dom.desc) param_tps ps =
     | _ -> failwith "apply_params"
 
 
-let rec equate (used : String.Set.t) ?(subtype = false) (e1 : Dom.t) (e2 : Dom.t) (tp : Dom.t) : Syn.t =
+let rec equate ?(subtype = false) (used : String.Set.t) (e1 : Dom.t) (e2 : Dom.t) (tp : Dom.t) : Syn.t =
   (* printf "-----\nEQUATING\n%s\nWITH\n%s\nAT\n%s\n-----\n" (Dom.show e1) (Dom.show e2) (Dom.show tp); *)
   match e1,e2,tp with
     | U i, U j, U _ -> 
@@ -129,97 +129,102 @@ let rec equate (used : String.Set.t) ?(subtype = false) (e1 : Dom.t) (e2 : Dom.t
         if Level.equal i j then U i else error (sprintf "Level Error: %s !<= %s" (Level.show i) (Level.show j))
     | f1,f2, Pi (d,clos) -> 
       let x,used = resolve_name used f1 (clos.name) in
-      Lam (x,equate used (do_ap f1 (var x d)) (do_ap f2 (var x d)) (do_clos clos (var x d)))
+      Lam (x,equate ~subtype used (do_ap f1 (var x d)) (do_ap f2 (var x d)) (do_clos clos (var x d)))
     | Pi (d1,clos1), Pi (d2,clos2), U i ->
-      let d = equate used d2 d1 (U i) in
+      let d = equate ~subtype used d2 d1 (U i) in
       let x,used = fresh used clos1.name in
-      Pi ((x,d),equate used (do_clos clos1 (var x d1)) (do_clos clos2 (var x d2)) (U i))
+      Pi ((x,d),equate ~subtype used (do_clos clos1 (var x d1)) (do_clos clos2 (var x d2)) (U i))
     | Sg (d1,clos1), Sg (d2,clos2), U i ->
-      let d = equate used d2 d1 (U i) in
+      let d = equate ~subtype used d2 d1 (U i) in
       let x,used = fresh used clos1.name in
-      Sg ((x,d),equate used (do_clos clos1 (var x d1)) (do_clos clos2 (var x d2)) (U i))
+      Sg ((x,d),equate ~subtype used (do_clos clos1 (var x d1)) (do_clos clos2 (var x d2)) (U i))
     | p1,p2, Sg (f,clos) ->
       let fst_p1 = do_fst p1 in
-      Pair (equate used fst_p1 (do_fst p2) f, equate used (do_snd p1) (do_snd p2) (do_clos clos fst_p1)) 
+      Pair (equate ~subtype used fst_p1 (do_fst p2) f, equate ~subtype used (do_snd p1) (do_snd p2) (do_clos clos fst_p1)) 
     | Data d1, Data d2, U _ ->
       if String.equal d1.desc.name d2.desc.name
-      then Data {name = d1.desc.name ; params = equate_params used d1.params d2.params d1.desc.params d1.desc.env} 
+      then Data {name = d1.desc.name ; params = equate_params ~subtype used d1.params d2.params d1.desc.params d1.desc.env} 
       else error (sprintf "%s != %s" d1.desc.name d2.desc.name)
     | Intro i1, Intro i2, Data {desc ; params} ->
       if not (String.equal i1.name i2.name) then error (sprintf "%s != %s" i1.name i2.name) else
-      let args = equate_intro_args used i1.args i2.args (List.Assoc.find_exn ~equal:String.equal desc.cons i1.name) (apply_params desc desc.params params,params) in
+      let args = equate_intro_args ~subtype used i1.args i2.args (List.Assoc.find_exn ~equal:String.equal desc.cons i1.name) (apply_params desc desc.params params,params) in
       Intro {name = i1.name ; args}
     | Id (a1,m1,n1),Id (a2,m2,n2), U i ->
-      Id (equate used a1 a2 (U i),equate used m1 m2 a1,equate used n1 n2 a1)
+      Id (equate ~subtype used a1 a2 (U i),equate ~subtype used m1 m2 a1,equate ~subtype used n1 n2 a1)
     | Refl x1, Refl x2, Id (a,_,_) ->
-      Refl (equate used x1 x2 a)
-    | Neutral n1,Neutral n2,_ -> equate_ne used n1.ne n2.ne
+      Refl (equate ~subtype used x1 x2 a)
+    | Neutral n1,Neutral n2,_ -> equate_ne ~subtype used n1.ne n2.ne
     | _ -> error (sprintf "equate - Inputs not convertible - %s != %s at %s" (Dom.show e1) (Dom.show e2) (Dom.show tp))
 
-and equate_intro_args used args1 args2 dtele (desc,params) =
+and equate_intro_args ~subtype used args1 args2 dtele (desc,params) =
   match args1,args2,dtele with
     | [],[],[] -> []
     | arg1::args1,arg2::args2,(x,s)::dtele ->
-      let arg = equate used arg1 arg2 (resolve_arg_tp (desc,params) s) in
-      arg::equate_intro_args used args1 args2 dtele ({desc with env = Dom.Env.set desc.env ~key:x ~data:arg1},params)
+      let arg = equate ~subtype used arg1 arg2 (resolve_arg_tp (desc,params) s) in
+      arg::equate_intro_args ~subtype used args1 args2 dtele ({desc with env = Dom.Env.set desc.env ~key:x ~data:arg1},params)
     | _ -> error (sprintf "Intro argument mismatch - %s %s" (List.to_string ~f:Dom.show args1) (List.to_string ~f:Dom.show args2))
     
-and equate_params used args1 args2 dtele env =
+and equate_params ~subtype used args1 args2 dtele env =
   match args1,args2,dtele with
     | [],[],[] -> []
     | arg1::args1,arg2::args2,(x,tp)::dtele ->
-      let arg = equate used arg1 arg2 (eval env tp) in
-      arg::equate_params used args1 args2 dtele (Dom.Env.set env ~key:x ~data:arg1)
+      let arg = equate ~subtype used arg1 arg2 (eval env tp) in
+      arg::equate_params ~subtype used args1 args2 dtele (Dom.Env.set env ~key:x ~data:arg1)
     | _ -> error (sprintf "Param argument mismatch - %s %s" (List.to_string ~f:Dom.show args1) (List.to_string ~f:Dom.show args2))
 
-and equate_ne used ne1 ne2 =
+and equate_ne ~subtype used ne1 ne2 =
   match ne1,ne2 with
     | Var x,Var y -> if String.equal x y then Var x else error (sprintf "%s != %s" x y)
-    | Ap (f1,nf1),Ap (f2,nf2) -> Ap (equate_ne used f1 f2,equate used nf1.tm nf2.tm nf1.tp)
-    | Fst ne1, Fst ne2 -> Fst (equate_ne used ne1 ne2)
-    | Snd ne1, Snd ne2 -> Snd (equate_ne used ne1 ne2)
+    | Ap (f1,nf1),Ap (f2,nf2) -> Ap (equate_ne ~subtype used f1 f2,equate ~subtype used nf1.tm nf2.tm nf1.tp)
+    | Fst ne1, Fst ne2 -> Fst (equate_ne ~subtype used ne1 ne2)
+    | Snd ne1, Snd ne2 -> Snd (equate_ne ~subtype used ne1 ne2)
     | Elim e1,Elim e2 ->
       let x,used = fresh used e1.mot.name in
-      Elim { mot = (x,equate used (do_clos e1.mot (var x (Data {desc = e1.desc ; params = e1.params}))) (do_clos e2.mot (var x (Data {desc=e2.desc;params=e2.params}))) (U Omega))
+      Elim { mot = (x,equate ~subtype used (do_clos e1.mot (var x (Data {desc = e1.desc ; params = e1.params}))) (do_clos e2.mot (var x (Data {desc=e2.desc;params=e2.params}))) (U Omega))
            ; arms = List.map2_exn e1.arms e2.arms ~f:(fun (con1,clos1) (_,clos2) ->
             let dtele = List.Assoc.find_exn e1.desc.cons ~equal:String.equal con1 in
             let args,env1 = collect_elim_args e1.mot clos1.names dtele (apply_params e1.desc e1.desc.params e1.params,e1.params) clos1.env in
             let _,env2 = collect_elim_args e2.mot clos2.names dtele (apply_params e2.desc e2.desc.params e2.params,e2.params) clos2.env in
-            (con1,(clos1.names,equate used (eval env1 clos1.arm) (eval env2 clos2.arm) (do_clos e1.mot (Intro {name = con1 ; args}))))
+            (con1,(clos1.names,equate ~subtype used (eval env1 clos1.arm) (eval env2 clos2.arm) (do_clos e1.mot (Intro {name = con1 ; args}))))
            )
-           ; scrut = equate_ne used e1.scrut e2.scrut
+           ; scrut = equate_ne ~subtype used e1.scrut e2.scrut
            }
     | J j1, J j2 ->
       let tp = j1.tp in
       let x,y,p,usedM = fresh3 used (j1.mot.names) in
       let z,usedB = fresh used (j1.body.name) in
-      let mot = equate usedM (do_clos3 j1.mot (var x tp) (var y tp) (var p (Id (tp,var x tp, var y tp)))) 
+      let mot = equate ~subtype usedM (do_clos3 j1.mot (var x tp) (var y tp) (var p (Id (tp,var x tp, var y tp)))) 
                              (do_clos3 j2.mot (var x tp) (var y tp) (var p (Id (tp,var x tp, var y tp))))
                              (U Omega) in
       J { mot = (x,y,p,mot) 
-        ; body = (z,equate usedB (do_clos j1.body (var z tp)) (do_clos j2.body (var z tp)) (do_clos3 j1.mot (var z tp) (var z tp) (Refl (var z tp)))) 
-        ; scrut = equate_ne used j1.scrut j2.scrut
+        ; body = (z,equate ~subtype usedB (do_clos j1.body (var z tp)) (do_clos j2.body (var z tp)) (do_clos3 j1.mot (var z tp) (var z tp) (Refl (var z tp)))) 
+        ; scrut = equate_ne ~subtype used j1.scrut j2.scrut
         }
-    | Hole h1, Hole h2 when String.equal h1.name h2.name -> Hole {name = h1.name ; tp = equate used h1.tp h2.tp (U Omega)}
+    | Hole h1, Hole h2 when String.equal h1.name h2.name -> Hole {name = h1.name ; tp = equate ~subtype used h1.tp h2.tp (U Omega)}
     | _ -> error "equate_ne - Inputs not convertible"
 
+
+
 and collect_elim_args mot args dtele (desc,params) env =
-  let f tp = function
-    | `Arg x ->  
-      let arg = var x tp in
-      arg,Dom.Env.set env ~key:x ~data:arg
-    | `Rec (x,r) -> 
-      let arg = var x tp in
-      let arg_r = var r (do_clos mot arg) in
-      arg,env |> Dom.Env.set ~key:x ~data:arg |> Dom.Env.set ~key:r ~data:arg_r
-  in 
   match args,dtele with
     | [],[] -> [],env
-    | arg::args,(y,s)::dtele -> 
-      let tp = resolve_arg_tp (desc,params) s in
-      let arg,env = f tp arg in
-      let args,env = collect_elim_args mot args dtele ({desc with env = Dom.Env.set desc.env ~key:y ~data:tp},params) env in
-      arg::args,env
+    | arg::args,(y,s)::dtele ->
+      begin
+      match arg with
+        | `Arg x ->
+          let tp = resolve_arg_tp (desc,params) s in
+          let arg = var x tp in
+          let env = Dom.Env.set env ~key:x ~data:arg in
+          let args,env = collect_elim_args mot args dtele ({desc with env = Dom.Env.set desc.env ~key:y ~data:tp},params) env in
+          arg::args,env
+        | `Rec (x,ih) ->
+          let tp = resolve_arg_tp (desc,params) s in
+          let arg = var x tp in
+          let arg_ih = var ih (do_clos mot arg) in
+          let env = env |> Dom.Env.set ~key:x ~data:arg |> Dom.Env.set ~key:ih ~data:arg_ih in
+          let args,env = collect_elim_args mot args dtele ({desc with env = Dom.Env.set desc.env ~key:y ~data:tp},params) env in
+          arg::args,env
+      end
     | _ -> error "collect_elim_args NBE"
 
 

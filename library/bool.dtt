@@ -49,5 +49,7 @@ def lift : Bool -> Type = \elim
   | tt => Unit
   | ff => Void
 
-def split (A B : Type) : Bool -> Type = \elim tt => A | ff => B
+def split (A B : Type) : Bool -> Type = \elim 
+  | tt => A 
+  | ff => B
 
