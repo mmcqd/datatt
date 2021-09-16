@@ -29,6 +29,7 @@ type 'a t = 'a * src_span option
   [@@deriving show]
 
 let mark (data : 'a) (span : src_span) : 'a t = data, Some span
+let mark_opt data span = data,span
 let data : 'a t -> 'a = fst
 let naked (data : 'a) : 'a t = data, None
 let src_span : 'a t -> src_span option = snd

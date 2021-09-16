@@ -13,8 +13,7 @@ def lower (A : Type) : Dec A -> Bool = \elim
 def Dec-Id (A : Type) : Type = (x y : A) -> Dec (Id A x y)
 
 
-def dec-Unit : Dec-Id Unit = \elim
-  | <> => \elim <> => yes refl
+def dec-Unit : Dec-Id Unit = \ _ _ => yes refl
 
 
 def dec-Bool : Dec-Id Bool = \elim
@@ -34,9 +33,6 @@ def dec-Nat : Dec-Id Nat = \elim
 
 
 def eq-Nat (x y : Nat) : Bool = lower (Id Nat x y) (dec-Nat x y)
-
-def dec-Unit : Dec-Id Unit = \elim 
-  | <> => \elim <> => yes refl
 
 
 def dec-* (A B : Type) : Dec A -> Dec B -> Dec (A * B) = \elim

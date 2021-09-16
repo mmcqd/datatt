@@ -24,12 +24,13 @@ let new_hole () = hole_count := (!hole_count) + 1; Int.to_string (!hole_count)
 %token Eof
 %token Import
 %token Question_mark
-%token L_paren R_paren
+%token L_paren R_paren L_angle R_angle
 %token Lambda Thick_arrow Arrow
 %token Comma DotOne DotTwo Star
+%token Dot Sig Struct
 %token Let In
 %token Type Caret
-%token Colon
+%token Colon Semicolon
 %token Underbar
 %token Id Refl
 %token Match With Bar At
@@ -66,13 +67,6 @@ let cmd :=
       Concrete_syntax.Def (x,Mark.naked @@ Concrete_syntax.Ascribe {tm ; tp}) 
     }
   | Axiom; x = bound_name; Colon; tp = m(term); { Concrete_syntax.Axiom (x,tp) }
-
-(*
-  | Def; Rec; x = bound_name; args = nonempty_list(paren(annot_args)); Colon; t = m(term); Equal; e = m(term); 
-    { let tm,tp = rec_func_syntax (x,args,t,e) in
-      Concrete_syntax.Def (x,Mark.naked @@ Concrete_syntax.Ascribe {tm ; tp})
-    }  
-*)
   | data_def
   | Import; f = Ident; { Concrete_syntax.Import f }
   | ~ = m(term); <Concrete_syntax.Eval>
@@ -114,6 +108,7 @@ let atomic :=
   | ~ = paren(separated_list(Comma,m(term))); <Concrete_syntax.Tuple>
   | ~ = m(atomic); DotOne; <Concrete_syntax.Fst>
   | ~ = m(atomic); DotTwo; <Concrete_syntax.Snd>
+  | e = m(atomic); Dot; f = Ident; { Concrete_syntax.Proj (f,e) }
   | Type; Caret; i = Dec_const; { Concrete_syntax.U (Const i) }
   | Type; { Concrete_syntax.U (Const 0) }
   | Refl; { Concrete_syntax.Refl }
@@ -126,6 +121,13 @@ let spine :=
 let nonempty_spine :=
   | ~ = spine; ~ = m(atomic); <Concrete_syntax.Snoc>
 
+let record_term :=
+  | f = Ident; Equal; e = m(term); { (f,e) }
+
+let record_type :=
+  | f = Ident; Colon; e = m(term); { (f,e) }
+
+
 let term :=
   | atomic
   | ~ = m(atomic); ~ = nonempty_spine; <Concrete_syntax.Spine>
@@ -135,7 +137,9 @@ let term :=
   | args = nonempty_list(paren(annot_args)); Star; e = m(term); { Concrete_syntax.Sg (args_to_tele args,e) }
   | t1 = m(term); Star; t2 = m(term); { Concrete_syntax.Sg ([("_",t1)],t2) }
   | Id; t = m(atomic); e1 = m(atomic); e2 = m(atomic); <Concrete_syntax.Id>
-  
+  | Sig; option(Bar); fs = separated_list(Bar,record_type); { Concrete_syntax.RecordTy fs }
+  | Struct; option(Bar); fs = separated_list(Bar,record_term); { Concrete_syntax.Record fs }
+
   | Let; x = bound_name; Equal; e1 = m(term); In; e2 = m(term);
      {Concrete_syntax.Let ((x,e1),e2) }
 

@@ -26,6 +26,9 @@ let rec eval (env : Dom.env) (s : Syn.t) : Dom.t =
     | Data {name ; params} -> Data {desc = Dom.Env.find_data_exn env name ; params = List.map ~f:(eval env) params}
     | Intro {name ; args} -> Intro {name ; args = List.map ~f:(eval env) args}
     | Elim {mot = (x,m) ; arms ; scrut} -> do_elim Dom.{name = x ; tm = m ; env} arms (eval env scrut) env
+    | RecordTy fs -> RecordTy (fs,env)
+    | Record fs -> Record (List.map ~f:(fun (f,tm) -> (f,eval env tm)) fs)
+    | Proj (f,e) -> do_proj f (eval env e)
     | Id (a,m,n) -> Id (eval env a,eval env m,eval env n)
     | Refl x -> Refl (eval env x)
     | J {mot = (x,y,p,m); body = (z,e) ; scrut} -> do_j Dom.{names = (x,y,p) ; tm = m ; env} Dom.{name = z ; tm = e ; env} (eval env scrut)
@@ -58,6 +61,18 @@ and do_snd (p : Dom.t) : Dom.t =
     | Pair (_,s) -> s
     | Neutral {tp = Sg (_,clos) ; ne} -> Neutral {tp = do_clos clos (do_fst p) ; ne = Snd ne}
     | _ -> failwith "do_snd"
+
+and do_proj (f : string) (r : Dom.t) : Dom.t =
+  match r with
+    | Record fs -> List.Assoc.find_exn ~equal:String.equal fs f
+    | Neutral {tp = RecordTy (fs,env) ; ne} -> Neutral {tp = do_proj_tp f fs env ; ne = Proj (f,ne) }
+    | _ -> failwith "do_proj"
+
+and do_proj_tp f fs env =
+  match fs with
+    | [] -> failwith "do_proj_tp"
+    | (f',tp)::fs -> if String.equal f f' then eval env tp else
+      do_proj_tp f fs (Dom.Env.set env ~key:f' ~data:(var f' (eval env tp)))
 
 and do_elim mot arms scrut env_s =
   match scrut with
@@ -138,6 +153,24 @@ let rec equate ?(subtype = false) (used : String.Set.t) (e1 : Dom.t) (e2 : Dom.t
       let d = equate ~subtype used d2 d1 (U i) in
       let x,used = fresh used clos1.name in
       Sg ((x,d),equate ~subtype used (do_clos clos1 (var x d1)) (do_clos clos2 (var x d2)) (U i))
+    | RecordTy (fs1,env1), RecordTy (fs2,env2), U i -> 
+      let q = List.fold2 fs1 fs2 ~init:([],env1,env2) ~f:(fun (r,env1,env2) (f1,tp1) (f2,tp2) -> 
+        if not (String.equal f1 f2) then error "non_equal fields" else
+        let tp1 = eval env1 tp1 in
+        let tp2 = eval env2 tp2 in
+        (f1,equate used tp1 tp2 (U i))::r,Dom.Env.set env1 ~key:f1 ~data:(var f1 tp1),Dom.Env.set env2 ~key:f2 ~data:(var f2 tp2)
+      ) in
+      begin
+      match q with
+        | Ok (fs,_,_) -> RecordTy (List.rev fs)
+        | Unequal_lengths -> error "unequal length records"
+      end
+    | r1,r2, RecordTy (fs,env) ->
+        let q = List.fold fs ~init:([],env) ~f:(fun (r,env) (f,tp) -> 
+        let p1 = do_proj f r1 in
+        let p = equate ~subtype used p1 (do_proj f r2) (eval env tp) in
+        ((f,p)::r,Dom.Env.set env ~key:f ~data:p1)
+      ) in Record (List.rev @@ fst q)
     | p1,p2, Sg (f,clos) ->
       let fst_p1 = do_fst p1 in
       Pair (equate ~subtype used fst_p1 (do_fst p2) f, equate ~subtype used (do_snd p1) (do_snd p2) (do_clos clos fst_p1)) 
@@ -178,6 +211,7 @@ and equate_ne ~subtype used ne1 ne2 =
     | Ap (f1,nf1),Ap (f2,nf2) -> Ap (equate_ne ~subtype used f1 f2,equate ~subtype used nf1.tm nf2.tm nf1.tp)
     | Fst ne1, Fst ne2 -> Fst (equate_ne ~subtype used ne1 ne2)
     | Snd ne1, Snd ne2 -> Snd (equate_ne ~subtype used ne1 ne2)
+    | Proj (f1,ne1), Proj (f2,ne2) -> if String.equal f1 f2 then Proj (f1,equate_ne ~subtype used ne1 ne2) else error (sprintf "Different projections: %s != %s" f1 f2)
     | Elim e1,Elim e2 ->
       let x,used = fresh used e1.mot.name in
       Elim { mot = (x,equate ~subtype used (do_clos e1.mot (var x (Data {desc = e1.desc ; params = e1.params}))) (do_clos e2.mot (var x (Data {desc=e2.desc;params=e2.params}))) (U Omega))

@@ -32,13 +32,16 @@ type t_ =
   | Snd of t
   | Elim of {mot : t bnd option ; scrut : t ; arms : ([`Rec of string * string | `Arg of string] list * t) bnd list}
   | ElimFun of ([`Rec of string * string | `Arg of string] list * t) bnd list
+  | RecordTy of (string * t) list
+  | Record of (string * t) list
+  | Proj of string * t
   | Id of t * t * t
   | Refl
   | J of {mot : (string * string * string * t) option ; scrut : t ; body : string * t}
   | Ascribe of {tm : t ; tp : t}
   | Let of t bnd * t
   | Absurd
-  [@@deriving show]
+  [@@deriving show {with_path = false} ]
 
 and t = t_ Mark.t
 

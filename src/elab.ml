@@ -11,7 +11,7 @@ exception Hole of {goal : string ; ctx : string ; pos : string}
 let error s = raise (TypeError s)
 
 let r = ref 0
-let fresh () = r := !r + 1 ; "@"^Int.to_string !r 
+let fresh () = r := !r + 1 ; "\\"^Int.to_string !r 
 
 
 let sort_cons = List.sort ~compare: (fun (c1,_) (c2,_) -> String.compare c1 c2)
@@ -20,10 +20,9 @@ let rec check (ctx : Ctx.t) (cs : CSyn.t) (tp : Dom.t) : Syn.t =
   (* printf "CHECK %s AT %s\n" (CSyn.show cs) (Syn.show @@ Nbe.read_back (Ctx.to_names ctx) tp (U Omega)); *)
   match Mark.data cs,tp with
     | Hole name,tp -> 
-    (* raise (Hole {goal = Syn.show (Nbe.read_back (Ctx.to_names ctx) tp (U Omega)) ; ctx = Ctx.to_string ctx ; pos = Mark.show cs}) *)
-    let goal = Nbe.read_back (Ctx.to_names ctx) tp (U Omega) in
-    printf "Hole %s at %s:%s\n\n⊢ %s\n\n" name (Mark.show cs) (Ctx.to_string ctx) (Syn.show goal);
-    Hole {name ; tp = goal}
+      let goal = Nbe.read_back (Ctx.to_names ctx) tp (U Omega) in
+      printf "Hole %s at %s:%s\n\n⊢ %s\n\n" name (Mark.show cs) (Ctx.to_string ctx) (Syn.show goal);
+      Hole {name ; tp = goal}
 
     | U Omega,U Omega -> U Omega (* VERY SUS but technically ok because user can't create terms of type U Omega *)
     | U i,U j when Level.(<) i j -> U i
@@ -38,6 +37,10 @@ let rec check (ctx : Ctx.t) (cs : CSyn.t) (tp : Dom.t) : Syn.t =
       let d = check ctx d (U i) in
       let sg = check (Ctx.add_syn ctx ~var:x ~tp:d) (Mark.naked @@ Sg (tele,r)) (U i) in
       Sg ((x,d),sg)
+    | RecordTy fs,U i -> RecordTy (check_record_ty ctx i fs)
+    | Record fs, RecordTy (ftps,env) -> 
+      (* printf "%i & %i\n" (List.length fs) (List.length ftps); *)
+      Record (check_record (Mark.show cs) ctx fs ftps env)
     | Let ((x,e1),e2),tp ->
       let e1_tp,e1' = synth ctx e1 in
       let e2' = check (Ctx.add_let ctx ~var:x ~def:(Nbe.eval (Ctx.to_env ctx) e1') ~tp:e1_tp) e2 tp in
@@ -150,6 +153,21 @@ and check_intro_args ctx args dtele (desc,params) =
       arg::check_intro_args ctx args dtele ({desc with env = Dom.Env.set desc.env ~key:x ~data:(Nbe.eval (Ctx.to_env ctx) arg)},params)
     | _ -> error "Incorrect number of args provided to constructor"
 
+and check_record_ty ctx i = function
+  | [] -> []
+  | (f,tp)::fs -> 
+    let tp = check ctx tp (U i) in
+    (f,tp)::check_record_ty (Ctx.add ctx ~var:f ~tp:(Nbe.eval (Ctx.to_env ctx) tp)) i fs
+
+and check_record pos ctx r rtp env =
+  match r,rtp with
+    | [],[] -> []
+    | (f,tm)::r,(f',tp)::rtp -> if not (String.equal f f') then error (sprintf "%s - Expected field %s but found field %s" pos f' f) else
+      let tp = Nbe.eval env tp in
+      let tm = check ctx tm tp in
+      (f,tm)::check_record pos (Ctx.add ctx ~var:f ~tp) r rtp (Dom.Env.set env ~key:f ~data:(Nbe.eval (Ctx.to_env ctx) tm))
+    | _ -> error (sprintf "%s - record and record type have different lengths" pos)
+
 and mode_switch ctx cs tp =
   let used = Ctx.to_names ctx in
   let tp',s = synth ctx cs in
@@ -201,6 +219,15 @@ and synth (ctx : Ctx.t) (cs : CSyn.t) : Dom.t * Syn.t =
         | Sg (_,clos),p -> Nbe.do_clos clos (Nbe.do_fst (Nbe.eval (Ctx.to_env ctx) p)),Snd p
         | _,p -> error (sprintf "%s - %s is not a pair, it cannot be projected from" (Mark.show cs) (Syn.show p))
       end
+    | Proj (f,e) ->
+      begin
+      match synth ctx e with
+        | RecordTy (fs,env) as rtp,r -> 
+          if not (List.Assoc.mem ~equal:String.equal fs f) 
+          then error (sprintf "%s - %s is not a field of %s" (Mark.show cs) f (Syn.show (Nbe.read_back (Ctx.to_names ctx) rtp (U Omega)))) 
+          else synth_proj_tp (Nbe.eval (Ctx.to_env ctx) r) f fs env, Proj (f,r)
+        | _,r -> error (sprintf "%s - %s is not a record, it cannot be projected from" (Mark.show cs) (Syn.show r))
+      end
     | Elim {mot = Some (x,mot) ; scrut ; arms} ->
       let arms = sort_cons arms in
       begin
@@ -232,6 +259,11 @@ and synth (ctx : Ctx.t) (cs : CSyn.t) : Dom.t * Syn.t =
     | _ -> error (sprintf "%s - Failed to synth/elaborate" (Mark.show cs))
 
 
+and synth_proj_tp r f fs env =
+  match fs with
+    | [] -> error "whoops"
+    | (f',tp)::fs -> if String.equal f f' then Nbe.eval env tp else
+    synth_proj_tp r f fs (Dom.Env.set env ~key:f' ~data:(Nbe.do_proj f' r))
 
 and collect_elim_args pos mot args dtele (desc,params) ctx =
   match args,dtele with

@@ -5,7 +5,7 @@ open Parser
 
 }
 
-let ident = [^ '(' ')' '\\' ':' ',' '=' ' ' '\t' '\n' '^' ';' '|' '?' '.']+
+let ident = [^ '(' ')' '\\' ':' ',' '=' ' ' '\t' '\n' '^' ';' '|' '?' '.' ]+
 let dec_num = ("0" | ['1'-'9'](['0'-'9']*))
 
 let whitespace = [' ' '\t' '\r']
@@ -15,15 +15,19 @@ rule initial = parse
   | '\n' { Lexing.new_line lexbuf; initial lexbuf }
   | '(' { L_paren }
   | ')' { R_paren }
+  | ';' { Semicolon }
   | ',' { Comma }
   | ".1" { DotOne }
   | ".2" { DotTwo }
+  | '.' { Dot }
   | '*' | "×" { Star }
   | '\\' | "λ" { Lambda }
   | "->" | "→" { Arrow }
   | "=>" { Thick_arrow }
   | "let" { Let }
   | "in" { In }
+  | "sig" { Sig }
+  | "struct" { Struct }
   | "data" { Data }
   | "elim" { Elim }
   | "import" { Import }

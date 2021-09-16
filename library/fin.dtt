@@ -15,7 +15,7 @@ def Fin-Ind (P : (n : Nat) -> Fin n -> Type) (z : (n : Nat) -> P (suc n) (fzero 
             (s : (n : Nat) (f : Fin n) -> P n f -> P (suc n) (fsuc n f)) : (n : Nat) (f : Fin n) -> P n f = \elim
   | zero => (\elim)
   | suc (n / ih) => \elim
-    | inl x => (elim x with <> => z n)
+    | inl x => z n
     | inr m => s n m (ih m)
 
 {-

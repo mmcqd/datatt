@@ -1,8 +1,7 @@
-data Unit =
-  | <>
+def Unit : Type = sig
 
-def Unit-Ind (P : Unit -> Type) (p : P <>) : (x : Unit) -> P x = \elim
-  | <> => p
+def <> : Unit = struct
 
-def Unit-Eta : (x : Unit) -> Id Unit <> x = \elim
-  | <> => refl
+def Unit-Ind (P : Unit -> Type) (p : P <>) (x : Unit) : P x = p
+
+def Unit-Eta (x : Unit) : Id Unit <> x = refl

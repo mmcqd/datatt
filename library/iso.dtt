@@ -12,69 +12,59 @@ import library/hott
 
 
 
-def Iso (A B : Type) : Type =
-  (f : A -> B) *
-  (g : B -> A) *
-  ((x : A) -> Id A x (g (f x))) *
-  ((y : B) -> Id B y (f (g y)))
+def Iso (A B : Type) : Type = sig
+  | f : A -> B
+  | g : B -> A
+  | gf : (x : A) -> Id A x (g (f x))
+  | fg : (y : B) -> Id B y (f (g y))
 
-def iso-refl (A : Type) : Iso A A = 
-  ( \ x => x
-  , \ x => x
-  , \ _ => refl
-  , \ _ => refl
-  )
-
-def iso-comm (A B : Type) : Iso (Iso A B) (Iso B A) = 
-  ( \ i => (i.2.1,i.1,i.2.2.2,i.2.2.1)
-  , \ i => (i.2.1,i.1,i.2.2.2,i.2.2.1)
-  , \ _ => refl
-  , \ _ => refl
-  )
+def iso-refl (A : Type) : Iso A A = struct
+  | f = \ x => x
+  | g = \ x => x
+  | gf = \ _ => refl
+  | fg = \ _ => refl
 
 
-def iso/*-comm (A B : Type) : Iso (A * B) (B * A) = 
-  ( \ p => (p.2,p.1)
-  , \ p => (p.2,p.1)
-  , \ _ => refl
-  , \ _ => refl
-  )
+def iso-comm (A B : Type) : Iso (Iso A B) (Iso B A) = struct
+  | f = \ i => (struct f = i.g | g = i.f | gf = i.fg | fg = i.gf)
+  | g = \ i => (struct f = i.g | g = i.f | gf = i.fg | fg = i.gf)
+  | gf = \ i => refl
+  | fg = \ i => refl
 
-def iso/Sum-comm (A B : Type) : Iso (Sum A B) (Sum B A) = 
-  ( \elim inl x => inr x | inr y => inl y
-  , \elim inl x => inr x | inr y => inl y
-  , \elim inl _ => refl | inr _ => refl
-  , \elim inl _ => refl | inr _ => refl
-  )
+def iso/*-comm (A B : Type) : Iso (A * B) (B * A) = struct
+  | f = \p => (p.2,p.1)
+  | g = \p => (p.2,p.1)
+  | gf = \ p => refl
+  | fg = \ p => refl
 
-def iso/*-ident-r (A : Type) : Iso A (A * Unit) =
-  ( \ x => (x , <>) 
-  , \ p => p.1 
-  , \ _ => refl 
-  , \ p => elim p.2 with <> => refl
-  )
+def iso/Sum-comm (A B : Type) : Iso (Sum A B) (Sum B A) = struct
+  | f = (\elim inl x => inr x | inr y => inl y)
+  | g = (\elim inl x => inr x | inr y => inl y)
+  | gf = (\elim inl _ => refl | inr _ => refl)
+  | fg = (\elim inl _ => refl | inr _ => refl)
+  
 
-def iso/Sum-ident-r (A : Type) : Iso A (Sum A Void) =
-  ( \ a => inl a
-  , \elim inl a => a | inr v => elim v with
-  , \ _ => refl
-  , \elim inl a => refl | inr v => elim v with
-  )
+def iso/*-ident-r (A : Type) : Iso A (A * Unit) = struct
+  | f = \ x => (x , <>) 
+  | g = \ p => p.1 
+  | gf = \ _ => refl 
+  | fg = \ p => refl
+  
 
-def iso/Iso-comm (A B : Type) : Iso^1 (Iso A B) (Iso B A) =
-  ( \ p => (p.2.1, p.1, p.2.2.2, p.2.2.1) 
-  , \ p => (p.2.1, p.1, p.2.2.2, p.2.2.1) 
-  , \ _ => refl 
-  , \ _ => refl
-  )
+def iso/Sum-ident-r (A : Type) : Iso A (Sum A Void) = struct
+  | f = \ a => inl a
+  | g = (\elim inl a => a | inr v => elim v with)
+  | gf = \ _ => refl
+  | fg = (\elim inl a => refl | inr v => elim v with)
+  
 
-def iso/*-destroy-r (A : Type) : Iso (A * Void) Void =
-  ( \ p => p.2
-  , \elim
-  , \ p => elim p.2 with
-  , \elim
-  )
+def iso/*-destroy-r (A : Type) : Iso (A * Void) Void = struct
+  | f = \ p => p.2
+  | g = (\elim)
+  | gf =  \ p => (elim p.2 with)
+  | fg = (\elim)
 
+{-
 def iso/Bool/Unit+Unit : Iso Bool (Sum Unit Unit) =
   ( \elim tt => inl <> | ff => inr <>
   , \elim inl _ => tt | inr _ => ff
@@ -147,4 +137,4 @@ def iso/curry (A B C : Type) : Iso (A -> B -> C) (A * B -> C) =
   , \ f => refl
   , \ f => refl
   )
-
+-}

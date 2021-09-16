@@ -14,6 +14,9 @@ type t =
   | Pair of t * t
   | Fst of t
   | Snd of t
+  | RecordTy of (string * t) list
+  | Record of (string * t) list
+  | Proj of string * t
   | Data of {name : string ; params : t list}
   | Intro of {name : string ; args : t list}
   | Elim of {mot : t bnd ; arms : ([`Rec of string * string | `Arg of string] list * t) bnd list ; scrut : t}
@@ -36,6 +39,9 @@ let rec_map (f : t -> t) = function
   | Lam (x,e) -> Lam (x,f e)
   | Ap (g,e) -> Ap (f g, f e)
   | U i -> U i
+  | RecordTy fs -> RecordTy (List.map ~f:(fun (field,tp) -> (field,f tp)) fs)
+  | Record fs -> Record (List.map ~f:(fun (field,tm) -> (field,f tm)) fs)
+  | Proj (field,t) -> Proj (field,f t)
   | Data {name ; params} -> Data {name ; params = List.map ~f params}
   | Intro {name ; args} -> Intro {name ; args = List.map ~f args}
   | Elim {mot = (x,m) ; scrut ; arms} -> Elim {mot = (x,f m) ; scrut = f scrut ; arms = List.map arms ~f:(fun (con,(vs,e)) -> (con, (vs,f e)))}
@@ -80,7 +86,14 @@ let rec pp_term (e : t) : string =
       sprintf "match %s with refl %s ⇒ %s" (pp_atomic scrut) a (pp_term case)
     | Refl x -> sprintf "refl %s" (pp_atomic x)
     | Let ((x,e1),e2) -> sprintf "let %s = %s in %s" x (pp_term e1) (pp_term e2)
+    | RecordTy fs -> "sig "^pp_record ":" fs
+    | Record fs -> "struct "^pp_record "=" fs
     | _ -> pp_atomic e 
+
+and pp_record sep = function
+  | [] -> ""
+  | [(f,t)] -> sprintf "%s %s %s" f sep (pp_term t)
+  | (f,t)::fs -> sprintf "%s %s %s | %s" f sep (pp_term t) (pp_record sep fs)
 
 and pp_args = function
   | [] -> ""
@@ -115,6 +128,7 @@ and pp_atomic (e : t) : string =
     | Pair (e1,e2) -> sprintf "(%s,%s)" (pp_term e1) (pp_term e2)
     | Fst e -> sprintf "%s.1" (pp_atomic e)
     | Snd e -> sprintf "%s.2" (pp_atomic e)
+    | Proj (f,t) -> sprintf "%s.%s" (pp_atomic t) f
     | Data {name ; params = []} -> name
     | Intro {name ; args = []} -> name
     | _ -> sprintf "(%s)" (pp_term e)
@@ -164,6 +178,11 @@ let rec equal (i : int) (g1 : int String.Map.t) (e1 : t) (g2 : int String.Map.t)
         | Ok b -> b
         | _ -> false
       end
+    | Record [], Record [] 
+    | RecordTy [], RecordTy [] -> true
+    | RecordTy ((f1,tp1)::fs1), RecordTy ((f2,tp2)::fs2) -> String.equal f1 f2 && equal i g1 tp1 g2 tp2 && equal (i+1) (g1++(f1,i)) (RecordTy fs1) (g2++(f2,i)) (RecordTy fs2) 
+    | Record ((f1,tm1)::fs1), Record ((f2,tm2)::fs2) -> String.equal f1 f2 && equal i g1 tm1 g2 tm2 && equal i g1 (Record fs1) g2 (Record fs2) 
+    | Proj (f1,e1),Proj (f2,e2) -> String.equal f1 f2 && equal i g1 e1 g2 e2
     | Hole h1, Hole h2 -> String.equal h1.name h2.name && equal i g1 h1.tp g2 h2.tp
     | _ -> false
 
@@ -193,6 +212,9 @@ let subst (sub : t) (fr : t) (e : t) : t =
       | Data {name;params} -> Data {name ; params = List.map ~f:(go i g) params}
       | Elim {mot = (x,m) ; arms ; scrut} -> 
         Elim {mot = (x,go (i+1) (g++(x,i)) m) ; scrut = go i g scrut ; arms = List.map ~f:(fun (con,(vs,arm)) -> (con,(vs,go_arm i g (flatten_arm_args vs) arm))) arms}
+      | RecordTy fs -> RecordTy (go_fields i g fs)
+      | Record fs -> Record (List.map ~f:(fun (f,tm) -> (f,go i g tm)) fs)
+      | Proj (f,e) -> Proj (f,go i g e)
       | Var x -> Var x
       | Lift x -> Lift x
       | U l -> U l
@@ -201,6 +223,12 @@ let subst (sub : t) (fr : t) (e : t) : t =
     match args with
       | [] -> go i g arm
       | x::xs -> go_arm (i+1) (g++(x,i)) xs arm
+
+  and go_fields i g fs = 
+    match fs with
+      | [] -> []
+      | (f,t)::fs -> (f,go i g t)::go_fields (i+1) (g++(f,i)) fs
+
 in go 0 String.Map.empty e
 
 
@@ -222,6 +250,9 @@ and to_concrete_ (e : t) : Concrete_syntax.t_ = let open Concrete_syntax in
     | Data {name ; params} -> Spine (to_concrete (Var name),params |> List.map ~f:to_concrete |> list_to_spine)
     | Intro {name ; args} -> Spine (to_concrete (Var name),args |> List.map ~f:to_concrete |> list_to_spine)
     | Elim {mot = (x,m) ; scrut ; arms} -> Elim {mot = Some (x,to_concrete m) ; scrut = to_concrete scrut ; arms = List.map ~f:(fun (con,(vs,arm)) -> (con,(vs,to_concrete arm))) arms}
+    | RecordTy fs -> RecordTy (List.map ~f:(fun (f,tp) -> (f,to_concrete tp)) fs)
+    | Record fs -> Record (List.map ~f:(fun (f,tm) -> (f,to_concrete tm)) fs)    
+    | Proj (f,e) -> Proj (f,to_concrete e)
     | Id (a,m,n) -> Id (to_concrete a,to_concrete m,to_concrete n)
     | Refl _ -> Refl
     | J {mot = (x,y,p,m) ; body = (z,e) ; scrut} -> J {mot = Some (x,y,p,to_concrete m) ; body = (z,to_concrete e) ; scrut = to_concrete scrut} 

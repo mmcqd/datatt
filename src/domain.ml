@@ -20,6 +20,8 @@ type t =
   | Pair of t * t
   | Data of {desc : desc ; params : t list}
   | Intro of {name : string ; args : t list}
+  | RecordTy of Syntax.t bnd list * env
+  | Record of t bnd list
   | Id of t * t * t
   | Refl of t
   | Neutral of {tp : t ; ne : ne}
@@ -32,6 +34,7 @@ and ne =
   | Ap of ne * nf
   | Fst of ne
   | Snd of ne
+  | Proj of string * ne
   | Elim of {mot : clos ; arms : arm_clos bnd list ; scrut : ne ; desc : desc ; params : t list}
   | J of {mot : clos3 ; body : clos ; scrut : ne ; tp : t}
   | Hole of {name : string ; tp : t}
@@ -110,6 +113,8 @@ let rec lift i = function
   | Refl x -> Refl (lift i x)
   | Data {desc ; params} -> Data {desc ; params = List.map ~f:(lift i) params}
   | Intro {name ; args} -> Intro {name ; args = List.map ~f:(lift i) args}
+  | RecordTy (fs,env) -> RecordTy (List.map ~f:(fun (f,tp) -> (f,Syntax.lift i tp)) fs,env)
+  | Record fs -> Record (List.map ~f:(fun (f,tm) -> (f,lift i tm)) fs)
   | Neutral {tp ; ne} -> Neutral {tp = lift i tp ; ne = lift_ne i ne}
 
 and lift_clos i clos =
@@ -130,4 +135,5 @@ and lift_ne i = function
     Elim { mot = lift_clos i mot ; arms = List.map ~f:(fun (con,clos) -> (con,lift_arm_clos i clos)) arms ; scrut = lift_ne i scrut ; desc ; params = List.map ~f:(lift i) params}
   | Fst p -> Fst (lift_ne i p)
   | Snd p -> Snd (lift_ne i p)
+  | Proj (f,ne) -> Proj (f,lift_ne i ne)
   | Hole {name ; tp} -> Hole {name ; tp = lift i tp}

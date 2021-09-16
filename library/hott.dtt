@@ -83,17 +83,13 @@ def Hedberg = Dec-Id->Set
 
 def Contr-Unit : Contr Unit = (<>,Unit-Eta)
 
-def Prop-Unit : Prop Unit = \elim 
-  | <> => \elim <> => refl
+def Prop-Unit : Prop Unit = \_ _ => refl
 
 -- Direct proof that Unit is a Set
-def Set-Unit' : Set Unit = \elim <> => \elim <> => \ p =>
-  let P1 : (x y : Unit) -> Id Unit x y -> Type = \elim <> => \elim <> => \ p => (q : Id Unit <> <>) -> Id (Id Unit <> <>) p q in
-  let P2 : (x y : Unit) -> Id Unit x y -> Type = \elim <> => \elim <> => \ q => Id (Id Unit <> <>) refl q in
-  match p at x y p => P1 x y p with
-    | refl i => elim i with <> => \ q => 
-      match q at x y q => P2 x y q with
-        | refl j => elim j with <> => refl
+def Set-Unit' : Set Unit = \_ _ p q =>
+  match p with
+    | refl i => match q with
+      | refl j => refl
 
 def Set-Unit : Set Unit = Prop->Set Unit Prop-Unit
 
