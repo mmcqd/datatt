@@ -13,6 +13,9 @@ let error s = raise (TypeError s)
 let r = ref 0
 let fresh () = r := !r + 1 ; "\\"^Int.to_string !r 
 
+let normalize ~tm ~tp ~ctx =
+  Nbe.read_back (Ctx.to_names ctx) (Nbe.eval (Ctx.to_env ctx) tm) tp
+
 
 let sort_cons = List.sort ~compare: (fun (c1,_) (c2,_) -> String.compare c1 c2)
 
@@ -37,7 +40,16 @@ let rec check (ctx : Ctx.t) (cs : CSyn.t) (tp : Dom.t) : Syn.t =
       let d = check ctx d (U i) in
       let sg = check (Ctx.add_syn ctx ~var:x ~tp:d) (Mark.naked @@ Sg (tele,r)) (U i) in
       Sg ((x,d),sg)
-    | RecordTy fs,U i -> RecordTy (check_record_ty ctx i fs)
+    | RecordTy {extends ; fields} ,U i -> 
+      begin
+      match extends with
+        | None -> RecordTy (check_record_ty ctx i fields)
+        | Some ext ->
+          let ext = check ctx ext (U i) in
+          match normalize ~ctx ~tm:ext ~tp:(U i) with
+            | RecordTy ext_fs -> RecordTy (check_record_ty ctx i ((List.map ~f:(fun (f,e) -> (f,Syntax.to_concrete e)) ext_fs) @ fields))
+            | _ -> error (sprintf "%s does not have a record type, it cannot be extended" (Syn.show ext))
+      end
     | Record fs, RecordTy (ftps,env) -> 
       (* printf "%i & %i\n" (List.length fs) (List.length ftps); *)
       Record (check_record (Mark.show cs) ctx fs ftps env)
@@ -295,7 +307,7 @@ let rec elab_data ctx dname (cons : CSyn.t bnd list bnd list) (params : CSyn.t b
   ; env = Ctx.to_env ctx 
   ; params = ps
   ; cons = sort_cons @@ 
-           List.map ~f:(fun (con,args) -> con,elab_con (Ctx.add pctx ~var:dname ~tp:(U (Const 0))) dname args) cons 
+           List.map ~f:(fun (con,args) -> con,elab_con (Ctx.add pctx ~var:dname ~tp:(U (Const 0))) lvl dname args) cons 
   ; lvl
   }
 
@@ -307,16 +319,16 @@ and elab_params ctx = function
     let ps,ctx = elab_params (Ctx.add_syn ctx ~var:x ~tp) ps in
     (x,tp)::ps,ctx
 
-and resolve_spec ctx dname arg =
+and resolve_spec ctx lvl dname arg =
   match Mark.data arg with
     | CSyn.Var x when String.equal x dname -> Dom.Rec
-    | _ -> Tp (check ctx arg (U Omega))
+    | _ -> Tp (check ctx arg (U lvl))
 
-and elab_con ctx dname args =
+and elab_con ctx lvl dname args =
   match args with
     | [] -> []
     | (x,arg)::args -> 
-      let arg = resolve_spec ctx dname arg in
+      let arg = resolve_spec ctx lvl dname arg in
       let tp = match arg with Tp tp -> tp | Rec -> Var dname in
-      (x,arg)::elab_con (Ctx.add_syn ctx ~var:x ~tp) dname args
+      (x,arg)::elab_con (Ctx.add_syn ctx ~var:x ~tp) lvl dname args
 

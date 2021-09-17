@@ -27,6 +27,7 @@ rule initial = parse
   | "let" { Let }
   | "in" { In }
   | "sig" { Sig }
+  | "extends" { Extends }
   | "struct" { Struct }
   | "data" { Data }
   | "elim" { Elim }

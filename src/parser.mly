@@ -27,7 +27,7 @@ let new_hole () = hole_count := (!hole_count) + 1; Int.to_string (!hole_count)
 %token L_paren R_paren L_angle R_angle
 %token Lambda Thick_arrow Arrow
 %token Comma DotOne DotTwo Star
-%token Dot Sig Struct
+%token Dot Sig Struct Extends
 %token Let In
 %token Type Caret
 %token Colon Semicolon
@@ -122,7 +122,11 @@ let nonempty_spine :=
   | ~ = spine; ~ = m(atomic); <Concrete_syntax.Snoc>
 
 let record_term :=
-  | f = Ident; Equal; e = m(term); { (f,e) }
+  | f = Ident; xs = list(bound_name); Equal; e = m(term); 
+    { match xs with
+        | [] -> (f,e)
+        | _  -> (f, Mark.mark_opt (Concrete_syntax.Lam (xs,e)) (Mark.src_span e)) 
+    }
 
 let record_type :=
   | f = Ident; Colon; e = m(term); { (f,e) }
@@ -137,7 +141,8 @@ let term :=
   | args = nonempty_list(paren(annot_args)); Star; e = m(term); { Concrete_syntax.Sg (args_to_tele args,e) }
   | t1 = m(term); Star; t2 = m(term); { Concrete_syntax.Sg ([("_",t1)],t2) }
   | Id; t = m(atomic); e1 = m(atomic); e2 = m(atomic); <Concrete_syntax.Id>
-  | Sig; option(Bar); fs = separated_list(Bar,record_type); { Concrete_syntax.RecordTy fs }
+  | Sig; option(Bar); fs = separated_list(Bar,record_type); { Concrete_syntax.RecordTy {extends = None ; fields = fs} }
+  | Sig; Extends; e = m(term); Bar; fs = separated_list(Bar,record_type); { Concrete_syntax.RecordTy {extends = Some e ; fields = fs}}
   | Struct; option(Bar); fs = separated_list(Bar,record_term); { Concrete_syntax.Record fs }
 
   | Let; x = bound_name; Equal; e1 = m(term); In; e2 = m(term);

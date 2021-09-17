@@ -1,0 +1,17 @@
+def Category : Type^1 = sig
+  | Obj : Type
+  | Hom : Obj -> Obj -> Type
+  | id : (A : Obj) -> Hom A A
+  | comp : (A B C : Obj) -> Hom A B -> Hom B C -> Hom A C
+  | comp-assoc : (A B C D : Obj) (f : Hom A B) (g : Hom B C) (h : Hom C D) -> Id (Hom A D) (comp A B D f (comp B C D g h)) (comp A C D (comp A B C f g) h)
+  | comp-id-l : (A B : Obj) (f : Hom A B) -> Id (Hom A B) f (comp A A B (id A) f)
+  | comp-id-r : (A B : Obj) (f : Hom A B) -> Id (Hom A B) f (comp A B B f (id B))
+
+def Type-Cat : Category^1 = struct
+  | Obj = Type
+  | Hom A B = A -> B
+  | id A x = x
+  | comp A B C f g x = g (f x)
+  | comp-assoc A B C D f g h = refl
+  | comp-id-l A B f = refl
+  | comp-id-r A B f = refl 

@@ -64,14 +64,14 @@ def iso/*-destroy-r (A : Type) : Iso (A * Void) Void = struct
   | gf =  \ p => (elim p.2 with)
   | fg = (\elim)
 
-{-
-def iso/Bool/Unit+Unit : Iso Bool (Sum Unit Unit) =
-  ( \elim tt => inl <> | ff => inr <>
-  , \elim inl _ => tt | inr _ => ff
-  , \elim tt => refl | ff => refl
-  , \elim inl x => (elim x with <> => refl) | inr x => (elim x with <> => refl) 
-  )
 
+def iso/Bool/Unit+Unit : Iso Bool (Sum Unit Unit) = struct
+  | f = (\elim tt => inl <> | ff => inr <>)
+  | g = (\elim inl _ => tt | inr _ => ff)
+  | gf = (\elim tt => refl | ff => refl)
+  | fg = (\elim inl x => refl | inr x => refl)
+
+{-
 def iso/*/Sg (A : Type) (B : A -> Type) : Iso ((x : A) * B x) (Sg A B) = 
   ( \ p => pair p.1 p.2
   , \elim pair x y => (x,y)
