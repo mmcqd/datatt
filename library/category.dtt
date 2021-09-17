@@ -15,3 +15,12 @@ def Type-Cat : Category^1 = struct
   | comp-assoc A B C D f g h = refl
   | comp-id-l A B f = refl
   | comp-id-r A B f = refl 
+
+def Type->Type-Cat : Category^1 = struct
+  | Obj = Type -> Type
+  | Hom A B = ?
+  | id A x = ?
+  | comp A B C f g x = ?
+  | comp-assoc A B C D f g h = ?
+  | comp-id-l A B f = ?
+  | comp-id-r A B f = ? 

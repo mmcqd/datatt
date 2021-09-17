@@ -184,10 +184,10 @@ and check_record pos ctx r rtp env =
     | (f,tm)::r,(f',tp)::rtp -> if not (String.equal f f') then error (sprintf "%s - Expected field %s but found field %s" pos f' f) else
       let tp = Nbe.eval env tp in
       let tm = check ctx tm tp in
-      (f,tm)::check_record pos (Ctx.add ctx ~var:f ~tp) r rtp (Dom.Env.set env ~key:f ~data:(Nbe.eval (Ctx.to_env ctx) tm))
+      (f,tm)::check_record pos ctx r rtp (Dom.Env.set env ~key:f ~data:(Nbe.eval (Ctx.to_env ctx) tm))
     | [],(f,tp)::_ -> error (sprintf "%s - Expected field %s : %s" pos f (Syn.show tp))
     | (f,_)::_,[] -> error (sprintf "%s - Unexpected field %s" pos f)
-    
+
 and mode_switch ctx cs tp =
   let used = Ctx.to_names ctx in
   let tp',s = synth ctx cs in
