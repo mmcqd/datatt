@@ -48,11 +48,18 @@ let rec check (ctx : Ctx.t) (cs : CSyn.t) (tp : Dom.t) : Syn.t =
           let ext = check ctx ext (U i) in
           match normalize ~ctx ~tm:ext ~tp:(U i) with
             | RecordTy ext_fs -> RecordTy (check_record_ty ctx i ((List.map ~f:(fun (f,e) -> (f,Syntax.to_concrete e)) ext_fs) @ fields))
-            | _ -> error (sprintf "%s does not have a record type, it cannot be extended" (Syn.show ext))
+            | _ -> error (sprintf "%s is not a record type, it cannot be extended" (Syn.show ext))
       end
-    | Record fs, RecordTy (ftps,env) -> 
-      (* printf "%i & %i\n" (List.length fs) (List.length ftps); *)
-      Record (check_record (Mark.show cs) ctx fs ftps env)
+    | Record {extends ; fields}, RecordTy (ftps,env) -> 
+      begin
+      match extends with
+        | None -> Record (check_record (Mark.show cs) ctx fields ftps env)
+        | Some ext ->
+          let ext_tp,ext = synth ctx ext in
+          match normalize ~ctx ~tm:ext ~tp:ext_tp with
+            | Record ext_fs -> Record (check_record (Mark.show cs) ctx ((List.map ~f:(fun (f,e) -> (f,Syntax.to_concrete e)) ext_fs) @ fields) ftps env)
+            | _ -> error (sprintf "%s is not a records, it cannot be extended" (Syn.show ext))
+      end
     | Let ((x,e1),e2),tp ->
       let e1_tp,e1' = synth ctx e1 in
       let e2' = check (Ctx.add_let ctx ~var:x ~def:(Nbe.eval (Ctx.to_env ctx) e1') ~tp:e1_tp) e2 tp in
@@ -178,8 +185,9 @@ and check_record pos ctx r rtp env =
       let tp = Nbe.eval env tp in
       let tm = check ctx tm tp in
       (f,tm)::check_record pos (Ctx.add ctx ~var:f ~tp) r rtp (Dom.Env.set env ~key:f ~data:(Nbe.eval (Ctx.to_env ctx) tm))
-    | _ -> error (sprintf "%s - record and record type have different lengths" pos)
-
+    | [],(f,tp)::_ -> error (sprintf "%s - Expected field %s : %s" pos f (Syn.show tp))
+    | (f,_)::_,[] -> error (sprintf "%s - Unexpected field %s" pos f)
+    
 and mode_switch ctx cs tp =
   let used = Ctx.to_names ctx in
   let tp',s = synth ctx cs in

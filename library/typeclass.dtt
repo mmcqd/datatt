@@ -3,66 +3,73 @@ import library/fn
 import library/list
 
 
-def Functor (F : Type -> Type) : Type^1 = (A B : Type) -> (A -> B) -> F A -> F B
+def Functor (F : Type -> Type) : Type^1 = sig
+  | fmap : (A B : Type) -> (A -> B) -> F A -> F B
 
-def Applicative (F : Type -> Type) : Type^1 =
-  (pure : (A : Type) -> A -> F A) *
-  (<*> : (A B : Type) -> F (A -> B) -> F A -> F B) *
-  Functor F
+def Applicative (F : Type -> Type) : Type^1 = sig extends Functor F
+  | pure : (A : Type) -> A -> F A
+  | <*> : (A B : Type) -> F (A -> B) -> F A -> F B
 
-def Monad (F : Type -> Type) : Type^1 = 
-  (join : (A : Type) -> F (F A) -> F A) *
-  Applicative F
-
+def Monad (F : Type -> Type) : Type^1 = sig extends Applicative F
+  | join : (A : Type) -> F (F A) -> F A
 
 def bind (F : Type -> Type) (M : Monad F) (A B : Type) (m : F A) (f : A -> F B) : F B =
-  M.1 B (M.2.2.2 A (F B) f m)
+  M.join B (M.fmap A (F B) f m)
 
-def Functor-id : Functor (\ A => A) = \ _ _ f => f
+def Functor-id : Functor (\A => A) = struct
+  | fmap A B f = f
 
-def Applicative-id : Applicative (\ A => A) = (id,Functor-id,Functor-id)
+def Applicative-id : Applicative (\A => A) = struct extends Functor-id
+  | pure A x = x
+  | <*> A B f x = f x
 
-def Monad-id : Monad (\ A => A) = (id,Applicative-id)
+def Monad-id : Monad (\A => A) = struct extends Applicative-id
+  | join A x = x
 
-def Functor-Maybe : Functor Maybe = \ A B f => \elim
-  | none => none
-  | some x => some (f x)
 
-def Applicative-Maybe : Applicative Maybe =
-  (\ _ x => some x,\ _ _ => \elim none => \ _ => none | some f => \elim none => none | some x => some (f x),Functor-Maybe)
+def Functor-Maybe : Functor Maybe = struct
+  | fmap A B f = (\elim none => none | some x => some (f x))
 
-def Monad-Maybe : Monad Maybe =
-  (\ _ => \elim none => none | some x => x,Applicative-Maybe)
+def Applicative-Maybe : Applicative Maybe = struct extends Functor-Maybe
+  | pure A x = some x
+  | <*> A B f x = (elim f with
+    | none => none
+    | some f => elim x with
+      | none => none
+      | some x => some (f x)
+  )
 
-def Functor-List : Functor List = \ A B f => \elim
-  | nil => nil
-  | cons x (xs / ih) => cons (f x) ih
+def Monad-Maybe : Monad Maybe = struct extends Applicative-Maybe
+  | join A = \elim
+    | none => none
+    | some x => x
 
-def Applicative-List : Applicative List = 
-  ( \ _ x => cons x nil
-  , \ A B fs xs => elim fs with
+def Functor-List : Functor List = struct
+  | fmap A B f = \elim
+    | nil => nil
+    | cons x (xs / ih) => cons (f x) ih
+
+def Applicative-List : Applicative List = struct extends Functor-List
+  | pure A x = cons x nil
+  | <*> A B fs xs = elim fs with
     | nil => nil
     | cons f (fs / ih) => ++ B (map A B f xs) ih
-  , Functor-List
-  )
 
-def Monad-List : Monad List =
-  ( \ A => \elim
+def Monad-List : Monad List = struct extends Applicative-List
+  | join A = \elim
     | nil => nil
     | cons x (_ / ih) => ++ A x ih
-  , Applicative-List
-  )
 
-def Functor-NotNot : Functor (\ A => Not (Not A)) =
-  \ A B f ~~a ~b => ~~a (\ a => ~b (f a))
 
-def Applicative-NotNot : Applicative (\ A => Not (Not A)) =
-  ( \ A a ~a => ~a a
-  , \ A B ~~A->B ~~a ~b => ~~A->B (\ f => ~~a (\ a => ~b (f a)))
-  , Functor-NotNot
-  )
+def NotNot (A : Type) : Type = Not (Not A)
 
-def Monad-NotNot : Monad (\ A => Not (Not A)) =
-  ( \ A ~~~~a ~a => ~~~~a (\ ~~a => ~~a ~a)
-  , Applicative-NotNot
-  )
+def Functor-NotNot : Functor NotNot = struct
+  | fmap A B f ~~a ~b = ~~a (\ a => ~b (f a))
+
+def Applicative-NotNot : Applicative NotNot = struct extends Functor-NotNot
+  | pure A a ~a = ~a a
+  | <*> A B ~~A->B ~~a ~b = ~~A->B (\ f => ~~a (\ a => ~b (f a)))
+
+
+def Monad-NotNot : Monad NotNot = struct extends Applicative-NotNot
+  | join A ~~~~a ~a = ~~~~a (\ ~~a => ~~a ~a)

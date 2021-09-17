@@ -143,7 +143,8 @@ let term :=
   | Id; t = m(atomic); e1 = m(atomic); e2 = m(atomic); <Concrete_syntax.Id>
   | Sig; option(Bar); fs = separated_list(Bar,record_type); { Concrete_syntax.RecordTy {extends = None ; fields = fs} }
   | Sig; Extends; e = m(term); Bar; fs = separated_list(Bar,record_type); { Concrete_syntax.RecordTy {extends = Some e ; fields = fs}}
-  | Struct; option(Bar); fs = separated_list(Bar,record_term); { Concrete_syntax.Record fs }
+  | Struct; option(Bar); fs = separated_list(Bar,record_term); { Concrete_syntax.Record {extends = None ; fields = fs} }
+  | Struct; Extends; e = m(term); Bar; fs = separated_list(Bar,record_term); { Concrete_syntax.Record {extends = Some e ; fields = fs}}
 
   | Let; x = bound_name; Equal; e1 = m(term); In; e2 = m(term);
      {Concrete_syntax.Let ((x,e1),e2) }
