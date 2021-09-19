@@ -60,7 +60,9 @@ let rec_map (f : t -> t) = function
 let rec bottom_up f x = x |> rec_map (bottom_up f) |> f
 let rec top_down f x = x |> f |> rec_map (top_down f)
 
-let lift i = bottom_up (function U (Const j) -> U (Const (j + i)) | x -> x)
+let lift i = bottom_up (function 
+  | U (Const j) -> U (Const (j + i)) 
+  | x -> x)
 
 let rec pp_term (e : t) : string =
   match e with
@@ -81,7 +83,7 @@ let rec pp_term (e : t) : string =
       sprintf "elim %s with" (pp_atomic scrut)
     | Elim {mot = _ ; arms ; scrut} ->
       sprintf "elim %s with %s" (pp_atomic scrut) (pp_arms arms)
-    | Id (a,x,y) -> sprintf "Id %s %s %s" (pp_atomic a) (pp_atomic x) (pp_atomic y)
+    | Id (_,x,y) -> sprintf "%s = %s" (pp_term x) (pp_term y)
     | J {mot = _; body = (a,case) ; scrut} -> 
       sprintf "match %s with refl %s ⇒ %s" (pp_atomic scrut) a (pp_term case)
     | Refl x -> sprintf "refl %s" (pp_atomic x)

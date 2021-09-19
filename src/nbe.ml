@@ -14,7 +14,9 @@ let rec eval (env : Dom.env) (s : Syn.t) : Dom.t =
   (* printf "EVAL %s\n" (Syn.show s); *)
   match s with
     | Var x -> Dom.Env.find_exn env x
-    | Lift {name ; lvl} -> Dom.lift lvl (Dom.Env.find_exn env name)
+    | Lift {name ; lvl} -> 
+        let Dom.{tm;tp} = Dom.Env.find_def_exn env name in
+        eval env (Syn.lift lvl (read_back (Dom.Env.key_set env) tm tp))
     | U i -> U i
     | Pi ((x,d),r) -> Pi (eval env d,{name = x ; tm = r ; env})
     | Lam (x,s) -> Lam {name = x ; tm = s ; env}
@@ -103,30 +105,30 @@ and do_j (mot : Dom.clos3) (body : Dom.clos) (scrut : Dom.t) : Dom.t =
               }
     | d -> failwith (sprintf "do_j - %s" (Dom.show d))
 
-let fresh used x = if String.equal x "_" then x,used else
+and fresh used x = if String.equal x "_" then x,used else
   let rec go x = 
     if String.Set.mem used x then go (x ^ "'") else x
   in let y = go x in
   y,String.Set.add used y
 
-let fresh3 used (x,y,z) =
+and fresh3 used (x,y,z) =
   let x,used = fresh used x in
   let y,used = fresh used y in
   let z,used = fresh used z in
   (x,y,z,used)
 
 
-let resolve_name used (f : Dom.t) (x : string) =
+and resolve_name used (f : Dom.t) (x : string) =
   match f,x with
     | Lam clos,"_" -> clos.name,used
     | _,"_" -> fresh used "x"
     | _ -> fresh used x
 
-let resolve_arg_tp (desc,params) : Dom.spec -> Dom.t = function
+and resolve_arg_tp (desc,params) : Dom.spec -> Dom.t = function
   | Rec -> Data {desc ; params}
   | Tp tp -> eval desc.env tp
 
-let rec apply_params (desc : Dom.desc) param_tps ps =
+and apply_params (desc : Dom.desc) param_tps ps =
   match param_tps,ps with
     | [],[] -> desc
     | (x,_)::param_tps,p::ps ->
@@ -134,7 +136,7 @@ let rec apply_params (desc : Dom.desc) param_tps ps =
     | _ -> failwith "apply_params"
 
 
-let rec equate ?(subtype = false) (used : String.Set.t) (e1 : Dom.t) (e2 : Dom.t) (tp : Dom.t) : Syn.t =
+and equate ?(subtype = false) (used : String.Set.t) (e1 : Dom.t) (e2 : Dom.t) (tp : Dom.t) : Syn.t =
   (* printf "-----\nEQUATING\n%s\nWITH\n%s\nAT\n%s\n-----\n" (Dom.show e1) (Dom.show e2) (Dom.show tp); *)
   match e1,e2,tp with
     | U i, U j, U _ -> 
@@ -158,7 +160,7 @@ let rec equate ?(subtype = false) (used : String.Set.t) (e1 : Dom.t) (e2 : Dom.t
         if not (String.equal f1 f2) then error "non_equal fields" else
         let tp1 = eval env1 tp1 in
         let tp2 = eval env2 tp2 in
-        (f1,equate used tp1 tp2 (U i))::r,Dom.Env.set env1 ~key:f1 ~data:(var f1 tp1),Dom.Env.set env2 ~key:f2 ~data:(var f2 tp2)
+        (f1,equate ~subtype used tp1 tp2 (U i))::r,Dom.Env.set env1 ~key:f1 ~data:(var f1 tp1),Dom.Env.set env2 ~key:f2 ~data:(var f2 tp2)
       ) in
       begin
       match q with

@@ -1,26 +1,64 @@
+import library/id
+
 def Category : Type^1 = sig
   | Obj : Type
-  | Hom : Obj -> Obj -> Type
-  | id : (A : Obj) -> Hom A A
-  | comp : (A B C : Obj) -> Hom A B -> Hom B C -> Hom A C
-  | comp-assoc : (A B C D : Obj) (f : Hom A B) (g : Hom B C) (h : Hom C D) -> Id (Hom A D) (comp A B D f (comp B C D g h)) (comp A C D (comp A B C f g) h)
-  | comp-id-l : (A B : Obj) (f : Hom A B) -> Id (Hom A B) f (comp A A B (id A) f)
-  | comp-id-r : (A B : Obj) (f : Hom A B) -> Id (Hom A B) f (comp A B B f (id B))
+  | Mor : Obj -> Obj -> Type
+  | id : (A : Obj) -> Mor A A
+  | comp : (A B C : Obj) -> Mor A B -> Mor B C -> Mor A C
+  | assoc : (A B C D : Obj) (f : Mor A B) (g : Mor B C) (h : Mor C D) -> Id (Mor A D) (comp A B D f (comp B C D g h)) (comp A C D (comp A B C f g) h)
+  | id-l : (A B : Obj) (f : Mor A B) -> Id (Mor A B) f (comp A A B (id A) f)
+  | id-r : (A B : Obj) (f : Mor A B) -> Id (Mor A B) f (comp A B B f (id B))
+
+-- Bundled Morphism
+def BMor (C : Category) : Type = sig
+  | o1 : C.Obj | o2 : C.Obj
+  | m : C.Mor o1 o2
 
 def Type-Cat : Category^1 = struct
   | Obj = Type
-  | Hom A B = A -> B
+  | Mor A B = A -> B
   | id A x = x
   | comp A B C f g x = g (f x)
-  | comp-assoc A B C D f g h = refl
-  | comp-id-l A B f = refl
-  | comp-id-r A B f = refl 
+  | assoc A B C D f g h = refl
+  | id-l A B f = refl
+  | id-r A B f = refl 
 
 def Type->Type-Cat : Category^1 = struct
   | Obj = Type -> Type
-  | Hom A B = ?
-  | id A x = ?
-  | comp A B C f g x = ?
-  | comp-assoc A B C D f g h = ?
-  | comp-id-l A B f = ?
-  | comp-id-r A B f = ? 
+  | Mor F G = (A : Type) -> F A -> G A
+  | id F A x = x
+  | comp F G H f g A fa = g A (f A fa)
+  | assoc F G H I f g h = refl
+  | id-l F G f = refl
+  | id-r F G f = refl
+
+
+def Functor (C D : Category) : Type = sig
+  | F1 : C.Obj -> D.Obj
+  | F2 : (A B : C.Obj) -> C.Mor A B -> D.Mor (F1 A) (F1 B)
+  | id : (A : C.Obj) -> Id (D.Mor (F1 A) (F1 A)) (F2 A A (C.id A)) (D.id (F1 A))
+  | comp : (X Y Z : C.Obj) (f : C.Mor X Y) (g : C.Mor Y Z) -> Id (D.Mor (F1 X) (F1 Z)) (F2 X Z (C.comp X Y Z f g)) (D.comp (F1 X) (F1 Y) (F1 Z) (F2 X Y f) (F2 Y Z g))
+
+def Nat-Trans (C D : Category) (F G : Functor C D) : Type = sig
+  | eta : (X : C.Obj) -> D.Mor (F.F1 X) (G.F1 X)
+  | comp : (X Y : C.Obj) (f : C.Mor X Y) -> 
+           Id (D.Mor (F.F1 X) (G.F1 Y)) (D.comp (F.F1 X) (F.F1 Y) (G.F1 Y) (F.F2 X Y f) (eta Y)) (D.comp (F.F1 X) (G.F1 X) (G.F1 Y) (eta X) (G.F2 X Y f))
+
+def Functor-Category (C D : Category) : Category = struct
+  | Obj = Functor C D
+  | Mor = Nat-Trans C D
+  | id F = (struct 
+    | eta X = D.id (F.F1 X) 
+    | comp X Y f = match D.id-l (F.F1 X) (F.F1 Y) (F.F2 X Y f) with
+      | refl i => match D.id-r (F.F1 X) (F.F1 Y) i with
+        | refl j => refl
+  )
+  | comp F G H n1 n2 = (struct
+    | eta X = D.comp (F.F1 X) (G.F1 X) (H.F1 X) (n1.eta X) (n2.eta X)
+    | comp X Y f = ?
+  )
+  | assoc = ?
+  | id-l = ?
+  | id-r = ?
+
+def Endofunctor (C : Category) : Type = Functor C C

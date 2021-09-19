@@ -54,6 +54,7 @@ and arm_clos = {names : [`Rec of string * string | `Arg of string] list ; arm : 
 
 and env_entry =
   | Desc of desc
+  | Def of {tm : t ; tp : t}
   | Tm of t
 
 and env = env_entry Map.t
@@ -88,19 +89,27 @@ module Env =
 
     let set env ~key ~data = String.Map.set env ~key ~data:(Tm data)
   
-    let set_data env ~key ~(data : desc) = String.Map.set env ~key ~data:(Desc data)
+    let set_data env ~var ~(data : desc) = String.Map.set env ~key:var ~data:(Desc data)
 
     let find_exn (env : env) (s : string) : dom =
       match String.Map.find_exn env s with
-        | Tm t -> t
+        | Tm tm -> tm
+        | Def {tm;_} -> tm
         | Desc d -> params_to_dlam env d d.params
-    
+
+    let find_def_exn (env : env) (s : string) : nf =
+      match String.Map.find_exn env s with
+        | Def {tm ; tp} -> {tm ; tp}
+        | _ -> failwith "find_def_exn"
+
     let find_data_exn (env : env) (s : string) : desc =
       match String.Map.find_exn env s with
-        | Tm _ -> failwith "find_data_exn - env"
+        | Tm _ | Def _ -> failwith "find_data_exn - env"
         | Desc d -> d
-  end
 
+    let key_set = String.Map.key_set
+  end
+(* 
 
 let rec lift i = function
   | Lam clos -> Lam (lift_clos i clos)
@@ -117,6 +126,8 @@ let rec lift i = function
   | Record fs -> Record (List.map ~f:(fun (f,tm) -> (f,lift i tm)) fs)
   | Neutral {tp ; ne} -> Neutral {tp = lift i tp ; ne = lift_ne i ne}
 
+
+(* Wrong because the closure might contain toplevel vars that should be expanded *)
 and lift_clos i clos =
   {clos with tm = Syntax.lift i clos.tm}
 
@@ -136,4 +147,4 @@ and lift_ne i = function
   | Fst p -> Fst (lift_ne i p)
   | Snd p -> Snd (lift_ne i p)
   | Proj (f,ne) -> Proj (f,lift_ne i ne)
-  | Hole {name ; tp} -> Hole {name ; tp = lift i tp}
+  | Hole {name ; tp} -> Hole {name ; tp = lift i tp} *)

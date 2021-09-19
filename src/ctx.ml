@@ -15,7 +15,8 @@ let empty = String.Map.empty
 let to_env : t -> Dom.Env.t = String.Map.mapi ~f:(fun ~key ~data -> 
   match data with 
     | Var tp -> Dom.Tm (Dom.Neutral {ne = Var key ; tp})
-    | Def {tm ; _} | Let {tm ; _}-> Tm tm
+    | Def {tm ; tp} -> Def {tm ; tp} 
+    | Let {tm ; _}-> Tm tm
     | Data d -> Desc d
   )
 
