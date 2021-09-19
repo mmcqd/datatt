@@ -45,7 +45,7 @@ def +-zero : Id-R Nat + zero = \elim
   | suc (_ / ih) => match ih with
       | refl _ => refl
 
-def +-suc (n m : Nat) : Id Nat (suc (+ n m)) (+ n (suc m)) = elim n with
+def +-suc (n m : Nat) : suc (+ n m) == + n (suc m) = elim n with
   | zero => refl
   | suc (n' / ih) => 
     match ih with
@@ -84,7 +84,7 @@ def id-elim : Nat -> Nat = \elim
   | zero => zero
   | suc n => suc n
 
-def id-elim-id : (n : Nat) -> Id Nat (id Nat n) (id-elim n) = \elim
+def id-elim-id : (n : Nat) -> id Nat n == id-elim n = \elim
   | zero => refl
   | suc _ => refl
 

@@ -90,6 +90,18 @@ let rec check (ctx : Ctx.t) (cs : CSyn.t) (tp : Dom.t) : Syn.t =
           end
         | _ -> mode_switch ctx cs tp
       end
+    | Eq (x,y), U i ->
+      begin
+      try
+        let a,x = synth ctx x in
+        let y = check ctx y a in
+        Id (Nbe.read_back (Ctx.to_names ctx) a (U i),x,y)
+      with TypeError _ ->
+        let a,y = synth ctx y in
+        let x = check ctx x a in
+        Id (Nbe.read_back (Ctx.to_names ctx) a (U i),x,y)
+      end
+      
     | Id (a,x,y), U i ->
       let a = check ctx a (U i) in
       let a' = Nbe.eval (Ctx.to_env ctx) a in

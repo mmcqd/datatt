@@ -3,22 +3,29 @@ import library/unit
 import library/nat
 import library/bool
 
-def PType : Type^1 = (A : Type) * A
+def PType : Type^1 = sig
+  | t  : Type
+  | pt : t
 
-def UnitP : PType = (Unit,<>)
-def BoolP : PType = (Bool,tt)
-def NatP : PType = (Nat,zero)
-def TypeP : PType^1 = (Type,Unit)
-def TypePN : PType^2 = (Type^1,Type)
+def UnitP : PType = struct t = Unit | pt = <>
+def BoolP : PType = struct t = Bool | pt = tt
+def NatP : PType = struct t = Nat | pt = zero
+def TypeP : PType^1 = struct t = Type | pt = Unit
+def TypePN : PType^2 = struct t = Type^1 | pt = Type
 
 
-def Loop (P : PType) : PType =
-  (Id P.1 P.2 P.2, refl)
+def *-P (A B : PType) : PType = struct
+  | t = A.t * B.t
+  | pt = (A.pt,B.pt)
 
-def LoopN (P : PType) : Nat -> PType = \elim
+def Loop (P : PType) : PType = struct
+  | t = P.pt == P.pt
+  | pt = refl
+
+def LoopN (n : Nat) (P : PType) : PType = elim n with
   | zero => P
   | suc (_ / ih) => Loop ih
 
-def PType-not-Void (P : PType) : Not^1 (Id Type P.1 Void) = \ p =>
-  coe P.1 Void p P.2
+def PType-not-Void (P : PType) : Not^1 (P.t == Void) = \ p =>
+  coe P.t Void p P.pt
 

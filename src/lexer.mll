@@ -41,6 +41,7 @@ rule initial = parse
   | "def" { Def }
   | "axiom" { Axiom }
   | "=" { Equal }
+  | "==" { DoubleEqual }
   | "refl" { Refl }
   | "Id" { Id }
   | "match" { Match }

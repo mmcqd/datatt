@@ -1,11 +1,11 @@
 
-def Comm (A : Type) (op : A -> A -> A) : Type = (x y : A) -> Id A (op x y) (op y x)
+def Comm (A : Type) (op : A -> A -> A) : Type = (x y : A) -> op x y == op y x
 
-def Assoc (A : Type) (op : A -> A -> A) : Type = (x y z : A) -> Id A (op (op x y) z) (op x (op y z))
+def Assoc (A : Type) (op : A -> A -> A) : Type = (x y z : A) -> op (op x y) z == op x (op y z)
 
-def Id-L (A : Type) (op : A -> A -> A) (z : A) : Type = (x : A) -> Id A x (op z x)
+def Id-L (A : Type) (op : A -> A -> A) (z : A) : Type = (x : A) -> x == op z x
 
-def Id-R (A : Type) (op : A -> A -> A) (z : A) : Type = (x : A) -> Id A x (op x z)
+def Id-R (A : Type) (op : A -> A -> A) (z : A) : Type = (x : A) -> x == op x z
 
 
 def Magma (C : Type) : Type = C -> C -> C

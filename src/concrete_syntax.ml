@@ -35,6 +35,7 @@ type t_ =
   | RecordTy of {extends : t option ; fields : (string * t) list}
   | Record of {extends : t option ; fields : (string * t) list}
   | Proj of string * t
+  | Eq of t * t
   | Id of t * t * t
   | Refl
   | J of {mot : (string * string * string * t) option ; scrut : t ; body : string * t}

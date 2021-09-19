@@ -40,7 +40,7 @@ let rec run_cmds importing imported ctx = function
     match cmd with
     | Eval e ->
       let tp,tm = Elab.synth ctx e in 
-      printf "_ : %s\n" (Syn.show (Nbe.read_back (Ctx.to_names ctx) tp (U Omega)));
+      printf "_ : %s\n\n" (Syn.show (Nbe.read_back (Ctx.to_names ctx) tp (U Omega)));
       printf "_ = %s\n\n" (Syn.show (Elab.normalize ~tm ~tp ~ctx));
       run_cmds importing imported ctx cmds
     | Def (x,e) -> 

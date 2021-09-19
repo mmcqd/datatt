@@ -32,7 +32,7 @@ let new_hole () = hole_count := (!hole_count) + 1; Int.to_string (!hole_count)
 %token Type Caret
 %token Colon Semicolon
 %token Underbar
-%token Id Refl
+%token Id DoubleEqual Refl
 %token Match With Bar At
 %token Data Elim F_slash
 %token Def Equal Axiom
@@ -41,6 +41,7 @@ let new_hole () = hole_count := (!hole_count) + 1; Int.to_string (!hole_count)
 
 
 %right Arrow
+%right DoubleEqual
 %right Star
 
 %type <Concrete_syntax.cmd list> init
@@ -145,6 +146,7 @@ let term :=
   | Sig; Extends; e = m(term); Bar; fs = separated_list(Bar,record_type); { Concrete_syntax.RecordTy {extends = Some e ; fields = fs}}
   | Struct; option(Bar); fs = separated_list(Bar,record_term); { Concrete_syntax.Record {extends = None ; fields = fs} }
   | Struct; Extends; e = m(term); Bar; fs = separated_list(Bar,record_term); { Concrete_syntax.Record {extends = Some e ; fields = fs}}
+  | e1 = m(term); DoubleEqual; e2 = m(term); { Concrete_syntax.Eq (e1,e2) }
 
   | Let; x = bound_name; Equal; e1 = m(term); In; e2 = m(term);
      {Concrete_syntax.Let ((x,e1),e2) }

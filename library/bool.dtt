@@ -33,15 +33,15 @@ def or (a b : Bool) : Bool = elim a with
   | ff => b
 
 
-def not-not : (b : Bool) -> Id Bool b (not (not b)) = \elim
+def not-not : (b : Bool) -> b == not (not b) = \elim
   | tt => refl
   | ff => refl
 
-def demorgan1 (a b : Bool) : Id Bool (not (and a b)) (or (not a) (not b)) = elim a with
+def demorgan1 (a b : Bool) : not (and a b) == or (not a) (not b) = elim a with
   | tt => refl
   | ff => refl
 
-def demorgan2 (a b : Bool) : Id Bool (not (or a b)) (and (not a) (not b)) = elim a with
+def demorgan2 (a b : Bool) : not (or a b) == and (not a) (not b) = elim a with
   | tt => refl
   | ff => refl
 

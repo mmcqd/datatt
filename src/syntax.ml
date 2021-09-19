@@ -83,13 +83,13 @@ let rec pp_term (e : t) : string =
       sprintf "elim %s with" (pp_atomic scrut)
     | Elim {mot = _ ; arms ; scrut} ->
       sprintf "elim %s with %s" (pp_atomic scrut) (pp_arms arms)
-    | Id (_,x,y) -> sprintf "%s = %s" (pp_term x) (pp_term y)
+    | Id (_,x,y) -> sprintf "%s == %s" (pp_term x) (pp_term y)
     | J {mot = _; body = (a,case) ; scrut} -> 
       sprintf "match %s with refl %s ⇒ %s" (pp_atomic scrut) a (pp_term case)
     | Refl x -> sprintf "refl %s" (pp_atomic x)
     | Let ((x,e1),e2) -> sprintf "let %s = %s in %s" x (pp_term e1) (pp_term e2)
-    | RecordTy fs -> "sig "^pp_record ":" fs
-    | Record fs -> "struct "^pp_record "=" fs
+    | RecordTy (f::fs) -> "sig "^pp_record ":" (f::fs)
+    | Record (f::fs) -> "struct "^pp_record "=" (f::fs)
     | _ -> pp_atomic e 
 
 and pp_record sep = function
@@ -133,6 +133,8 @@ and pp_atomic (e : t) : string =
     | Proj (f,t) -> sprintf "%s.%s" (pp_atomic t) f
     | Data {name ; params = []} -> name
     | Intro {name ; args = []} -> name
+    | Record [] -> "struct"
+    | RecordTy [] -> "sig"
     | _ -> sprintf "(%s)" (pp_term e)
 
 let show = pp_term

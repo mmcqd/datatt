@@ -10,7 +10,7 @@ def lower (A : Type) : Dec A -> Bool = \elim
   | yes _ => tt
   | no  _ => ff
 
-def Dec-Id (A : Type) : Type = (x y : A) -> Dec (Id A x y)
+def Dec-Id (A : Type) : Type = (x y : A) -> Dec (x == y)
 
 
 def dec-Unit : Dec-Id Unit = \ _ _ => yes refl
@@ -32,7 +32,7 @@ def dec-Nat : Dec-Id Nat = \elim
         | no ~p => no (\ p => ~p (cong Nat Nat pred (suc n) (suc m) p))
 
 
-def eq-Nat (x y : Nat) : Bool = lower (Id Nat x y) (dec-Nat x y)
+def eq-Nat (x y : Nat) : Bool = lower (x == y) (dec-Nat x y)
 
 
 def dec-* (A B : Type) : Dec A -> Dec B -> Dec (A * B) = \elim
@@ -56,7 +56,7 @@ def dec-id-* (A B : Type) (da : Dec-Id A) (db : Dec-Id B) : Dec-Id (A * B) = \ p
       | no ~b => no (\ i => ~a (pair-id-l A B p q i))
     )
 
-def eq-* (A B : Type) (da : Dec-Id A) (db : Dec-Id B) (x y : A * B): Bool = lower (Id (A * B) x y) (dec-id-* A B da db x y)
+def eq-* (A B : Type) (da : Dec-Id A) (db : Dec-Id B) (x y : A * B): Bool = lower (x == y) (dec-id-* A B da db x y)
 
 def dec-Sum (A B : Type) : Dec A -> Dec B -> Dec (Sum A B) = \elim
   | yes a => \ _ => yes (inl a)
@@ -80,4 +80,4 @@ def dec-id-Sum (A B : Type) (da : Dec-Id A) (db : Dec-Id B) : Dec-Id (Sum A B) =
     | inl a => no (\ ()) 
   )
 
-def eq-Sum (A B : Type) (da : Dec-Id A) (db : Dec-Id B) (s1 s2 : Sum A B) : Bool = lower (Id (Sum A B) s1 s2) (dec-id-Sum A B da db s1 s2)
+def eq-Sum (A B : Type) (da : Dec-Id A) (db : Dec-Id B) (s1 s2 : Sum A B) : Bool = lower (s1 == s2) (dec-id-Sum A B da db s1 s2)

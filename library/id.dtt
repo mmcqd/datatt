@@ -1,86 +1,85 @@
 
-def J (A : Type) (P : (x y : A) -> Id A x y -> Type) (f : (x : A) -> P x x refl) (x y : A) (p : Id A x y) : P x y p =
+def J (A : Type) (P : (x y : A) -> x == y -> Type) (f : (x : A) -> P x x refl) (x y : A) (p : x == y) : P x y p =
   match p with
     | refl i => f i
 
-axiom K : (A : Type) (x : A) (P : Id A x x -> Type) (r : P refl) (p : Id A x x) -> P p
+axiom K : (A : Type) (x : A) (P : x == x -> Type) (r : P refl) (p : x == x) -> P p
 
 
 -- K implies UIP
-def UIP (A : Type) (x y : A) : (p q : Id A x y) -> Id (Id A x y) p q = \p =>
+def UIP (A : Type) (x y : A) : (p q : x == y) -> p == q = \p =>
   match p with
-    | refl i => K A i (\q => Id (Id A i i) refl q) refl
+    | refl i => K A i (\q => refl == q) refl
 
-def sym (A : Type) (x y : A) (p : Id A x y) : Id A y x =
+def sym (A : Type) (x y : A) (p : x == y) : y == x =
   match p with
     | refl x => refl
 
-def trans (A : Type) (x y z : A) (p : Id A x y) : Id A y z -> Id A x z =
+def trans (A : Type) (x y z : A) (p : x == y) : y == z -> x == z =
   match p with
     | refl _ => \ x => x
 
-def cong (A B : Type) (f : A -> B) (x y : A) (p : Id A x y) : Id B (f x) (f y) =
+def cong (A B : Type) (f : A -> B) (x y : A) (p : x == y) : f x == f y =
   match p with
     | refl _ => refl
 
-def subst (A : Type) (x y : A) (p : Id A x y) (P : A -> Type) : P x -> P y =
+def subst (A : Type) (x y : A) (p : x == y) (P : A -> Type) : P x -> P y =
   match p with
     | refl _ => \ z => z
 
-def coe (A B : Type) (p : Id Type A B) : A -> B =
+def coe (A B : Type) (p : A == B) : A -> B =
   match p with
     | refl _ => λ x => x
 
-def trans-refl (A : Type) (x y : A) (p : Id A x y) : Id (Id A x y) p (trans A x y y p refl) =
+def trans-refl (A : Type) (x y : A) (p : x == y) : trans A x y y p refl == p =
   match p with
     | refl _ => refl
 
-def refl-trans (A : Type) (x y : A) (p : Id A x y) : Id (Id A x y) p (trans A x x y refl p) =
+def refl-trans (A : Type) (x y : A) (p : x == y) : trans A x x y refl p == p =
   match p with
     | refl _ => refl
 
-def sym-sym (A : Type) (x y : A) (p : Id A x y) : Id (Id A x y) p (sym A y x (sym A x y p)) =
+def sym-sym (A : Type) (x y : A) (p : x == y) : sym A y x (sym A x y p) == p =
   match p with
     | refl _ => refl
 
-def sym-inverse (A : Type) (x y : A) (p : Id A x y) : Id (Id A y y) refl (trans A y x y (sym A x y p) p) =
+def sym-inverse (A : Type) (x y : A) (p : x == y) : refl == trans A y x y (sym A x y p) p =
   match p with
     | refl i => refl
 
-def sym-refl (A : Type) (x : A) : Id (Id A x x) refl (sym A x x refl) =
+def sym-refl (A : Type) (x : A) : sym A x x refl == refl =
   refl
 
-def trans-assoc (A : Type) (a b c d : A) (p : Id A a b) : (q : Id A b c) (h : Id A c d) -> Id (Id A a d) (trans A a c d (trans A a b c p q) h) (trans A a b d p (trans A b c d q h)) =
+def trans-assoc (A : Type) (a b c d : A) (p : a == b) : (q : b == c) (h : c == d) -> trans A a c d (trans A a b c p q) h == trans A a b d p (trans A b c d q h) =
   match p with
     | refl i => \ q => match q with
       | refl j => \ h => refl
 
-def coe-refl (A : Type) (x : A) : Id A (coe A A refl x) x = refl
+def coe-refl (A : Type) (x : A) : coe A A refl x == x = refl
 
-def coe-trans (A B C : Type) (p : Id Type A B) : (q : Id Type B C) (x : A) -> Id C (coe B C q (coe A B p x)) (coe A C (trans^1 Type A B C p q) x) =
+def coe-trans (A B C : Type) (p : A == B) : (q : B == C) (x : A) -> coe B C q (coe A B p x) == coe A C (trans^1 Type A B C p q) x =
   match p with
     | refl I => \ _ _ => refl
 
-def pair-ext (A B : Type) (x y : A * B) (p : Id A x.1 y.1) (q : Id B x.2 y.2) : Id (A * B) x y =
+def pair-ext (A B : Type) (x y : A * B) (p : x.1 == y.1) (q : x.2 == y.2) : x == y =
   match p with
     | refl w => match q with
       | refl h => refl
 
-def fam-coe (A : Type) (B : A -> Type) (a b : A) (p : Id A a b) (y : B b) : B a =
+def fam-coe (A : Type) (B : A -> Type) (a b : A) (p : a == b) (y : B b) : B a =
   coe (B b) (B a) (cong^1 A Type B b a (sym A a b p)) y
 
-def pair-extd-uncurried (A : Type) (B : A -> Type) (x1 y1 : A) (p : Id A x1 y1) : 
-                        (x2 : B x1) (y2 : B y1) (q : Id (B x1) x2 (fam-coe A B x1 y1 p y2)) -> Id ((a : A) * B a) (x1,x2) (y1,y2) =
+def pair-extd-uncurried (A : Type) (B : A -> Type) (x1 y1 : A) (p : x1 == y1) : 
+                        (x2 : B x1) (y2 : B y1) (q : x2 == fam-coe A B x1 y1 p y2) -> Id ((a : A) * B a) (x1,x2) (y1,y2) =
   match p with
     | refl i => \x2 y2 q => match q with refl j => refl
 
-def pair-extd (A : Type) (B : A -> Type) (x y : (a : A) * B a) (p : Id A x.1 y.1) (q : Id (B x.1) x.2 (fam-coe A B x.1 y.1 p y.2)) : Id ((a : A) * B a) x y =
+def pair-extd (A : Type) (B : A -> Type) (x y : (a : A) * B a) (p : x.1 == y.1) (q : x.2 == fam-coe A B x.1 y.1 p y.2) : x == y =
   pair-extd-uncurried A B x.1 y.1 p x.2 y.2 q
 
 
-def pair-id-l (A B : Type) (x y : A * B) (p : Id (A * B) x y) : Id A x.1 y.1 =
+def pair-id-l (A B : Type) (x y : A * B) (p : x == y) : x.1 == y.1 =
   cong (A * B) A (\ x => x.1) x y p
 
-def pair-id-r (A B : Type) (x y : A * B) (p : Id (A * B) x y) : Id B x.2 y.2 =
+def pair-id-r (A B : Type) (x y : A * B) (p : x == y) : x.2 == y.2 =
   cong (A * B) B (\ x => x.2) x y p
-
