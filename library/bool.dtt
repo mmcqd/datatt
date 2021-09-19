@@ -1,6 +1,6 @@
-import library/id
-import library/unit
-import library/void
+import id
+import unit
+import void
 
 data Bool =
   | tt

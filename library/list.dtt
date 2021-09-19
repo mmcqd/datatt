@@ -1,6 +1,6 @@
-import library/maybe
-import library/alg
-import library/nat
+import maybe
+import alg
+import nat
 
 data (A : Type) List =
   | nil

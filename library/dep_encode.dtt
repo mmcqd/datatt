@@ -1,5 +1,5 @@
-import library/fn
-import library/bool
+import fn
+import bool
 
 def ProdP (A B : Type) : Type = (b : Bool) -> split A B b
 def pairP (A B : Type) (x : A) (y : B) : ProdP A B = \elim

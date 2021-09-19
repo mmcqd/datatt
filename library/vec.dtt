@@ -1,6 +1,6 @@
-import library/nat
-import library/unit
-import library/fin
+import nat
+import unit
+import fin
 
 def Vec (A : Type) : Nat -> Type = \elim
   | zero => Unit

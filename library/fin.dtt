@@ -1,7 +1,7 @@
-import library/nat
-import library/sum
-import library/unit
-import library/void
+import nat
+import sum
+import unit
+import void
 
 def Fin : Nat -> Type = \elim
   | zero => Void

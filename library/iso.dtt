@@ -1,14 +1,14 @@
 
-import library/unit
-import library/void
-import library/nat
-import library/sum
-import library/fin
-import library/list
-import library/sg
-import library/dep_encode
-import library/fn
-import library/hott
+import unit
+import void
+import nat
+import sum
+import fin
+import list
+import sg
+import dep_encode
+import fn
+import hott
 
 
 

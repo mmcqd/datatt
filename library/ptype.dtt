@@ -1,7 +1,7 @@
-import library/id
-import library/unit
-import library/nat
-import library/bool
+import id
+import unit
+import nat
+import bool
 
 def PType : Type^1 = sig
   | t  : Type

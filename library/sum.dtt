@@ -1,4 +1,4 @@
-import library/id
+import id
 
 data (A B : Type) Sum =
   | inl (x : A)

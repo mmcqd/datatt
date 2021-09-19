@@ -1,6 +1,6 @@
-import library/bool
-import library/nat
-import library/sum
+import bool
+import nat
+import sum
 
 data (A : Type) Dec =
   | yes (x : A)

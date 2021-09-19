@@ -1,5 +1,5 @@
-import library/void
-import library/iso
+import void
+import iso
 
 data Void2 =
   | V (x : Void2)

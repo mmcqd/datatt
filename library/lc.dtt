@@ -1,6 +1,6 @@
-import library/nat
-import library/bool
-import library/dec
+import nat
+import bool
+import dec
 
 data Tm =
   | var (n : Nat)

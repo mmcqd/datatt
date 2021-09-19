@@ -1,4 +1,4 @@
-import library/id
+import id
 
 def Category : Type^1 = sig
   | Obj : Type

@@ -1,4 +1,4 @@
-import library/dec
+import dec
 
 def EM : Type^1 = (A : Type) -> Dec A
 def DNE : Type^1 = (A : Type) -> Not (Not A) -> A

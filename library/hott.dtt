@@ -1,9 +1,9 @@
 
-import library/id
-import library/unit
-import library/void
-import library/dec
-import library/nat
+import id
+import unit
+import void
+import dec
+import nat
 
 def Contr (A : Type) : Type = (x : A) * (y : A) -> x == y
 

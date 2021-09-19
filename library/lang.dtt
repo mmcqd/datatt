@@ -1,10 +1,10 @@
 
-import library/nat
-import library/bool
-import library/dec
-import library/list
-import library/maybe
-import library/typeclass
+import nat
+import bool
+import dec
+import list
+import maybe
+import typeclass
 
 
 

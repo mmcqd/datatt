@@ -142,10 +142,10 @@ let term :=
   | args = nonempty_list(paren(annot_args)); Star; e = m(term); { Concrete_syntax.Sg (args_to_tele args,e) }
   | t1 = m(term); Star; t2 = m(term); { Concrete_syntax.Sg ([("_",t1)],t2) }
   | Id; t = m(atomic); e1 = m(atomic); e2 = m(atomic); <Concrete_syntax.Id>
-  | Sig; option(Bar); fs = separated_list(Bar,record_type); { Concrete_syntax.RecordTy {extends = None ; fields = fs} }
-  | Sig; Extends; e = m(term); Bar; fs = separated_list(Bar,record_type); { Concrete_syntax.RecordTy {extends = Some e ; fields = fs}}
-  | Struct; option(Bar); fs = separated_list(Bar,record_term); { Concrete_syntax.Record {extends = None ; fields = fs} }
-  | Struct; Extends; e = m(term); Bar; fs = separated_list(Bar,record_term); { Concrete_syntax.Record {extends = Some e ; fields = fs}}
+  | Sig; option(Bar); fs = separated_list(Bar,record_type); { Concrete_syntax.RecordTy {extends = [] ; fields = fs} }
+  | Sig; Extends; exts = separated_list(Comma,m(term)); Bar; fs = separated_list(Bar,record_type); { Concrete_syntax.RecordTy {extends = exts ; fields = fs}}
+  | Struct; option(Bar); fs = separated_list(Bar,record_term); { Concrete_syntax.Record {extends = [] ; fields = fs} }
+  | Struct; Extends; exts = separated_list(Comma,m(term)); Bar; fs = separated_list(Bar,record_term); { Concrete_syntax.Record {extends = exts ; fields = fs}}
   | e1 = m(term); DoubleEqual; e2 = m(term); { Concrete_syntax.Eq (e1,e2) }
 
   | Let; x = bound_name; Equal; e1 = m(term); In; e2 = m(term);

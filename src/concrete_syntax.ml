@@ -32,8 +32,8 @@ type t_ =
   | Snd of t
   | Elim of {mot : t bnd option ; scrut : t ; arms : ([`Rec of string * string | `Arg of string] list * t) bnd list}
   | ElimFun of ([`Rec of string * string | `Arg of string] list * t) bnd list
-  | RecordTy of {extends : t option ; fields : (string * t) list}
-  | Record of {extends : t option ; fields : (string * t) list}
+  | RecordTy of {extends : t list ; fields : (string * t) list}
+  | Record of {extends : t list ; fields : (string * t) list}
   | Proj of string * t
   | Eq of t * t
   | Id of t * t * t

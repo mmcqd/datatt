@@ -1,4 +1,4 @@
-import library/iso
+import iso
 
 data (A : Type) Wrap = wrap (x : A)
 

@@ -1,8 +1,8 @@
-import library/fn
-import library/unit
-import library/void
-import library/bool
-import library/alg
+import fn
+import unit
+import void
+import bool
+import alg
 
 data Nat =
   | zero

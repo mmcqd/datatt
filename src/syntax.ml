@@ -254,8 +254,8 @@ and to_concrete_ (e : t) : Concrete_syntax.t_ = let open Concrete_syntax in
     | Data {name ; params} -> Spine (to_concrete (Var name),params |> List.map ~f:to_concrete |> list_to_spine)
     | Intro {name ; args} -> Spine (to_concrete (Var name),args |> List.map ~f:to_concrete |> list_to_spine)
     | Elim {mot = (x,m) ; scrut ; arms} -> Elim {mot = Some (x,to_concrete m) ; scrut = to_concrete scrut ; arms = List.map ~f:(fun (con,(vs,arm)) -> (con,(vs,to_concrete arm))) arms}
-    | RecordTy fs -> RecordTy {extends = None ; fields = List.map ~f:(fun (f,tp) -> (f,to_concrete tp)) fs}
-    | Record fs -> Record {extends = None ; fields = List.map ~f:(fun (f,tm) -> (f,to_concrete tm)) fs}
+    | RecordTy fs -> RecordTy {extends = [] ; fields = List.map ~f:(fun (f,tp) -> (f,to_concrete tp)) fs}
+    | Record fs -> Record {extends = [] ; fields = List.map ~f:(fun (f,tm) -> (f,to_concrete tm)) fs}
     | Proj (f,e) -> Proj (f,to_concrete e)
     | Id (a,m,n) -> Id (to_concrete a,to_concrete m,to_concrete n)
     | Refl _ -> Refl

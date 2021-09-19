@@ -43,18 +43,20 @@ let rec check (ctx : Ctx.t) (cs : CSyn.t) (tp : Dom.t) : Syn.t =
     | RecordTy {extends ; fields} ,U i -> 
       begin
       match extends with
-        | None -> RecordTy (check_record_ty ctx i fields)
-        | Some ext ->
-          let ext = check ctx ext (U i) in
+        | [] -> RecordTy (check_record_ty ctx i fields)
+        | exts ->
+          let exts = List.map exts ~f:(fun ext -> check ctx ext (U i))  in
+          let exts = List.concat_map exts ~f:(fun ext -> 
           match normalize ~ctx ~tm:ext ~tp:(U i) with
-            | RecordTy ext_fs -> RecordTy (check_record_ty ctx i ((List.map ~f:(fun (f,e) -> (f,Syntax.to_concrete e)) ext_fs) @ fields))
-            | _ -> error (sprintf "%s is not a record type, it cannot be extended" (Syn.show ext))
+            | RecordTy ext_fs -> List.map ext_fs ~f:(fun (f,e) -> (f,Syntax.to_concrete e))
+            | _ -> error (sprintf "%s is not a record type, it cannot be extended" (Syn.show ext)))
+          in RecordTy (check_record_ty ctx i (exts @ fields))
       end
     | Record {extends ; fields}, RecordTy (ftps,env) -> 
       begin
       match extends with
-        | None -> Record (check_record (Mark.show cs) ctx fields ftps env)
-        | Some ext ->
+        | [] -> Record (check_record (Mark.show cs) ctx fields ftps env)
+        | ext::_ ->
           let ext_tp,ext = synth ctx ext in
           match normalize ~ctx ~tm:ext ~tp:ext_tp with
             | Record ext_fs -> Record (check_record (Mark.show cs) ctx ((List.map ~f:(fun (f,e) -> (f,Syntax.to_concrete e)) ext_fs) @ fields) ftps env)
