@@ -71,6 +71,13 @@ def iso/Bool/Unit+Unit : Iso Bool (Sum Unit Unit) = struct
   | gf = (\elim tt => refl | ff => refl)
   | fg = (\elim inl x => refl | inr x => refl)
 
+
+def iso/curryD (A : Type) (B : A -> Type) (C : (x : A) -> B x -> Type) : Iso ((x : A) (y : B x) -> C x y) ((p : (x : A) * B x) -> C p.1 p.2) = struct
+  | f h p = h p.1 p.2
+  | g h x y = h (x,y)
+  | gf _ = refl
+  | fg _ = refl
+
 {-
 def iso/*/Sg (A : Type) (B : A -> Type) : Iso ((x : A) * B x) (Sg A B) = 
   ( \ p => pair p.1 p.2

@@ -29,7 +29,7 @@ let rec eval (env : Dom.env) (s : Syn.t) : Dom.t =
     | Intro {name ; args} -> Intro {name ; args = List.map ~f:(eval env) args}
     | Elim {mot = (x,m) ; arms ; scrut} -> do_elim Dom.{name = x ; tm = m ; env} arms (eval env scrut) env
     | RecordTy fs -> RecordTy (fs,env)
-    | Record fs -> Record (List.map ~f:(fun (f,tm) -> (f,eval env tm)) fs)
+    | Record fs -> Record (eval_record env fs)
     | Proj (f,e) -> do_proj f (eval env e)
     | Id (a,m,n) -> Id (eval env a,eval env m,eval env n)
     | Refl x -> Refl (eval env x)
@@ -44,6 +44,11 @@ and do_clos ({name ; tm ; env } : Dom.clos) (arg : Dom.t) : Dom.t =
 and do_clos3 ({names = (x,y,z) ; tm ; env } : Dom.clos3) (a : Dom.t) (b : Dom.t) (c : Dom.t) : Dom.t =
   eval (env |> Dom.Env.set ~key:x ~data:a |> Dom.Env.set ~key:y ~data:b |> Dom.Env.set ~key:z ~data:c) tm
 
+and eval_record env = function
+  | [] -> []
+  | (f,e)::fs -> 
+    let e = eval env e in
+    (f,e)::eval_record (Dom.Env.set env ~key:f ~data:e) fs
 
 and do_ap (f : Dom.t) (arg : Dom.t) : Dom.t =
   match f with

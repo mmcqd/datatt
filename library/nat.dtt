@@ -91,10 +91,21 @@ def id-elim-id : (n : Nat) -> id Nat n == id-elim n = \elim
 def suc-Inj (n m : Nat) : Id Nat (suc n) (suc m) -> Id Nat n m =
   cong Nat Nat pred (suc n) (suc m)
 
-def Monoid-Nat-+ : Monoid Nat =
-  ( zero
-  , +
-  , \ _ => refl
-  , +-zero
-  , +-assoc
+def Monoid-Nat-+ : Monoid Nat = struct
+  | op = +
+  | assoc = +-assoc
+  | z = zero
+  | id-l _ = refl
+  | id-r = +-zero
+
+def Monoid-Nat-* : Monoid Nat = struct
+  | op = mult
+  | assoc n m p = (elim n with
+    | zero => refl
+    | suc (n / ih) => match ih with
+      | refl i => ?
+
   )
+  | z = one
+  | id-l = (\elim zero => refl | suc (_ / ih) => match ih with refl i => refl)
+  | id-r = (\elim zero => refl | suc (_ / ih) => match ih with refl i => refl)

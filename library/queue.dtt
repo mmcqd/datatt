@@ -1,0 +1,32 @@
+import nat
+import list
+import maybe
+
+
+def QUEUE : Type^1 = sig
+  | t : Type -> Type
+  | emp : (A : Type) -> t A
+  | enq : (A : Type) -> A -> t A -> t A
+  | deq : (A : Type) -> t A -> Maybe (A * t A)
+
+def Queue1 : QUEUE = struct
+  | t = List
+  | emp A = nil
+  | enq A x q = cons x q
+  | deq A = \elim
+    | nil => none
+    | cons x q => some (x,q)
+
+def Queue2 : QUEUE = struct
+  | t A = (sig In : List A | Out : List A)
+  | emp A = (struct In = nil | Out = nil)
+  | enq A x q = (struct In = cons x q.In | Out = q.Out)
+  | deq A q = elim q.Out with
+    | cons x xs => some (x,struct In = q.In | Out = xs)
+    | nil => let Out = rev A q.In in
+      elim Out with
+        | cons x xs => some (x,struct In = nil | Out = xs)
+        | nil => none
+
+
+def q : Queue2.t Nat = Queue2.enq Nat zero (Queue2.enq Nat one (Queue2.enq Nat two (Queue2.emp Nat)))

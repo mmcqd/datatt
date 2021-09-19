@@ -8,16 +8,14 @@ def Id-L (A : Type) (op : A -> A -> A) (z : A) : Type = (x : A) -> x == op z x
 def Id-R (A : Type) (op : A -> A -> A) (z : A) : Type = (x : A) -> x == op x z
 
 
-def Magma (C : Type) : Type = C -> C -> C
+def Magma (C : Type) : Type = sig
+  | op : C -> C -> C
 
-def Semigroup (C : Type) : Type =
-  (op : C -> C -> C) *
-  Assoc C op
+def Semigroup (C : Type) : Type = sig extends Magma C
+  | assoc : Assoc C op
 
-def Monoid (M : Type) : Type =
-  (z : M) *
-  (op : M -> M -> M) *
-  Id-L M op z *
-  Id-R M op z *
-  Assoc M op
+def Monoid (M : Type) : Type = sig extends Semigroup M
+  | z : M
+  | id-l : Id-L M op z
+  | id-r : Id-R M op z
 

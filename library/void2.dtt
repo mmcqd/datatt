@@ -7,11 +7,10 @@ data Void2 =
 def Void2-Rec (A : Type) : Void2 -> A = \elim
   | V (_ / ih) => ih
 
-def iso/Void/Void2 : Iso Void Void2 =
-  let f : Void -> Void2 = \elim in
-  let g : Void2 -> Void = \elim V (_ / ih) => ih in
- ( f
- , g
- , \elim
- , \ y => Void2-Rec (Id Void2 y (f (g y))) y
- )
+def iso/Void/Void2 : Iso Void Void2 = struct
+  | f = (\elim)
+  | g = (\elim V (_ / ih) => ih)
+  | gf = (\elim)
+  | fg = \y => Void2-Rec (y == f (g y)) y
+
+

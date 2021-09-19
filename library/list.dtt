@@ -56,10 +56,9 @@ def get (A : Type) : List A -> Nat -> Maybe A = \elim
     | zero => some x
     | suc n => ih n 
 
-def Monoid-List-++ (A : Type) : Monoid (List A) =
-  ( nil
-  , ++ A
-  , \ _ => refl
-  , ++-nil A
-  , ++-assoc A
-  )
+def Monoid-List-++ (A : Type) : Monoid (List A) = struct
+  | op = ++ A
+  | assoc = ++-assoc A
+  | z = nil
+  | id-l = \ _ => refl
+  | id-r = ++-nil A

@@ -17,6 +17,12 @@ let normalize ~tm ~tp ~ctx =
   Nbe.read_back (Ctx.to_names ctx) (Nbe.eval (Ctx.to_env ctx) tm) tp
 
 
+let rec remove_dup_fields_ seen = function
+  | [] -> []
+  | (f,e)::fs -> if String.Set.mem seen f then remove_dup_fields_ seen fs else (f,e)::remove_dup_fields_ (String.Set.add seen f) fs
+
+let remove_dup_fields = remove_dup_fields_ String.Set.empty
+
 let sort_cons = List.sort ~compare: (fun (c1,_) (c2,_) -> String.compare c1 c2)
 
 let rec check (ctx : Ctx.t) (cs : CSyn.t) (tp : Dom.t) : Syn.t =
@@ -45,22 +51,26 @@ let rec check (ctx : Ctx.t) (cs : CSyn.t) (tp : Dom.t) : Syn.t =
       match extends with
         | [] -> RecordTy (check_record_ty ctx i fields)
         | exts ->
-          let exts = List.map exts ~f:(fun ext -> check ctx ext (U i))  in
           let exts = List.concat_map exts ~f:(fun ext -> 
-          match normalize ~ctx ~tm:ext ~tp:(U i) with
-            | RecordTy ext_fs -> List.map ext_fs ~f:(fun (f,e) -> (f,Syntax.to_concrete e))
-            | _ -> error (sprintf "%s is not a record type, it cannot be extended" (Syn.show ext)))
-          in RecordTy (check_record_ty ctx i (exts @ fields))
+            let ext = check ctx ext (U i) in
+            match normalize ~ctx ~tm:ext ~tp:(U i) with
+              | RecordTy ext_fs -> List.map ext_fs ~f:(fun (f,e) -> (f,Syntax.to_concrete e))
+              | _ -> error (sprintf "%s is not a record type, it cannot be extended" (Syn.show ext)))
+          in let exts = remove_dup_fields exts in
+          RecordTy (check_record_ty ctx i (exts @ fields))
       end
     | Record {extends ; fields}, RecordTy (ftps,env) -> 
       begin
       match extends with
         | [] -> Record (check_record (Mark.show cs) ctx fields ftps env)
-        | ext::_ ->
-          let ext_tp,ext = synth ctx ext in
-          match normalize ~ctx ~tm:ext ~tp:ext_tp with
-            | Record ext_fs -> Record (check_record (Mark.show cs) ctx ((List.map ~f:(fun (f,e) -> (f,Syntax.to_concrete e)) ext_fs) @ fields) ftps env)
-            | _ -> error (sprintf "%s is not a records, it cannot be extended" (Syn.show ext))
+        | exts ->
+          let exts = List.concat_map exts ~f:(fun ext ->
+            let ext_tp,ext = synth ctx ext in
+            match normalize ~ctx ~tm:ext ~tp:ext_tp with
+              | Record ext_fs -> List.map ~f:(fun (f,e) -> (f,Syntax.to_concrete e)) ext_fs
+              | _ -> error (sprintf "%s is not a records, it cannot be extended" (Syn.show ext))) 
+          in let exts = remove_dup_fields exts in
+          Record (check_record (Mark.show cs) ctx (exts @ fields) ftps env)
       end
     | Let ((x,e1),e2),tp ->
       let e1_tp,e1' = synth ctx e1 in
@@ -198,7 +208,8 @@ and check_record pos ctx r rtp env =
     | (f,tm)::r,(f',tp)::rtp -> if not (String.equal f f') then error (sprintf "%s - Expected field %s but found field %s" pos f' f) else
       let tp = Nbe.eval env tp in
       let tm = check ctx tm tp in
-      (f,tm)::check_record pos ctx r rtp (Dom.Env.set env ~key:f ~data:(Nbe.eval (Ctx.to_env ctx) tm))
+      let tm' = Nbe.eval (Ctx.to_env ctx) tm in
+      (f,tm)::check_record pos (Ctx.add_let ctx ~var:f ~def:tm' ~tp) r rtp (Dom.Env.set env ~key:f ~data:tm')
     | [],(f,tp)::_ -> error (sprintf "%s - Expected field %s : %s" pos f (Syn.show tp))
     | (f,_)::_,[] -> error (sprintf "%s - Unexpected field %s" pos f)
 

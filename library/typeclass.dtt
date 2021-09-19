@@ -18,6 +18,7 @@ def Applicative-Laws (F : Type -> Type) : Type^1 = sig extends Functor-Laws F, A
   | pure-id : (A : Type) (x : F A) -> <*> A A (pure (A -> A) (id A)) x == x
   | hom : (A B : Type) (f : A -> B) (x : A) -> <*> A B (pure (A -> B) f) (pure A x) == pure B (f x)
   | swap : (A B : Type) (f : F (A -> B)) (x : A) -> <*> A B f (pure A x) == <*> (A -> B) B (pure ((A -> B) -> B) (\f => f x)) f
+  | comp : (A B C : Type) -> <*> (\x => f (g x))
 
 def Monad (F : Type -> Type) : Type^1 = sig extends Applicative F
   | join : (A : Type) -> F (F A) -> F A

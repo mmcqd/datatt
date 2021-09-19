@@ -89,6 +89,7 @@ let _ : unit =
   let args = Sys.get_argv () in
   if Array.length args = 1 then repl (String.Set.empty,Ctx.empty);
   let s = parse_file args.(1) in
-  try repl @@ run_cmds (get_prefix args.(1)) [args.(1)] String.Set.empty Ctx.empty s with 
+  let prefix = get_prefix args.(1) in
+  try repl @@ run_cmds prefix [args.(1)] String.Set.empty Ctx.empty s with 
     | Elab.TypeError e -> printf "Type Error: %s\n" e
     | ParseError e -> printf "Parse Error: %s\n" e
