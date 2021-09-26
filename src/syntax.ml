@@ -83,10 +83,10 @@ let rec pp_term (e : t) : string =
       sprintf "elim %s with" (pp_atomic scrut)
     | Elim {mot = _ ; arms ; scrut} ->
       sprintf "elim %s with %s" (pp_atomic scrut) (pp_arms arms)
-    | Id (_,(Lam _ | Pi _ as x), (Lam _ | Pi _ as y)) -> sprintf "%s == %s" (pp_atomic x) (pp_atomic y)
-    | Id (_,(Lam _ | Pi _ as x), y) -> sprintf "%s == %s" (pp_atomic x) (pp_term y)
-    | Id (_,x,(Lam _ | Pi _ as y)) -> sprintf "%s == %s" (pp_term x) (pp_atomic y)
-    | Id (_,x,y) -> sprintf "%s == %s" (pp_term x) (pp_term y)
+    | Id (_,(Lam _ | Pi _ as x), (Lam _ | Pi _ as y)) -> sprintf "%s = %s" (pp_atomic x) (pp_atomic y)
+    | Id (_,(Lam _ | Pi _ as x), y) -> sprintf "%s = %s" (pp_atomic x) (pp_term y)
+    | Id (_,x,(Lam _ | Pi _ as y)) -> sprintf "%s = %s" (pp_term x) (pp_atomic y)
+    | Id (_,x,y) -> sprintf "%s = %s" (pp_term x) (pp_term y)
     | J {mot = _; body = (a,case) ; scrut} -> 
       sprintf "match %s with refl %s ⇒ %s" (pp_atomic scrut) a (pp_term case)
     | Refl x -> sprintf "refl %s" (pp_atomic x)

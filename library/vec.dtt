@@ -2,31 +2,31 @@ import nat
 import unit
 import fin
 
-def Vec (A : Type) : Nat -> Type = \elim
+def Vec (A : Type) : Nat -> Type => \elim
   | zero => Unit
   | suc (_ / ih) => A * ih
 
-def vnil (A : Type) : Vec A zero = <>
-def vcons (A : Type) (x : A) (n : Nat) (xs : Vec A n) : Vec A (suc n) = (x,xs)
+def vnil (A : Type) : Vec A zero => <>
+def vcons (A : Type) (x : A) (n : Nat) (xs : Vec A n) : Vec A (suc n) => (x,xs)
 
-def vhd (A : Type) (n : Nat) (v : Vec A (suc n)) : A = v.1
-def vtl (A : Type) (n : Nat) (v : Vec A (suc n)) : Vec A n = v.2
+def vhd (A : Type) (n : Nat) (v : Vec A (suc n)) : A => v.1
+def vtl (A : Type) (n : Nat) (v : Vec A (suc n)) : Vec A n => v.2
 
 def Vec-Ind (A : Type) (P : (n : Nat) -> Vec A n -> Type) (b : P zero <>) 
-            (c : (m : Nat) (v : Vec A m) (x : A) -> P m v -> P (suc m) (x,v)) : (n : Nat) (v : Vec A n) -> P n v = \elim
+            (c : (m : Nat) (v : Vec A m) (x : A) -> P m v -> P (suc m) (x,v)) : (n : Nat) (v : Vec A n) -> P n v => \elim
   | zero => (\elim <> => b)
   | suc (n / ih) => \ v => c n v.2 v.1 (ih v.2) 
 
-def vrec (A B : Type) (b : B) (c : A -> B -> B) : (n : Nat) -> Vec A n -> B = \elim
+def vrec (A B : Type) (b : B) (c : A -> B -> B) : (n : Nat) -> Vec A n -> B => \elim
   | zero => \ _ => b
   | suc (n / ih) => \ v => c v.1 (ih v.2)
 
 
-def vzip (A B : Type) : (n : Nat) -> Vec A n -> Vec B n -> Vec (A * B) n = \elim
+def vzip (A B : Type) : (n : Nat) -> Vec A n -> Vec B n -> Vec (A * B) n => \elim
   | zero => \ _ _ => <>
   | suc (_ / ih) => \ v1 v2 => ((v1.1,v2.1),ih v1.2 v2.2)
 
-def !! (A : Type) : (n : Nat) -> Vec A n -> Fin n -> A = \elim
+def !! (A : Type) : (n : Nat) -> Vec A n -> Fin n -> A => \elim
   | zero => \ _ => (\elim)
   | suc (n / ih) => \v => \elim
     | inl x => v.1

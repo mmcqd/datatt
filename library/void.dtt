@@ -1,9 +1,9 @@
 
 data Void
 
-def Void-Ind (P : Void -> Type) : (x : Void) -> P x =
+def Void-Ind (P : Void -> Type) : (x : Void) -> P x =>
   \elim
 
-def Void-Rec (A : Type) : Void -> A = \elim
+def Void-Rec (A : Type) : Void -> A => \elim
 
-def Not (A : Type) : Type = A -> Void
+def Not (A : Type) : Type => A -> Void

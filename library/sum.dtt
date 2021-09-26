@@ -1,15 +1,15 @@
 import id
 
-data (A B : Type) Sum =
+data (A B : Type) Sum =>
   | inl (x : A)
   | inr (y : B)
 
-def Sum-Ind (A B : Type) (P : Sum A B -> Type) (l : (x : A) -> P (inl x)) (r : (x : B) -> P (inr x)) : (x : Sum A B) -> P x = \elim
+def Sum-Ind (A B : Type) (P : Sum A B -> Type) (l : (x : A) -> P (inl x)) (r : (x : B) -> P (inr x)) : (x : Sum A B) -> P x => \elim
   | inl x => l x
   | inr y => r y
 
-def inl-inj (A B : Type) (x y : A) : Id (Sum A B) (inl x) (inl y) -> Id A x y =
+def inl-inj (A B : Type) (x y : A) : Id (Sum A B) (inl x) (inl y) -> Id A x y =>
   cong (Sum A B) A (\elim inl x => x | inr _ => x) (inl x) (inl y)
 
-def inr-inj (A B : Type) (x y : B) : Id (Sum A B) (inr x) (inr y) -> Id B x y =
+def inr-inj (A B : Type) (x y : B) : Id (Sum A B) (inr x) (inr y) -> Id B x y =>
   cong (Sum A B) B (\elim inr x => x | inl _ => x) (inr x) (inr y)

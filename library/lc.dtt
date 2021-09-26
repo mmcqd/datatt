@@ -2,23 +2,23 @@ import nat
 import bool
 import dec
 
-data Tm =
+data Tm =>
   | var (n : Nat)
   | lam (e : Tm)
   | ap (f e : Tm)
 
-def well-scoped : Tm -> Nat -> Bool = \elim
+def well-scoped : Tm -> Nat -> Bool => \elim
   | var x => \ n => lt-b x n
   | lam (e / ih) => \ n => ih (suc n)
   | ap (f / ihf) (e / ihe) => \ n => and (ihf n) (ihe n)
 
 
-def subst : Tm -> Tm -> Nat -> Tm = \elim
+def subst : Tm -> Tm -> Nat -> Tm => \elim
   | var y => \ q x => (elim eq-Nat x y with tt => q | ff => var y)
   | lam (e / ih) => \ q x => lam (ih q (suc x))
   | ap (f / ihf) (e / ihe) => \ q x => ap (ihf q x) (ihe q x)
 
-def reduce : Tm -> Tm = \elim
+def reduce : Tm -> Tm => \elim
   | var x => var x
   | lam e => lam e
   | ap (f / f') e => elim f' with
@@ -26,8 +26,8 @@ def reduce : Tm -> Tm = \elim
     | var x  => ap f' e
     | ap _ _ => ap f' e
 
-def id : Tm = lam (var zero)
-def const : Tm = lam (lam (var one))
-def z : Tm = lam (lam (var zero))
-def s : Tm = lam (lam (lam (ap (var one) (ap (ap (var two) (var one)) (var zero)))))
-def plus : Tm = lam (lam (lam (lam (ap (ap (var three) (var one)) (ap (ap (var two) (var one)) (var zero))))))
+def id : Tm => lam (var zero)
+def const : Tm => lam (lam (var one))
+def z : Tm => lam (lam (var zero))
+def s : Tm => lam (lam (lam (ap (var one) (ap (ap (var two) (var one)) (var zero)))))
+def plus : Tm => lam (lam (lam (lam (ap (ap (var three) (var one)) (ap (ap (var two) (var one)) (var zero))))))

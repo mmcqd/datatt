@@ -2,27 +2,27 @@ import bool
 import nat
 import sum
 
-data (A : Type) Dec =
+data (A : Type) Dec =>
   | yes (x : A)
   | no  (x : Not A)
 
-def lower (A : Type) : Dec A -> Bool = \elim
+def lower (A : Type) : Dec A -> Bool => \elim
   | yes _ => tt
   | no  _ => ff
 
-def Dec-Id (A : Type) : Type = (x y : A) -> Dec (x == y)
+def Dec-Id (A : Type) : Type => (x y : A) -> Dec (x = y)
 
 
-def dec-Unit : Dec-Id Unit = \ _ _ => yes refl
+def dec-Unit : Dec-Id Unit => \ _ _ => yes refl
 
 
-def dec-Bool : Dec-Id Bool = \elim
+def dec-Bool : Dec-Id Bool => \elim
   | tt => (\elim tt => yes refl | ff => no (\ ()))
   | ff => (\elim tt => no (\ ()) | ff => yes refl)
 
-def eq-Bool (x y : Bool) : Bool = lower (Id Bool x y) (dec-Bool x y)
+def eq-Bool (x y : Bool) : Bool => lower (Id Bool x y) (dec-Bool x y)
 
-def dec-Nat : Dec-Id Nat = \elim
+def dec-Nat : Dec-Id Nat => \elim
   | zero  => (\elim zero => yes refl | suc n => no (\ ()))
   | suc (n / ih) => 
     \elim 
@@ -32,10 +32,10 @@ def dec-Nat : Dec-Id Nat = \elim
         | no ~p => no (\ p => ~p (cong Nat Nat pred (suc n) (suc m) p))
 
 
-def eq-Nat (x y : Nat) : Bool = lower (x == y) (dec-Nat x y)
+def eq-Nat (x y : Nat) : Bool => lower (x = y) (dec-Nat x y)
 
 
-def dec-* (A B : Type) : Dec A -> Dec B -> Dec (A * B) = \elim
+def dec-* (A B : Type) : Dec A -> Dec B -> Dec (A * B) => \elim
   | yes a => (\elim
     | yes b => yes (a,b)
     | no ~b => no (\ p => ~b p.2)
@@ -45,7 +45,7 @@ def dec-* (A B : Type) : Dec A -> Dec B -> Dec (A * B) = \elim
     | no ~b => no (\ p => ~a p.1)
   )
 
-def dec-id-* (A B : Type) (da : Dec-Id A) (db : Dec-Id B) : Dec-Id (A * B) = \ p q =>
+def dec-id-* (A B : Type) (da : Dec-Id A) (db : Dec-Id B) : Dec-Id (A * B) => \ p q =>
   elim da p.1 q.1 with
     | yes a => (elim db p.2 q.2 with
       | yes b => yes (pair-ext A B p q a b)
@@ -56,15 +56,15 @@ def dec-id-* (A B : Type) (da : Dec-Id A) (db : Dec-Id B) : Dec-Id (A * B) = \ p
       | no ~b => no (\ i => ~a (pair-id-l A B p q i))
     )
 
-def eq-* (A B : Type) (da : Dec-Id A) (db : Dec-Id B) (x y : A * B): Bool = lower (x == y) (dec-id-* A B da db x y)
+def eq-* (A B : Type) (da : Dec-Id A) (db : Dec-Id B) (x y : A * B): Bool => lower (x = y) (dec-id-* A B da db x y)
 
-def dec-Sum (A B : Type) : Dec A -> Dec B -> Dec (Sum A B) = \elim
+def dec-Sum (A B : Type) : Dec A -> Dec B -> Dec (Sum A B) => \elim
   | yes a => \ _ => yes (inl a)
   | no ~a => \elim
     | yes b => yes (inr b)
     | no ~b => no (\elim inl a => ~a a | inr b => ~b b)
 
-def dec-id-Sum (A B : Type) (da : Dec-Id A) (db : Dec-Id B) : Dec-Id (Sum A B) = \elim
+def dec-id-Sum (A B : Type) (da : Dec-Id A) (db : Dec-Id B) : Dec-Id (Sum A B) => \elim
   | inl a => (\elim
     | inl a' => (elim da a a' with
       | yes p => match p with refl x => yes refl
@@ -80,4 +80,4 @@ def dec-id-Sum (A B : Type) (da : Dec-Id A) (db : Dec-Id B) : Dec-Id (Sum A B) =
     | inl a => no (\ ()) 
   )
 
-def eq-Sum (A B : Type) (da : Dec-Id A) (db : Dec-Id B) (s1 s2 : Sum A B) : Bool = lower (s1 == s2) (dec-id-Sum A B da db s1 s2)
+def eq-Sum (A B : Type) (da : Dec-Id A) (db : Dec-Id B) (s1 s2 : Sum A B) : Bool => lower (s1 = s2) (dec-id-Sum A B da db s1 s2)

@@ -8,12 +8,12 @@ import typeclass
 
 
 
-data Ty =
+data Ty =>
   | ar (a b : Ty)
   | bool
   | nat
 
-def dec-Ty : Dec-Id Ty = \elim
+def dec-Ty : Dec-Id Ty => \elim
   | ar (a / iha) (b / ihb) => (\elim
     | ar a' b' => (elim iha a' with
       | yes pa => (elim ihb b' with
@@ -36,9 +36,9 @@ def dec-Ty : Dec-Id Ty = \elim
     | bool => no (\ ())
   )
 
-def eq-Ty (t1 t2 : Ty) : Bool = lower (Id Ty t1 t2) (dec-Ty t1 t2)
+def eq-Ty (t1 t2 : Ty) : Bool => lower (Id Ty t1 t2) (dec-Ty t1 t2)
 
-data Tm =
+data Tm =>
   | var (n : Nat)
   | tt
   | ff
@@ -49,7 +49,7 @@ data Tm =
   | lam (t : Ty) (e : Tm)
   | ap (f e : Tm)
 
-def synth : Tm -> List Ty -> Maybe Ty = let bind = bind Maybe Monad-Maybe Ty Ty in \elim
+def synth : Tm -> List Ty -> Maybe Ty => let bind => bind Maybe Monad-Maybe Ty Ty in \elim
   | var n => \ ctx => get Ty ctx n
   | tt => \ _ => some bool
   | ff => \ _ => some bool
@@ -95,5 +95,5 @@ def synth : Tm -> List Ty -> Maybe Ty = let bind = bind Maybe Monad-Maybe Ty Ty 
   )
   
 
-def tm1 : Tm = lam bool (lam bool (var zero))
-def tm2 : Tm = lam nat (lam nat (rec (var one) (var zero) (suc (var zero))))
+def tm1 : Tm => lam bool (lam bool (var zero))
+def tm2 : Tm => lam nat (lam nat (rec (var one) (var zero) (suc (var zero))))

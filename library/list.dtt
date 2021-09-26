@@ -2,63 +2,63 @@ import maybe
 import alg
 import nat
 
-data (A : Type) List =
+data (A : Type) List =>
   | nil
   | cons (x : A) (xs : List)
 
-def List-Ind (A : Type) (P : List A -> Type) (n : P nil) (c : (x : A) (xs : List A) -> P xs -> P (cons x xs)) : (xs : List A) -> P xs = \elim
+def List-Ind (A : Type) (P : List A -> Type) (n : P nil) (c : (x : A) (xs : List A) -> P xs -> P (cons x xs)) : (xs : List A) -> P xs => \elim
   | nil => n
   | cons x (xs / ih) => c x xs ih
 
-def ++ (A : Type) (xs ys : List A) : List A = elim xs with
+def ++ (A : Type) (xs ys : List A) : List A => elim xs with
   | nil => ys
   | cons x (_ / ih) => cons x ih
 
-def hd (A : Type) : List A -> Maybe A = \elim
+def hd (A : Type) : List A -> Maybe A => \elim
   | nil => none
   | cons x _ => some x
 
-def tl (A : Type) : List A -> List A = \elim
+def tl (A : Type) : List A -> List A => \elim
   | nil => nil
   | cons _ xs => xs
 
-def ++-assoc (A : Type) : Assoc (List A) (++ A) = \ xs ys zs => elim xs with
+def ++-assoc (A : Type) : Assoc (List A) (++ A) => \ xs ys zs => elim xs with
   | nil => refl
   | cons x (xs / ih) => match ih with
     | refl _ => refl
 
-def ++-nil (A : Type) : Id-R (List A) (++ A) nil = \elim
+def ++-nil (A : Type) : Id-R (List A) (++ A) nil => \elim
   | nil => refl
   | cons x (xs / ih) => match ih with
     | refl _ => refl
 
-def map (A B : Type) (f : A -> B) : List A -> List B = \elim
+def map (A B : Type) (f : A -> B) : List A -> List B => \elim
   | nil => nil
   | cons x (xs / ih) => cons (f x) ih
 
-def map-comm-comp (A B C : Type) (f : A -> B) (g : B -> C) : (xs : List A) -> Id (List C) (map B C g (map A B f xs)) (map A C (\ x => g (f x)) xs) = \elim
+def map-comm-comp (A B C : Type) (f : A -> B) (g : B -> C) : (xs : List A) -> Id (List C) (map B C g (map A B f xs)) (map A C (\ x => g (f x)) xs) => \elim
   | nil => refl
   | cons x (xs / ih) => match ih with
     | refl i => refl
 
-def rev (A : Type) : List A -> List A = \elim
+def rev (A : Type) : List A -> List A => \elim
   | nil => nil
   | cons x (xs / rev-xs) => ++ A rev-xs (cons x nil)
 
-def rev-tail (A : Type) : List A -> List A -> List A = \elim
+def rev-tail (A : Type) : List A -> List A -> List A => \elim
   | nil => \ acc => acc
   | cons x (xs / ih) => \ acc => ih (cons x acc)
 
 
-def get (A : Type) : List A -> Nat -> Maybe A = \elim
+def get (A : Type) : List A -> Nat -> Maybe A => \elim
   | nil => \ _ => none
   | cons x (xs / ih) => \elim
     | zero => some x
     | suc n => ih n 
 
-def Monoid-List-++ (A : Type) : Monoid (List A) = struct
-  | op = ++ A
-  | assoc = ++-assoc A
-  | z = nil
-  | id-l = \ _ => refl
-  | id-r = ++-nil A
+def Monoid-List-++ (A : Type) : Monoid (List A) => struct
+  | op => ++ A
+  | assoc => ++-assoc A
+  | z => nil
+  | id-l => \ _ => refl
+  | id-r => ++-nil A

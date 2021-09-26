@@ -4,108 +4,96 @@ import void
 import bool
 import alg
 
-data Nat =
+data Nat =>
   | zero
   | suc (n : Nat)
 
-def one : Nat = suc zero
-def two : Nat = suc one
-def three : Nat = suc two
-def four : Nat = suc three
+def one : Nat => suc zero
+def two : Nat => suc one
+def three : Nat => suc two
+def four : Nat => suc three
 
-def Nat-Ind (P : Nat -> Type) (z : P zero) (s : (m : Nat) -> P m -> P (suc m)) : (n : Nat) -> P n = \elim
+def Nat-Ind (P : Nat -> Type) (z : P zero) (s : (m : Nat) -> P m -> P (suc m)) : (n : Nat) -> P n => \elim
   | zero => z
   | suc (n / ih) => s n ih
 
-def no-confusion-Nat (n : Nat) : Not (Id Nat zero (suc n)) = \ ()
+def no-confusion-Nat (n : Nat) : Not (Id Nat zero (suc n)) => \ ()
 
-def pred : Nat -> Nat = \elim
+def pred : Nat -> Nat => \elim
   | zero => zero
   | suc n => n
 
-def + (n m : Nat) : Nat = elim n with
+def + (n m : Nat) : Nat => elim n with
   | zero => m
   | suc (_ / ih) => suc ih
 
-def mult (n m : Nat) : Nat = elim n with
+def mult (n m : Nat) : Nat => elim n with
   | zero => zero
   | suc (_ / ih) => + m ih
 
-def exp (n m : Nat) : Nat = elim m with
+def exp (n m : Nat) : Nat => elim m with
   | zero => one
   | suc (_ / ih) => mult n ih
 
-def +-assoc : Assoc Nat + = \ n m p => elim n with
+def +-assoc : Assoc Nat + => \ n m p => elim n with
   | zero => refl
   | suc (_ / ih) => match ih with
     | refl _ => refl
 
-def +-zero : Id-R Nat + zero = \elim
+def +-zero : Id-R Nat + zero => \elim
   | zero => refl
   | suc (_ / ih) => match ih with
       | refl _ => refl
 
-def +-suc (n m : Nat) : suc (+ n m) == + n (suc m) = elim n with
+def +-suc (n m : Nat) : suc (+ n m) = + n (suc m) => elim n with
   | zero => refl
   | suc (n' / ih) => 
     match ih with
       | refl z => refl
 
-def +-comm : Comm Nat + = \ n m => elim n with
+def +-comm : Comm Nat + => \ n m => elim n with
   | zero => +-zero m
   | suc (n / ih) => trans Nat (suc (+ n m)) (suc (+ m n)) (+ m (suc n)) 
     (cong Nat Nat (\ x => suc x) (+ n m) (+ m n) ih) 
     (+-suc m n)
 
-def leq-b : Nat -> Nat -> Bool = \elim
+def leq-b : Nat -> Nat -> Bool => \elim
   | zero => \ _ => tt
   | suc (_ / ih) => \elim
     | zero => ff
     | suc n => ih n
 
-def leq (n m : Nat) : Type = lift (leq-b n m)
+def leq (n m : Nat) : Type => lift (leq-b n m)
 
-def leq-zero (n : Nat) : leq zero n = <>
-def leq-suc (m n : Nat) (p : leq m n) : leq (suc m) (suc n) = p
+def leq-zero (n : Nat) : leq zero n => <>
+def leq-suc (m n : Nat) (p : leq m n) : leq (suc m) (suc n) => p
 
 
-def lt-b (m n : Nat) : Bool = leq-b (suc m) n 
+def lt-b (m n : Nat) : Bool => leq-b (suc m) n 
 
-def lt (m n : Nat) : Type = lift (lt-b m n)
+def lt (m n : Nat) : Type => lift (lt-b m n)
 
-def even-b : Nat -> Bool = \elim
+def even-b : Nat -> Bool => \elim
   | zero => tt
   | suc (n / ih) => not ih
 
-def even (n : Nat) : Type = lift (even-b n)
+def even (n : Nat) : Type => lift (even-b n)
  
 
-def id-elim : Nat -> Nat = \elim
+def id-elim : Nat -> Nat => \elim
   | zero => zero
   | suc n => suc n
 
-def id-elim-id : (n : Nat) -> id Nat n == id-elim n = \elim
+def id-elim-id : (n : Nat) -> id Nat n = id-elim n => \elim
   | zero => refl
   | suc _ => refl
 
-def suc-Inj (n m : Nat) : Id Nat (suc n) (suc m) -> Id Nat n m =
+def suc-Inj (n m : Nat) : Id Nat (suc n) (suc m) -> Id Nat n m =>
   cong Nat Nat pred (suc n) (suc m)
 
-def Monoid-Nat-+ : Monoid Nat = struct
-  | op = +
-  | assoc = +-assoc
-  | z = zero
-  | id-l _ = refl
-  | id-r = +-zero
-
-def Monoid-Nat-* : Monoid Nat = struct
-  | op = mult
-  | assoc n m p = (elim n with
-    | zero => refl
-    | suc (n / ih) => match ih with
-      | refl i => ?
-
-  )
-  | z = one
-  | id-l = (\elim zero => refl | suc (_ / ih) => match ih with refl i => refl)
-  | id-r = (\elim zero => refl | suc (_ / ih) => match ih with refl i => refl)
+def Monoid-Nat-+ : Monoid Nat => struct
+  | op => +
+  | assoc => +-assoc
+  | z => zero
+  | id-l _ => refl
+  | id-r => +-zero

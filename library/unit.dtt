@@ -1,7 +1,7 @@
-def Unit : Type = sig
+def Unit : Type => sig
 
-def <> : Unit = struct
+def <> : Unit => struct
 
-def Unit-Ind (P : Unit -> Type) (p : P <>) (x : Unit) : P x = p
+def Unit-Ind (P : Unit -> Type) (p : P <>) (x : Unit) : P x => p
 
-def Unit-Eta (x : Unit) : Id Unit <> x = refl
+def Unit-Eta (x : Unit) : Id Unit <> x => refl

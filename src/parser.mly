@@ -32,7 +32,7 @@ let new_hole () = hole_count := (!hole_count) + 1; Int.to_string (!hole_count)
 %token Type Caret
 %token Colon Semicolon
 %token Underbar
-%token Id DoubleEqual Refl
+%token Id Refl
 %token Match With Bar At
 %token Data Elim F_slash
 %token Def Equal Axiom
@@ -41,7 +41,7 @@ let new_hole () = hole_count := (!hole_count) + 1; Int.to_string (!hole_count)
 
 
 %right Arrow
-%right DoubleEqual
+%right Equal
 %right Star
 
 %type <Concrete_syntax.cmd list> init
@@ -61,9 +61,9 @@ let init := ~ = nonempty_list(cmd); Eof; <>
 
 
 let cmd := 
-  | Def; ~ = bound_name; Equal; ~ = m(term); <Concrete_syntax.Def>
-  | Def; x = bound_name; Colon; tp = m(term); Equal; tm = m(term); { Concrete_syntax.Def (x, Mark.naked @@ Concrete_syntax.Ascribe {tp ; tm}) } 
-  | Def; x = bound_name; args = nonempty_list(paren(annot_args)); Colon; t = m(term); Equal; e = m(term); 
+  | Def; ~ = bound_name; Thick_arrow; ~ = m(term); <Concrete_syntax.Def>
+  | Def; x = bound_name; Colon; tp = m(term); Thick_arrow; tm = m(term); { Concrete_syntax.Def (x, Mark.naked @@ Concrete_syntax.Ascribe {tp ; tm}) } 
+  | Def; x = bound_name; args = nonempty_list(paren(annot_args)); Colon; t = m(term); Thick_arrow; e = m(term); 
     { let tm,tp = func_syntax (args,t,e) in
       Concrete_syntax.Def (x,Mark.naked @@ Concrete_syntax.Ascribe {tm ; tp}) 
     }
@@ -75,7 +75,7 @@ let cmd :=
 let data_def :=
   | Data; params = list(paren(annot_args)); name = bound_name; lvl = data_def_lvl; 
     { Concrete_syntax.Data {name ; cons = [] ; params = args_to_tele params ; lvl}}
-  | Data; params = list(paren(annot_args)); name = bound_name; lvl = data_def_lvl; Equal;
+  | Data; params = list(paren(annot_args)); name = bound_name; lvl = data_def_lvl; Thick_arrow;
     option(Bar); cons = separated_nonempty_list(Bar,con);
       { Concrete_syntax.Data {name ; cons ; params = args_to_tele params ; lvl}}
 
@@ -123,7 +123,7 @@ let nonempty_spine :=
   | ~ = spine; ~ = m(atomic); <Concrete_syntax.Snoc>
 
 let record_term :=
-  | f = Ident; xs = list(bound_name); Equal; e = m(term); 
+  | f = Ident; xs = list(bound_name); Thick_arrow; e = m(term); 
     { match xs with
         | [] -> (f,e)
         | _  -> (f, Mark.mark_opt (Concrete_syntax.Lam (xs,e)) (Mark.src_span e)) 
@@ -146,15 +146,15 @@ let term :=
   | Sig; Extends; exts = separated_list(Comma,m(term)); Bar; fs = separated_list(Bar,record_type); { Concrete_syntax.RecordTy {extends = exts ; fields = fs}}
   | Struct; option(Bar); fs = separated_list(Bar,record_term); { Concrete_syntax.Record {extends = [] ; fields = fs} }
   | Struct; Extends; exts = separated_list(Comma,m(term)); Bar; fs = separated_list(Bar,record_term); { Concrete_syntax.Record {extends = exts ; fields = fs}}
-  | e1 = m(term); DoubleEqual; e2 = m(term); { Concrete_syntax.Eq (e1,e2) }
+  | e1 = m(term); Equal; e2 = m(term); { Concrete_syntax.Eq (e1,e2) }
 
-  | Let; x = bound_name; Equal; e1 = m(term); In; e2 = m(term);
+  | Let; x = bound_name; Thick_arrow; e1 = m(term); In; e2 = m(term);
      {Concrete_syntax.Let ((x,e1),e2) }
 
-  | Let; x = bound_name; Colon; t = m(term); Equal; e1 = m(term); In; e2 = m(term); 
+  | Let; x = bound_name; Colon; t = m(term); Thick_arrow; e1 = m(term); In; e2 = m(term); 
     { Concrete_syntax.Let ((x,Mark.naked @@ Concrete_syntax.Ascribe {tm = e1 ; tp = t}),e2) } 
 
-  | Let; x = bound_name; args = nonempty_list(paren(annot_args)); Colon; t = m(term); Equal; e = m(term); In; e2 = m(term);
+  | Let; x = bound_name; args = nonempty_list(paren(annot_args)); Colon; t = m(term); Thick_arrow; e = m(term); In; e2 = m(term);
     { let tm,tp = func_syntax (args,t,e) in
       Concrete_syntax.Let ((x,Mark.naked @@ Concrete_syntax.Ascribe {tm ; tp}),e2) 
     }

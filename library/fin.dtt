@@ -3,23 +3,23 @@ import sum
 import unit
 import void
 
-def Fin : Nat -> Type = \elim
+def Fin : Nat -> Type => \elim
   | zero => Void
   | suc (_ / ih) => Sum Unit ih
 
-def fzero (n : Nat) : Fin (suc n) = inl <>
-def fsuc (n : Nat) (f : Fin n) : Fin (suc n) = inr f
+def fzero (n : Nat) : Fin (suc n) => inl <>
+def fsuc (n : Nat) (f : Fin n) : Fin (suc n) => inr f
 
 
 def Fin-Ind (P : (n : Nat) -> Fin n -> Type) (z : (n : Nat) -> P (suc n) (fzero n)) 
-            (s : (n : Nat) (f : Fin n) -> P n f -> P (suc n) (fsuc n f)) : (n : Nat) (f : Fin n) -> P n f = \elim
+            (s : (n : Nat) (f : Fin n) -> P n f -> P (suc n) (fsuc n f)) : (n : Nat) (f : Fin n) -> P n f => \elim
   | zero => (\elim)
   | suc (n / ih) => \elim
     | inl x => z n
     | inr m => s n m (ih m)
 
 {-
-def f+ : (n m : Nat) (x : Fin n) (y : Fin m) -> Fin (+ n m) = \elim
+def f+ : (n m : Nat) (x : Fin n) (y : Fin m) -> Fin (+ n m) => \elim
   | zero => \ _ => (\elim)
   | suc n => \elim
     | zero => \ _ => (\elim)

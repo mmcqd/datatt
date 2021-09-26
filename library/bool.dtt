@@ -2,54 +2,54 @@ import id
 import unit
 import void
 
-data Bool =
+data Bool =>
   | tt
   | ff
 
 
 {- The traditional proof that tt != ff -}
-def no-confusion-Bool : Not (Id Bool tt ff) = \ p =>
+def no-confusion-Bool : Not (Id Bool tt ff) => \ p =>
   subst Bool tt ff p (\elim tt => Unit | ff => Void) <>
 
 {- Some syntactic sugar, which we know is consistent because the above proof is possible -}
-def no-confusion-Bool : Not (Id Bool tt ff) = \ ()
+def no-confusion-Bool : Not (Id Bool tt ff) => \ ()
 
 
-def Bool-Ind (P : Bool -> Type) (t : P tt) (f : P ff) : (b : Bool) -> P b = \elim
+def Bool-Ind (P : Bool -> Type) (t : P tt) (f : P ff) : (b : Bool) -> P b => \elim
   | tt => t
   | ff => f
 
-def not : Bool -> Bool = \elim
+def not : Bool -> Bool => \elim
   | tt => ff
   | ff => tt
 
 
-def and (a b : Bool) : Bool = elim a with
+def and (a b : Bool) : Bool => elim a with
   | tt => b
   | ff => ff
 
-def or (a b : Bool) : Bool = elim a with
+def or (a b : Bool) : Bool => elim a with
   | tt => tt
   | ff => b
 
 
-def not-not : (b : Bool) -> b == not (not b) = \elim
+def not-not : (b : Bool) -> b = not (not b) => \elim
   | tt => refl
   | ff => refl
 
-def demorgan1 (a b : Bool) : not (and a b) == or (not a) (not b) = elim a with
+def demorgan1 (a b : Bool) : not (and a b) = or (not a) (not b) => elim a with
   | tt => refl
   | ff => refl
 
-def demorgan2 (a b : Bool) : not (or a b) == and (not a) (not b) = elim a with
+def demorgan2 (a b : Bool) : not (or a b) = and (not a) (not b) => elim a with
   | tt => refl
   | ff => refl
 
-def lift : Bool -> Type = \elim
+def lift : Bool -> Type => \elim
   | tt => Unit
   | ff => Void
 
-def split (A B : Type) : Bool -> Type = \elim 
+def split (A B : Type) : Bool -> Type => \elim 
   | tt => A 
   | ff => B
 

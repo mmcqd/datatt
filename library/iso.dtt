@@ -12,74 +12,74 @@ import hott
 
 
 
-def Iso (A B : Type) : Type = sig
+def Iso (A B : Type) : Type => sig
   | f : A -> B
   | g : B -> A
-  | gf : (x : A) -> x == g (f x)
-  | fg : (y : B) -> y == f (g y)
+  | gf : (x : A) -> x = g (f x)
+  | fg : (y : B) -> y = f (g y)
 
-def iso-refl (A : Type) : Iso A A = struct
-  | f = \ x => x
-  | g = \ x => x
-  | gf = \ _ => refl
-  | fg = \ _ => refl
+def iso-refl (A : Type) : Iso A A => struct
+  | f => \ x => x
+  | g => \ x => x
+  | gf => \ _ => refl
+  | fg => \ _ => refl
 
 
-def iso-comm (A B : Type) : Iso (Iso A B) (Iso B A) = struct
-  | f = \ i => (struct f = i.g | g = i.f | gf = i.fg | fg = i.gf)
-  | g = \ i => (struct f = i.g | g = i.f | gf = i.fg | fg = i.gf)
-  | gf = \ i => refl
-  | fg = \ i => refl
+def iso-comm (A B : Type) : Iso (Iso A B) (Iso B A) => struct
+  | f => \ i => (struct f => i.g | g => i.f | gf => i.fg | fg => i.gf)
+  | g => \ i => (struct f => i.g | g => i.f | gf => i.fg | fg => i.gf)
+  | gf => \ i => refl
+  | fg => \ i => refl
 
-def iso/*-comm (A B : Type) : Iso (A * B) (B * A) = struct
-  | f = \p => (p.2,p.1)
-  | g = \p => (p.2,p.1)
-  | gf = \ p => refl
-  | fg = \ p => refl
+def iso/*-comm (A B : Type) : Iso (A * B) (B * A) => struct
+  | f => \p => (p.2,p.1)
+  | g => \p => (p.2,p.1)
+  | gf => \ p => refl
+  | fg => \ p => refl
 
-def iso/Sum-comm (A B : Type) : Iso (Sum A B) (Sum B A) = struct
-  | f = (\elim inl x => inr x | inr y => inl y)
-  | g = (\elim inl x => inr x | inr y => inl y)
-  | gf = (\elim inl _ => refl | inr _ => refl)
-  | fg = (\elim inl _ => refl | inr _ => refl)
+def iso/Sum-comm (A B : Type) : Iso (Sum A B) (Sum B A) => struct
+  | f => (\elim inl x => inr x | inr y => inl y)
+  | g => (\elim inl x => inr x | inr y => inl y)
+  | gf => (\elim inl _ => refl | inr _ => refl)
+  | fg => (\elim inl _ => refl | inr _ => refl)
   
 
-def iso/*-ident-r (A : Type) : Iso A (A * Unit) = struct
-  | f = \ x => (x , <>) 
-  | g = \ p => p.1 
-  | gf = \ _ => refl 
-  | fg = \ p => refl
+def iso/*-ident-r (A : Type) : Iso A (A * Unit) => struct
+  | f => \ x => (x , <>) 
+  | g => \ p => p.1 
+  | gf => \ _ => refl 
+  | fg => \ p => refl
   
 
-def iso/Sum-ident-r (A : Type) : Iso A (Sum A Void) = struct
-  | f = \ a => inl a
-  | g = (\elim inl a => a | inr v => elim v with)
-  | gf = \ _ => refl
-  | fg = (\elim inl a => refl | inr v => elim v with)
+def iso/Sum-ident-r (A : Type) : Iso A (Sum A Void) => struct
+  | f => \ a => inl a
+  | g => (\elim inl a => a | inr v => elim v with)
+  | gf => \ _ => refl
+  | fg => (\elim inl a => refl | inr v => elim v with)
   
 
-def iso/*-destroy-r (A : Type) : Iso (A * Void) Void = struct
-  | f = \ p => p.2
-  | g = (\elim)
-  | gf =  \ p => (elim p.2 with)
-  | fg = (\elim)
+def iso/*-destroy-r (A : Type) : Iso (A * Void) Void => struct
+  | f => \ p => p.2
+  | g => (\elim)
+  | gf =>  \ p => (elim p.2 with)
+  | fg => (\elim)
 
 
-def iso/Bool/Unit+Unit : Iso Bool (Sum Unit Unit) = struct
-  | f = (\elim tt => inl <> | ff => inr <>)
-  | g = (\elim inl _ => tt | inr _ => ff)
-  | gf = (\elim tt => refl | ff => refl)
-  | fg = (\elim inl x => refl | inr x => refl)
+def iso/Bool/Unit+Unit : Iso Bool (Sum Unit Unit) => struct
+  | f => (\elim tt => inl <> | ff => inr <>)
+  | g => (\elim inl _ => tt | inr _ => ff)
+  | gf => (\elim tt => refl | ff => refl)
+  | fg => (\elim inl x => refl | inr x => refl)
 
 
-def iso/curryD (A : Type) (B : A -> Type) (C : (x : A) -> B x -> Type) : Iso ((x : A) (y : B x) -> C x y) ((p : (x : A) * B x) -> C p.1 p.2) = struct
-  | f h p = h p.1 p.2
-  | g h x y = h (x,y)
-  | gf _ = refl
-  | fg _ = refl
+def iso/curryD (A : Type) (B : A -> Type) (C : (x : A) -> B x -> Type) : Iso ((x : A) (y : B x) -> C x y) ((p : (x : A) * B x) -> C p.1 p.2) => struct
+  | f h p => h p.1 p.2
+  | g h x y => h (x,y)
+  | gf _ => refl
+  | fg _ => refl
 
 {-
-def iso/*/Sg (A : Type) (B : A -> Type) : Iso ((x : A) * B x) (Sg A B) = 
+def iso/*/Sg (A : Type) (B : A -> Type) : Iso ((x : A) * B x) (Sg A B) => 
   ( \ p => pair p.1 p.2
   , \elim pair x y => (x,y)
   , \ _ => refl
@@ -87,7 +87,7 @@ def iso/*/Sg (A : Type) (B : A -> Type) : Iso ((x : A) * B x) (Sg A B) =
   )
 
 
-def iso/*/ProdP (A B : Type) : Iso (A * B) (ProdP A B) =
+def iso/*/ProdP (A B : Type) : Iso (A * B) (ProdP A B) =>
   ( \ p => pairP A B p.1 p.2
   , \ p => (fstP (A) B p, sndP A B p) 
   , \ _ => refl
@@ -95,11 +95,11 @@ def iso/*/ProdP (A B : Type) : Iso (A * B) (ProdP A B) =
   )
 
 
-def iso/SumS/Sum (A B : Type) : Iso (SumS A B) (Sum A B) = 
-  let f = uncurryd Bool (split A B) (\ _ => Sum A B) (\elim tt => \ x => inl x | ff => \ x => inr x) in
-  let g : Sum A B -> SumS A B = \elim inl x => (tt,x) | inr x => (ff,x) in
-  let fg : (s : Sum A B) -> s == f (g s) = \elim inl x => refl | inr x => refl in
-  let gf = uncurryd Bool (split A B) (\ p => p == g (f p)) 
+def iso/SumS/Sum (A B : Type) : Iso (SumS A B) (Sum A B) => 
+  let f => uncurryd Bool (split A B) (\ _ => Sum A B) (\elim tt => \ x => inl x | ff => \ x => inr x) in
+  let g : Sum A B -> SumS A B => \elim inl x => (tt,x) | inr x => (ff,x) in
+  let fg : (s : Sum A B) -> s = f (g s) => \elim inl x => refl | inr x => refl in
+  let gf => uncurryd Bool (split A B) (\ p => p = g (f p)) 
     (\elim tt => \ n => refl | ff => \ n => refl) in
   ( f 
   , g
@@ -108,7 +108,7 @@ def iso/SumS/Sum (A B : Type) : Iso (SumS A B) (Sum A B) =
   )
 
 
-def iso/Nat/ListUnit : Iso Nat (List Unit) =
+def iso/Nat/ListUnit : Iso Nat (List Unit) =>
   ( \elim zero => nil | suc (_ / ih) => cons <> ih
   , \elim nil => zero | cons _ (_ / ih) => suc ih
   , \elim zero => refl | suc (n / ih) => match ih with refl j => refl
@@ -116,7 +116,7 @@ def iso/Nat/ListUnit : Iso Nat (List Unit) =
   )
 
 
-def iso/Nat/Nat+1 : Iso Nat (Sum Unit Nat) =
+def iso/Nat/Nat+1 : Iso Nat (Sum Unit Nat) =>
   ( \elim zero => inl <> | suc (n / ih) => inr n
   , \elim inl x => zero | inr n => suc n
   , \elim zero => refl | suc (n / ih) => refl
@@ -124,21 +124,21 @@ def iso/Nat/Nat+1 : Iso Nat (Sum Unit Nat) =
   )
 
 
-def iso/Bool/Fin2 : Iso Bool (Fin two) = 
+def iso/Bool/Fin2 : Iso Bool (Fin two) => 
   ( \elim tt => inl <> | ff => inr (inl <>)
   , \elim inl _ => tt | inr x => elim x with inl _ => ff | inr v => elim v with
   , \elim tt => refl | ff => refl
   , \elim inl x => (elim x with <> => refl) | inr x => elim x with inl x => (elim x with <> => refl) | inr v => elim v with
   )
 
-def iso/Contr/Unit (A : Type) (c : Contr A) : Iso A Unit = 
+def iso/Contr/Unit (A : Type) (c : Contr A) : Iso A Unit => 
   ( \ _ => <>
   , \ _ => c.1
   , \ x => sym A c.1 x (c.2 x) 
   , \elim <> => refl
   )
 
-def iso/curry (A B C : Type) : Iso (A -> B -> C) (A * B -> C) =
+def iso/curry (A B C : Type) : Iso (A -> B -> C) (A * B -> C) =>
   ( uncurry (A) B C
   , curry (A) B C
   , \ f => refl
