@@ -36,12 +36,11 @@ def trans-refl (A : Type) (x y : A) (p : x == y) : trans A x y y p refl == p =
     | refl _ => refl
 
 def refl-trans (A : Type) (x y : A) (p : x == y) : trans A x x y refl p == p =
-  match p with
-    | refl _ => refl
+  refl
 
 def sym-sym (A : Type) (x y : A) (p : x == y) : sym A y x (sym A x y p) == p =
   match p with
-    | refl _ => refl
+    | refl i => refl
 
 def sym-inverse (A : Type) (x y : A) (p : x == y) : refl == trans A y x y (sym A x y p) p =
   match p with

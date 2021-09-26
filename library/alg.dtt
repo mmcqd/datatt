@@ -18,4 +18,3 @@ def Monoid (M : Type) : Type = sig extends Semigroup M
   | z : M
   | id-l : Id-L M op z
   | id-r : Id-R M op z
-
