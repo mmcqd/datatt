@@ -64,23 +64,9 @@ and spec =
   | Tp of Syntax.t
 
 
-and desc = {name : string ; cons : spec bnd list bnd list ; params : Syntax.t bnd list ; env : env ; lvl : Level.t}
+and desc = {name : string ; cons : spec bnd list bnd list ; params : Syntax.t bnd list ; env : env ; lvl : Level.t ; tm : Syntax.t ; tp : Syntax.t}
 
 [@@@ocaml.warning "+30"]
-
-
-let rec params_to_pi lvl = function
-  | [] -> Syntax.U lvl
-  | (x,t)::ps -> Syntax.Pi ((x,t),params_to_pi lvl ps)
-
-
-let rec params_to_lam name acc = function
-  | [] -> Syntax.Data {name ; params = List.rev acc}
-  | (x,_)::ps -> Syntax.Lam (x,params_to_lam name (Var x::acc) ps )
-
-let params_to_dlam env (desc : desc) = function
-  | [] -> Data {desc ; params = []}
-  | (x,_)::ps -> Lam {name = x ; env = env ; tm = params_to_lam desc.name [Var x] ps}
 
 
 module Env =
@@ -88,14 +74,13 @@ module Env =
     type t = env
 
     let set env ~key ~data = String.Map.set env ~key ~data:(Tm data)
-  
-    let set_data env ~var ~(data : desc) = String.Map.set env ~key:var ~data:(Desc data)
+
 
     let find_exn (env : env) (s : string) : dom =
       match String.Map.find_exn env s with
-        | Tm tm -> tm
+        | Tm tm
         | Def {tm;_} -> tm
-        | Desc d -> params_to_dlam env d d.params
+        | Desc _ -> failwith "find_exn"
 
     let find_def_exn (env : env) (s : string) : nf =
       match String.Map.find_exn env s with
@@ -105,7 +90,7 @@ module Env =
     let find_data_exn (env : env) (s : string) : desc =
       match String.Map.find_exn env s with
         | Tm _ | Def _ -> failwith "find_data_exn - env"
-        | Desc d -> d
+        | Desc desc -> desc
 
     let key_set = String.Map.key_set
   end

@@ -2,6 +2,7 @@ open Core
 module Dom = Domain
 module Syn = Syntax
 
+
 type entry = 
   | Def of {tm : Dom.t ; tp : Dom.t}
   | Let of {tm : Dom.t ; tp : Dom.t}
@@ -12,13 +13,13 @@ type t = entry String.Map.t
 
 let empty = String.Map.empty
 
+
 let to_env : t -> Dom.Env.t = String.Map.mapi ~f:(fun ~key ~data -> 
   match data with 
     | Var tp -> Dom.Tm (Dom.Neutral {ne = Var key ; tp})
     | Def {tm ; tp} -> Def {tm ; tp} 
-    | Let {tm ; _}-> Tm tm
-    | Data d -> Desc d
-  )
+    | Let {tm ; _} -> Tm tm
+    | Data desc -> Desc desc)
 
 let to_names = String.Map.key_set
 
@@ -35,12 +36,12 @@ let find_tp ctx x =
   match String.Map.find ctx x with
     | None -> None
     | Some ((Var tp) | Def {tp ; _} | Let {tp ; _}) -> Some tp
-    | Some (Data d) -> Some (Nbe.eval d.env (Dom.params_to_pi d.lvl d.params))
+    | Some (Data d) -> Some (Nbe.eval (to_env ctx) d.tp)
 
 let find_def_tp ctx x = 
   match String.Map.find ctx x with
     | Some (Def {tp ; _}) -> Some tp
-    | Some (Data d) -> Some (Nbe.eval d.env (Dom.params_to_pi d.lvl d.params))
+    | Some (Data d) -> Some (Nbe.eval (to_env ctx) d.tp)
     | _ -> None
 
 let find_data ctx d =

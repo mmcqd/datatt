@@ -13,9 +13,14 @@ let var x tp = Dom.Neutral {ne = Var x ; tp}
 let rec eval (env : Dom.env) (s : Syn.t) : Dom.t =
   (* printf "EVAL %s\n" (Syn.show s); *)
   match s with
-    | Var x -> Dom.Env.find_exn env x
+    | Var x -> (try Dom.Env.find_exn env x with
+      _ -> eval env (Dom.Env.find_data_exn env x).tm
+      )
     | Lift {name ; lvl} -> 
-        let Dom.{tm;tp} = Dom.Env.find_def_exn env name in
+        let Dom.{tm;tp} : Dom.nf = try Dom.Env.find_def_exn env name with _ -> 
+          let d = Dom.Env.find_data_exn env name in
+          {tm = eval env d.tm ; tp = eval env d.tp}
+        in
         eval env (Syn.lift lvl (read_back (Dom.Env.key_set env) tm tp))
     | U i -> U i
     | Pi ((x,d),r) -> Pi (eval env d,{name = x ; tm = r ; env})

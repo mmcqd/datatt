@@ -334,6 +334,24 @@ and collect_elim_args pos mot args dtele (desc,params) ctx =
     | _ -> error (sprintf "%s - Elim arm has incorrect number of args" pos)
 
 
+
+let rec params_to_pi lvl = function
+  | [] -> Syn.U lvl
+  | (x,t)::ps -> Syn.Pi ((x,t),params_to_pi lvl ps)
+
+let params_to_dpi lvl env = function
+  | [] -> Dom.U lvl
+  | (x,t)::ps -> Dom.Pi (Nbe.eval env t,{name = x ; tm = params_to_pi lvl ps ; env})
+
+let rec params_to_lam name acc = function
+  | [] -> Syntax.Data {name ; params = List.rev acc}
+  | (x,_)::ps -> Syntax.Lam (x,params_to_lam name (Var x::acc) ps )
+
+let params_to_dlam env (desc : Dom.desc) = function
+  | [] -> Dom.Data {desc ; params = []}
+  | (x,_)::ps -> Lam {name = x ; env = env ; tm = params_to_lam desc.name [Var x] ps}
+
+
 let rec elab_data ctx dname (cons : CSyn.t bnd list bnd list) (params : CSyn.t bnd list) lvl : Dom.desc =
   let ps,pctx = elab_params ctx params in
   { name = dname 
@@ -342,6 +360,8 @@ let rec elab_data ctx dname (cons : CSyn.t bnd list bnd list) (params : CSyn.t b
   ; cons = sort_cons @@ 
            List.map ~f:(fun (con,args) -> con,elab_con (Ctx.add pctx ~var:dname ~tp:(U (Const 0))) lvl dname args) cons 
   ; lvl
+  ; tm = params_to_lam dname [] ps
+  ; tp = params_to_pi lvl ps
   }
 
 
