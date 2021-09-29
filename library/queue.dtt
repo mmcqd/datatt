@@ -43,10 +43,10 @@ def Bisimilar-Queues (A : Type) : Bisimilar Queue1 Queue2 A => struct
   | emp => refl
   | enq q1 q2 Rq1q2 x => match Rq1q2 with refl i => refl
   | deq => \elim
-    | nil => \q2 r => (elim q2.In with
+    | nil => \q2 => (elim q2.In with
       | nil => (elim q2.Out with
-        | nil => inl (refl,refl)
-        | cons x (xs / ih) => ?
+        | nil => \r => inl (refl,refl)
+        | cons x (xs / ih) => \r => ?
       )
       | cons x xs => ?
     )

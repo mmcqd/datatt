@@ -35,6 +35,13 @@ def exp (n m : Nat) : Nat => elim m with
   | zero => one
   | suc (_ / ih) => mult n ih
 
+def /2 : Nat -> Nat => \elim
+  | zero => zero
+  | suc n => elim n with
+    | zero => zero
+    | suc (n / ih) => suc ih
+
+
 def +-assoc : Assoc Nat + => \ n m p => elim n with
   | zero => refl
   | suc (_ / ih) => match ih with

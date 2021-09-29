@@ -9,7 +9,7 @@ import sg
 import dep_encode
 import fn
 import hott
-
+import int
 
 
 def Iso (A B : Type) : Type => sig
@@ -77,6 +77,24 @@ def iso/curryD (A : Type) (B : A -> Type) (C : (x : A) -> B x -> Type) : Iso ((x
   | g h x y => h (x,y)
   | gf _ => refl
   | fg _ => refl
+
+
+
+0  0
+1  1
+2  -1
+3  2
+4  -2
+5  3
+
+def iso/Nat/Int : Iso Nat Int => struct
+  | f => (\elim
+    | zero => z
+    | suc n => ?
+  ) 
+  | g => ?
+  | gf => ?
+  | fg => ?
 
 {-
 def iso/*/Sg (A : Type) (B : A -> Type) : Iso ((x : A) * B x) (Sg A B) => 

@@ -92,7 +92,7 @@ let rec pp_term (e : t) : string =
     | Refl x -> sprintf "refl %s" (pp_atomic x)
     | Let ((x,e1),e2) -> sprintf "let %s = %s in %s" x (pp_term e1) (pp_term e2)
     | RecordTy (f::fs) -> "Σ "^pp_record ":" (f::fs)
-    | Record (f::fs) -> "σ "^pp_record "=" (f::fs)
+    | Record (f::fs) -> "σ "^pp_record "⇒" (f::fs)
     | _ -> pp_atomic e 
 
 and pp_record sep = function
@@ -113,8 +113,8 @@ and pp_arms = function
 
 and pp_arm (con,(args,arm)) =
   match args with
-    | [] -> sprintf "| %s => %s" con (pp_term arm)
-    | _  -> sprintf "| %s %s => %s" con (pp_arm_args args) (pp_term arm)
+    | [] -> sprintf "| %s ⇒ %s" con (pp_term arm)
+    | _  -> sprintf "| %s %s ⇒ %s" con (pp_arm_args args) (pp_term arm)
 
 and pp_arm_arg = function
   | `Arg x -> x

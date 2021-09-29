@@ -83,22 +83,18 @@ let rec check (ctx : Ctx.t) (cs : CSyn.t) (tp : Dom.t) : Syn.t =
     | Tuple (x::xs),Sg (f,clos) -> 
       let x' = check ctx x f in
       Pair (x',check ctx (Mark.naked @@ Tuple xs) (Nbe.do_clos clos (Nbe.eval (Ctx.to_env ctx) x')))
-    | Var con,Data {desc ; params} when (match Ctx.find_tp ctx con with Some _ -> false | _ -> true) ->
-      begin
-      match List.Assoc.find ~equal:String.equal desc.cons con with
-        | None -> error (sprintf "%s - %s is not a constructor for type %s" (Mark.show cs) con (Syn.show (Nbe.read_back (Ctx.to_names ctx) tp (U Omega))))
-        | Some dtele -> Intro {name = con ; args = check_intro_args ctx [] dtele (Nbe.apply_params desc desc.params params,params)}
-      end
+    | Var con,Data {desc ; params} when List.Assoc.mem ~equal:String.equal desc.cons con ->
+      let dtele = List.Assoc.find_exn ~equal:String.equal desc.cons con in
+       Intro {name = con ; args = check_intro_args ctx [] dtele (Nbe.apply_params desc desc.params params,params)}
+      
     | Spine (f,args),Data {desc ; params} -> 
       begin
       match Mark.data f with
-        | Var con when (match Ctx.find_tp ctx con with Some Pi _ -> false | _ -> true) ->
+        | Var con when List.Assoc.mem ~equal:String.equal desc.cons con ->
           begin
-          match List.Assoc.find ~equal:String.equal desc.cons con with
-            | None -> error (sprintf "%s - %s is not a constructor for type %s" (Mark.show cs) con desc.name)
-            | Some dtele -> 
-              try Intro {name = con ; args = check_intro_args ctx (CSyn.spine_to_list args) dtele (Nbe.apply_params desc desc.params params,params)} with
-                | TypeError s -> error (sprintf "%s - %s" (Mark.show cs) s)
+          let dtele = List.Assoc.find_exn ~equal:String.equal desc.cons con in
+          try Intro {name = con ; args = check_intro_args ctx (CSyn.spine_to_list args) dtele (Nbe.apply_params desc desc.params params,params)} with
+            | TypeError s -> error (sprintf "%s - %s" (Mark.show cs) s)
           end
         | _ -> mode_switch ctx cs tp
       end

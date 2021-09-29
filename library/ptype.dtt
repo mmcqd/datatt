@@ -3,7 +3,7 @@ import unit
 import nat
 import bool
 
-def PType : Type^1 => sig
+def PType : Type^1 => sig 
   | t  : Type
   | pt : t
 

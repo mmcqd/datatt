@@ -1,0 +1,32 @@
+import nat
+
+data Int =>
+  | zero
+  | psuc (n : Int)
+  | nsuc (n : Int)
+
+def normalize : Int -> Int => \elim
+  | zero => zero
+  | nsuc (n / ih) => (elim ih with
+    | psuc n => n
+    | zero => nsuc zero
+    | nsuc n => nsuc (nsuc n)
+  )
+  | psuc (n / ih) => (elim ih with
+    | nsuc n => n
+    | zero => psuc zero
+    | psuc n => psuc (psuc n)
+  )
+
+def psuc (i : Int) : Int => normalize (psuc i)
+def nsuc (i : Int) : Int => normalize (nsuc i)
+
+
+def ipred (n : Int) : Int => normalize (nsuc n)
+
+def i+ (n m : Int) : Int => normalize (elim n with
+  | nsuc (n / ih) => nsuc ih 
+  | zero => m
+  | psuc (n / ih) => psuc ih)
+
+
