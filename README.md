@@ -19,8 +19,8 @@ datatt is an implementation of a dependent type theory with user defined datatyp
 * Top-level definitions : `def one : Nat = suc zero`
 * Dependent elimination for datatypes :
   ```
-  def + (m n : Nat) : Nat => elim n with
-    | zero => n
+  def + (n m : Nat) : Nat => elim n with
+    | zero => m
     | suc (m' / ih) => suc ih
    
   def +-zero : (n : Nat) -> + n zero = n => \elim
