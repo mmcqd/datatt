@@ -28,7 +28,7 @@ Check out the library directory for some fun stuff.
     | zero => refl
     | suc (n' / ih) => match ih with refl i => refl
 * First class dependent records : `(struct fst = zero | snd = refl) : (sig fst : Nat | snd : fst = zero)`
-* A countable, cumulative hierachy of struct Russel-style universes : `Type : Type^1`, `Type : Type^2`,`Type^1 : Type^2`, etc
+* A countable, cumulative hierachy of strict Russel-style universes : `Type : Type^1`, `Type : Type^2`,`Type^1 : Type^2`, etc
 * Basic level polymorphism via McBride's "crude but effective stratification" : 
   ```
   def xs : List^1 Type = cons Nat nil
