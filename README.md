@@ -41,6 +41,9 @@ Check out the library directory for some fun stuff. In `hott.dtt` I've translate
   
   -- All good
   def z : Nat => zero
+  
+  def xs : List Nat = cons zero (cons (suc zero) nil)
+  
 * Dependent elimination for datatypes.
   ```
   -- Eliminate a variable in the context
