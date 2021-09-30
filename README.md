@@ -1,7 +1,7 @@
 # datatt
 
 datatt is an implementation of a dependent type theory with user defined datatypes.
-Check out the library directory for some fun stuff.
+Check out the library directory for some fun stuff. In `hott.dtt` I've translated an Agda proof of Hedberg's Theorem, that any type `A` with decidable equality is a Set, meaning that all proofs of equality between elements of `A` are themselves equal.
 
 ## Features
 
@@ -89,5 +89,10 @@ Check out the library directory for some fun stuff.
   def xs : List^1 Type = cons Nat nil
   def f (x : Type) : Type = x
   def g : Type^2 -> Type^2 = f^2
-
+* A (very basic) "module" system, allowing definitions to be imported from other files. There are no actual modules, and an import simply bring all definitions    from the imported file into scope, unqualified
+  ```
+  import nat
+  import bool
+  
+  def p : Nat * Bool = (zero,tt)
   
