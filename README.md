@@ -54,6 +54,10 @@ Check out the library directory for some fun stuff.
     | g x => x
     | gf _ => refl
     | fg _ => refl
+
+  def iso-refl-f : Nat -> Nat =
+    let r = iso-refl Nat in
+    r.f 
 * A countable, cumulative hierachy of strict Russel-style universes: 
   ````
   def a : Type^1 = Type
