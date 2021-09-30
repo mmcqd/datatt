@@ -17,8 +17,11 @@ Check out the library directory for some fun stuff. In `hott.dtt` I've translate
 
 * Identity types, with the J eliminator:
   ```
-  def 
+  -- Nice identity type syntax : x = y
   def reflexivity (A : Type) (x : A) : x = x => refl
+  
+  -- Uglier syntax, but provides a type to check against: Id A x y
+  def reflexivity' (A : Type) (x : A) : Id A x x => refl
   def symmetry (A : Type) (x y : A) (p : x = y) : y = x =>
     match p with
       | refl i => refl
