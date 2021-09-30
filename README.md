@@ -97,6 +97,6 @@ Check out the library directory for some fun stuff. In `hott.dtt` I've translate
   def p : Nat * Bool = (zero,tt)
 
 ## Known Parsing Annoyance
-Because of how parsing is implemented (using menhir), function application with parentheses will not parse properly. The parser thinks it's looking at a depedent function type with multiple arguments and gets confused when it can't find a `:`. To remedy this, just parenthesize the first argument: `(f x).proj ==> (f (x)).proj`. Having to do this is very silly, and I'd like to fix it. My next language will probably use a recursive descent parser.
+Because of how parsing is implemented, function application with parentheses will not parse properly. The parser thinks it's looking at a depedent function type with multiple arguments and gets confused when it can't find a `:`. To remedy this, just parenthesize the first argument: `(f x).proj ==> (f (x)).proj`. Having to do this is very silly, and I'd like to fix it. My next language will probably use a recursive descent parser.
 
   
