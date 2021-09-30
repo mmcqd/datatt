@@ -5,6 +5,10 @@ Check out the library directory for some fun stuff. In `hott.dtt` I've translate
 
 I took a lot of inspiration for this project from trying (and sometimes succeeding) to read the source code of [redtt](https://github.com/RedPRL/redtt).
 
+## Building
+
+You can build datatt by installing `dune` and then running `Make` in the datatt directory.
+
 ## Features
 
 * Dependent functions.
