@@ -58,6 +58,26 @@ Check out the library directory for some fun stuff.
   def iso-refl-f : Nat -> Nat =
     let r = iso-refl Nat in
     r.f 
+* Record Extension:
+  ```
+  def Functor (F : Type -> Type) : Type = sig
+    | map : (A B : Type) -> F A -> F B
+  
+  def Applicative (F : Type -> Type) : Type = sig extends Functor f
+    | pure : (A : Type) -> A -> F A
+    | <*> : (A B : Type) -> F (A -> B) -> F A -> F B
+
+  def Functor-Maybe : Functor Maybe = struct
+    | map A B f => (\elim none => none | some x => some (f x))
+  
+  def Applicative-Maybe : Applicative Maybe = struct extends Functor-Maybe
+    | pure x => some x
+    | <*> A B => \elim
+      | none => \ _ => none
+      | some f => \elim
+        | none => none
+        | some x => some (f x)
+  
 * A countable, cumulative hierachy of strict Russel-style universes: 
   ````
   def a : Type^1 = Type
