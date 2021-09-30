@@ -64,7 +64,7 @@ Check out the library directory for some fun stuff.
   def b : Type^2 = Type
   def c : Type^2 = Type^1
 
-* Basic level polymorphism via McBride's "crude but effective stratification" : 
+* Basic level polymorphism via McBride's "crude but effective stratification", where top-level definitions may be lifted to a higher universe: 
   ```
   def xs : List^1 Type = cons Nat nil
   def f (x : Type) : Type = x
