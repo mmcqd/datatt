@@ -17,11 +17,12 @@ Check out the library directory for some fun stuff. In `hott.dtt` I've translate
 
 * Identity types, with the J eliminator:
   ```
+  def 
   def reflexivity (A : Type) (x : A) : x = x => refl
   def symmetry (A : Type) (x y : A) (p : x = y) : y = x =>
     match p with
       | refl i => refl
-* User defined, parametric datatypes : 
+* User defined, parametric datatypes. Constructors can be overloaded, but their types cannot be synthesized, only checked): 
   ```
   data Nat => 
     | zero
@@ -30,6 +31,12 @@ Check out the library directory for some fun stuff. In `hott.dtt` I've translate
   data (A : Type) List => 
     | nil 
     | cons (x : A) (xs : List)
+   
+  -- Elaboration error!
+  def z = zero
+  
+  -- All good
+  def z : Nat = zero
 * Dependent elimination for datatypes:
   ```
   -- Eliminate a variable in the context
