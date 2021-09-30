@@ -26,7 +26,7 @@ Check out the library directory for some fun stuff. In `hott.dtt` I've translate
   def symmetry (A : Type) (x y : A) (p : x = y) : y = x =>
     match p with
       | refl i => refl
-* User defined, parametric datatypes. Constructors can be overloaded, but their types cannot be synthesized, only checked).
+* User defined, parametric datatypes. Constructors can be overloaded, but their types cannot be synthesized, only checked. When declaring a datatype, recursive references to the type being defined are left unapplied to their parameters, as can be seen in the definition of `List`.
   ```
   data Nat => 
     | zero
