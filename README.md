@@ -11,9 +11,9 @@ Check out the library directory for some fun stuff. In `hott.dtt` I've translate
   def f (x : A) : B x => e
 * Dependent pairs:
   ```
-  def p : (x : A) * B x = (fst , snd) 
-  def p_fst : A = p.1
-  def p_snd : B p.1 = p.2
+  def p : (x : A) * B x => (fst , snd) 
+  def p_fst : A => p.1
+  def p_snd : B p.1 => p.2
 
 * Identity types, with the J eliminator:
   ```
@@ -37,10 +37,10 @@ Check out the library directory for some fun stuff. In `hott.dtt` I've translate
     | cons (x : A) (xs : List)
    
   -- Elaboration error!
-  def z = zero
+  def z => zero
   
   -- All good
-  def z : Nat = zero
+  def z : Nat => zero
 * Dependent elimination for datatypes:
   ```
   -- Eliminate a variable in the context
@@ -54,34 +54,34 @@ Check out the library directory for some fun stuff. In `hott.dtt` I've translate
     | suc (n' / ih) => match ih with refl i => refl
 * First class dependent records:
   ```
-  def Iso (A B : Type) : Type = sig
+  def Iso (A B : Type) : Type => sig
     | f : A -> B
     | g : B -> A
     | gf : (x : A) -> g (f x) = x
     | fg : (y : B) -> f (g y) = y
   
-  def iso-refl (A : Type) : Iso A A = struct
+  def iso-refl (A : Type) : Iso A A => struct
     | f x => x
     | g x => x
     | gf _ => refl
     | fg _ => refl
 
-  def iso-refl-f : Nat -> Nat =
+  def iso-refl-f : Nat -> Nat =>
     let r = iso-refl Nat in
     r.f 
 * Record Extension (if there are duplicate fields, we simply keep the first one):
   ```
-  def Functor (F : Type -> Type) : Type = sig
+  def Functor (F : Type -> Type) : Type => sig
     | map : (A B : Type) -> F A -> F B
   
-  def Applicative (F : Type -> Type) : Type = sig extends Functor f
+  def Applicative (F : Type -> Type) : Type => sig extends Functor f
     | pure : (A : Type) -> A -> F A
     | <*> : (A B : Type) -> F (A -> B) -> F A -> F B
 
-  def Functor-Maybe : Functor Maybe = struct
+  def Functor-Maybe : Functor Maybe => struct
     | map A B f => (\elim none => none | some x => some (f x))
   
-  def Applicative-Maybe : Applicative Maybe = struct extends Functor-Maybe
+  def Applicative-Maybe : Applicative Maybe => struct extends Functor-Maybe
     | pure x => some x
     | <*> A B => \elim
       | none => \ _ => none
@@ -97,15 +97,31 @@ Check out the library directory for some fun stuff. In `hott.dtt` I've translate
 
 * Basic level polymorphism via McBride's "crude but effective stratification", where top-level definitions may be lifted to a higher universe: 
   ```
-  def xs : List^1 Type = cons Nat nil
-  def f (x : Type) : Type = x
-  def g : Type^2 -> Type^2 = f^2
+  def xs : List^1 Type => cons Nat nil
+  def f (x : Type) : Type => x
+  def g : Type^2 -> Type^2 => f^2
 * A (very basic) "module" system, allowing definitions to be imported from other files. There are no actual modules, and an import simply bring all definitions    from the imported file into scope, unqualified
   ```
   import nat
   import bool
   
   def p : Nat * Bool = (zero,tt)
+* Holes:
+  ```
+  def trans (A : Type) (x y z : A) (p : x = y) : y = z -> x = z => ?
+  
+  > ./datatt file.dtt
+  > Hole ?0 at 1.66-1.67:
+      A : Type
+      p : x = y
+      x : A
+      y : A
+      z : A
+
+    ⊢ y = z → x = z
+
+  
+
 
 ## Known Parsing Annoyance
 Because of how parsing is implemented, function application with parentheses will not parse properly. The parser thinks it's looking at a depedent function type with multiple arguments and gets confused when it can't find a `:`. To remedy this, just parenthesize the first argument: `(f x).proj ==> (f (x)).proj`. Having to do this is very silly, and I'd like to fix it. My next language will probably use a recursive descent parser.
