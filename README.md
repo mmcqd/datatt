@@ -9,7 +9,7 @@ Check out the library directory for some fun stuff.
   ```
   def f : (x : A) -> B x => \x => e
   def f (x : A) : B x => e
-* Dependent sums:
+* Dependent pairs:
   ```
   def p : (x : A) * B x = (fst , snd) 
   def p_fst : A = p.1
