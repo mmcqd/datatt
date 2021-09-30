@@ -3,6 +3,8 @@
 datatt is an implementation of a dependent type theory with user defined datatypes.
 Check out the library directory for some fun stuff. In `hott.dtt` I've translated an Agda proof of Hedberg's Theorem, that any type `A` with decidable equality is a Set, meaning that all proofs of equality between elements of `A` are themselves equal.
 
+I took a lot of inspiration for this project from trying (and sometimes succeeding) to read the source code of [redtt](https://github.com/RedPRL/redtt).
+
 ## Features
 
 * Dependent functions.
