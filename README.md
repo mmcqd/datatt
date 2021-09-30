@@ -58,7 +58,7 @@ Check out the library directory for some fun stuff. In `hott.dtt` I've translate
   def iso-refl-f : Nat -> Nat =
     let r = iso-refl Nat in
     r.f 
-* Record Extension:
+* Record Extension (if there are duplicate fields, we simply keep the first one):
   ```
   def Functor (F : Type -> Type) : Type = sig
     | map : (A B : Type) -> F A -> F B
