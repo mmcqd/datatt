@@ -114,7 +114,7 @@ You can build datatt by installing `dune` and then running `Make` in the datatt 
   import nat
   import bool
   
-  def p : Nat * Bool = (zero,tt)
+  def p : Nat * Bool => (zero,tt)
 * Holes. Terms containing holes will be defined even if you don't fill them, they just won't compute to anything.
   ```
   def trans (A : Type) (x y z : A) (p : x = y) : y = z -> x = z => ?
