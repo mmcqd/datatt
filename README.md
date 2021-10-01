@@ -100,9 +100,9 @@ You can build datatt by installing `dune` and then running `Make` in the datatt 
   
 * A countable, cumulative hierachy of strict Russel-style universes.
   ````
-  def a : Type^1 = Type
-  def b : Type^2 = Type
-  def c : Type^2 = Type^1
+  def a : Type^1 => Type
+  def b : Type^2 => Type
+  def c : Type^2 => Type^1
 
 * Basic level polymorphism via McBride's "crude but effective stratification", where top-level definitions may be lifted to a higher universe.
   ```
