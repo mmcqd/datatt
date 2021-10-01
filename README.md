@@ -48,7 +48,7 @@ You can build datatt by installing `dune` and then running `Make` in the datatt 
   -- All good
   def z : Nat => zero
   
-  def xs : List Nat = cons zero (cons (suc zero) nil)
+  def xs : List Nat => cons zero (cons (suc zero) nil)
   
 * Dependent elimination for datatypes.
   ```
@@ -109,7 +109,7 @@ You can build datatt by installing `dune` and then running `Make` in the datatt 
   def xs : List^1 Type => cons Nat nil
   def f (x : Type) : Type => x
   def g : Type^2 -> Type^2 => f^2
-* A (very basic) "module" system, allowing definitions to be imported from other files. There are no actual modules, and an import simply bring all definitions    from the imported file into scope, unqualified.
+* A (very basic) "module" system, allowing definitions to be imported from other files. There are no actual modules, and an import simply brings all definitions    from the imported file into scope, unqualified.
   ```
   import nat
   import bool
